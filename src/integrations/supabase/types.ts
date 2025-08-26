@@ -14,7 +14,232 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          location: string | null
+          updated_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          location?: string | null
+          updated_at?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          location?: string | null
+          updated_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      user_friendships: {
+        Row: {
+          addressee_id: string
+          created_at: string
+          id: string
+          requester_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          addressee_id: string
+          created_at?: string
+          id?: string
+          requester_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          addressee_id?: string
+          created_at?: string
+          id?: string
+          requester_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      wine_cellar: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          purchase_date: string | null
+          purchase_price: number | null
+          quantity: number
+          storage_location: string | null
+          updated_at: string
+          user_id: string
+          wine_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          purchase_date?: string | null
+          purchase_price?: number | null
+          quantity?: number
+          storage_location?: string | null
+          updated_at?: string
+          user_id: string
+          wine_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          purchase_date?: string | null
+          purchase_price?: number | null
+          quantity?: number
+          storage_location?: string | null
+          updated_at?: string
+          user_id?: string
+          wine_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wine_cellar_wine_id_fkey"
+            columns: ["wine_id"]
+            isOneToOne: false
+            referencedRelation: "wines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wine_ratings: {
+        Row: {
+          created_at: string
+          food_pairing: string | null
+          id: string
+          rating: number
+          tasting_date: string | null
+          tasting_notes: string | null
+          updated_at: string
+          user_id: string
+          wine_id: string
+        }
+        Insert: {
+          created_at?: string
+          food_pairing?: string | null
+          id?: string
+          rating: number
+          tasting_date?: string | null
+          tasting_notes?: string | null
+          updated_at?: string
+          user_id: string
+          wine_id: string
+        }
+        Update: {
+          created_at?: string
+          food_pairing?: string | null
+          id?: string
+          rating?: number
+          tasting_date?: string | null
+          tasting_notes?: string | null
+          updated_at?: string
+          user_id?: string
+          wine_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wine_ratings_wine_id_fkey"
+            columns: ["wine_id"]
+            isOneToOne: false
+            referencedRelation: "wines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wines: {
+        Row: {
+          alcohol_content: number | null
+          appellation: string | null
+          body: Database["public"]["Enums"]["wine_body"] | null
+          cellar_tracker_id: string | null
+          color: Database["public"]["Enums"]["wine_color"] | null
+          country: string
+          created_at: string
+          drink_from: number | null
+          drink_until: number | null
+          grape_varieties: string[] | null
+          id: string
+          name: string
+          producer: string
+          region: string | null
+          serving_temp_max: number | null
+          serving_temp_min: number | null
+          subregion: string | null
+          sweetness: Database["public"]["Enums"]["wine_sweetness"] | null
+          updated_at: string
+          vintage: number | null
+          wine_type: Database["public"]["Enums"]["wine_type"]
+        }
+        Insert: {
+          alcohol_content?: number | null
+          appellation?: string | null
+          body?: Database["public"]["Enums"]["wine_body"] | null
+          cellar_tracker_id?: string | null
+          color?: Database["public"]["Enums"]["wine_color"] | null
+          country: string
+          created_at?: string
+          drink_from?: number | null
+          drink_until?: number | null
+          grape_varieties?: string[] | null
+          id?: string
+          name: string
+          producer: string
+          region?: string | null
+          serving_temp_max?: number | null
+          serving_temp_min?: number | null
+          subregion?: string | null
+          sweetness?: Database["public"]["Enums"]["wine_sweetness"] | null
+          updated_at?: string
+          vintage?: number | null
+          wine_type: Database["public"]["Enums"]["wine_type"]
+        }
+        Update: {
+          alcohol_content?: number | null
+          appellation?: string | null
+          body?: Database["public"]["Enums"]["wine_body"] | null
+          cellar_tracker_id?: string | null
+          color?: Database["public"]["Enums"]["wine_color"] | null
+          country?: string
+          created_at?: string
+          drink_from?: number | null
+          drink_until?: number | null
+          grape_varieties?: string[] | null
+          id?: string
+          name?: string
+          producer?: string
+          region?: string | null
+          serving_temp_max?: number | null
+          serving_temp_min?: number | null
+          subregion?: string | null
+          sweetness?: Database["public"]["Enums"]["wine_sweetness"] | null
+          updated_at?: string
+          vintage?: number | null
+          wine_type?: Database["public"]["Enums"]["wine_type"]
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +248,16 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      wine_body: "light" | "medium" | "full"
+      wine_color: "light" | "medium" | "deep"
+      wine_sweetness: "bone_dry" | "dry" | "off_dry" | "medium_sweet" | "sweet"
+      wine_type:
+        | "red"
+        | "white"
+        | "rose"
+        | "sparkling"
+        | "dessert"
+        | "fortified"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +384,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      wine_body: ["light", "medium", "full"],
+      wine_color: ["light", "medium", "deep"],
+      wine_sweetness: ["bone_dry", "dry", "off_dry", "medium_sweet", "sweet"],
+      wine_type: ["red", "white", "rose", "sparkling", "dessert", "fortified"],
+    },
   },
 } as const
