@@ -17,6 +17,7 @@ export default function Layout({ children }: LayoutProps) {
     { name: 'My Cellar', href: '/cellar', icon: Wine },
     { name: 'Friends', href: '/friends', icon: Users },
     { name: 'Ratings', href: '/ratings', icon: Star },
+    { name: 'Admin', href: '/admin', icon: Users },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -75,7 +76,7 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* Mobile navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t">
-        <div className="grid grid-cols-4 gap-1 p-2">
+        <div className="grid grid-cols-5 gap-1 p-2">
           {navigation.map((item) => {
             const Icon = item.icon;
             return (

@@ -3,10 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Wine, Search } from 'lucide-react';
+import { Plus, Wine, Search, Grid, List } from 'lucide-react';
 import Layout from '@/components/Layout';
 import AddWineDialog from '@/components/AddWineDialog';
 
@@ -22,10 +23,10 @@ interface WineInCellar {
     name: string;
     producer: string;
     vintage: number | null;
-    region: string | null;
-    country: string;
     wine_type: string;
-    grape_varieties: string[] | null;
+    countries?: { name: string; };
+    regions?: { name: string; };
+    appellations?: { name: string; };
   };
 }
 
@@ -34,6 +35,7 @@ export default function Cellar() {
   const [wines, setWines] = useState<WineInCellar[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
 
   useEffect(() => {
     if (user) {
@@ -52,10 +54,10 @@ export default function Cellar() {
             name,
             producer,
             vintage,
-            region,
-            country,
             wine_type,
-            grape_varieties
+            countries:country_id ( name ),
+            regions:region_id ( name ),
+            appellations:appellation_id ( name )
           )
         `)
         .eq('user_id', user?.id);
@@ -76,7 +78,8 @@ export default function Cellar() {
   const filteredWines = wines.filter(wine =>
     wine.wines.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     wine.wines.producer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    wine.wines.region?.toLowerCase().includes(searchTerm.toLowerCase())
+    wine.wines.regions?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    wine.wines.countries?.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getWineTypeColor = (type: string) => {
@@ -121,7 +124,25 @@ export default function Cellar() {
               {wines.length} bottles in your collection
             </p>
           </div>
-          <AddWineDialog addToCellar onWineAdded={fetchCellarWines} />
+          <div className="flex gap-2">
+            <div className="flex border rounded-lg p-1">
+              <Button
+                variant={viewMode === 'cards' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('cards')}
+              >
+                <Grid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'table' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('table')}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
+            <AddWineDialog addToCellar onWineAdded={fetchCellarWines} />
+          </div>
         </div>
 
         <div className="mb-6">
@@ -150,6 +171,48 @@ export default function Cellar() {
               <AddWineDialog addToCellar onWineAdded={fetchCellarWines} />
             </CardContent>
           </Card>
+        ) : viewMode === 'table' ? (
+          <div className="border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Wine</TableHead>
+                  <TableHead>Producer</TableHead>
+                  <TableHead>Vintage</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Region</TableHead>
+                  <TableHead>Quantity</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Location</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredWines.map((cellarEntry) => {
+                  const wine = cellarEntry.wines;
+                  return (
+                    <TableRow key={cellarEntry.id}>
+                      <TableCell className="font-medium">{wine.name}</TableCell>
+                      <TableCell>{wine.producer}</TableCell>
+                      <TableCell>{wine.vintage || 'N/A'}</TableCell>
+                      <TableCell>
+                        <Badge className={getWineTypeColor(wine.wine_type)}>
+                          {wine.wine_type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {wine.regions?.name || wine.countries?.name || 'N/A'}
+                      </TableCell>
+                      <TableCell>{cellarEntry.quantity}</TableCell>
+                      <TableCell>
+                        {cellarEntry.purchase_price ? `$${cellarEntry.purchase_price}` : 'N/A'}
+                      </TableCell>
+                      <TableCell>{cellarEntry.storage_location || 'N/A'}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredWines.map((cellarEntry) => {
@@ -173,20 +236,12 @@ export default function Cellar() {
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Region:</span>
-                        <span>{wine.region || wine.country}</span>
+                        <span>{wine.regions?.name || wine.countries?.name || 'N/A'}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Quantity:</span>
                         <span>{cellarEntry.quantity} bottles</span>
                       </div>
-                      {wine.grape_varieties && wine.grape_varieties.length > 0 && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Grapes:</span>
-                          <span className="text-right">
-                            {wine.grape_varieties.join(', ')}
-                          </span>
-                        </div>
-                      )}
                       {cellarEntry.purchase_price && (
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Purchase:</span>

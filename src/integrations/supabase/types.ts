@@ -14,6 +14,86 @@ export type Database = {
   }
   public: {
     Tables: {
+      appellations: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          region_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          region_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          region_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appellations_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "regions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      countries: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      grape_varieties: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -49,6 +129,38 @@ export type Database = {
           username?: string
         }
         Relationships: []
+      }
+      regions: {
+        Row: {
+          country_id: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          country_id: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          country_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regions_country_id_fkey"
+            columns: ["country_id"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_friendships: {
         Row: {
@@ -126,10 +238,15 @@ export type Database = {
       }
       wine_ratings: {
         Row: {
+          body: string | null
+          color: string | null
           created_at: string
           food_pairing: string | null
           id: string
           rating: number
+          serving_temp_max: number | null
+          serving_temp_min: number | null
+          sweetness: string | null
           tasting_date: string | null
           tasting_notes: string | null
           updated_at: string
@@ -137,10 +254,15 @@ export type Database = {
           wine_id: string
         }
         Insert: {
+          body?: string | null
+          color?: string | null
           created_at?: string
           food_pairing?: string | null
           id?: string
           rating: number
+          serving_temp_max?: number | null
+          serving_temp_min?: number | null
+          sweetness?: string | null
           tasting_date?: string | null
           tasting_notes?: string | null
           updated_at?: string
@@ -148,10 +270,15 @@ export type Database = {
           wine_id: string
         }
         Update: {
+          body?: string | null
+          color?: string | null
           created_at?: string
           food_pairing?: string | null
           id?: string
           rating?: number
+          serving_temp_max?: number | null
+          serving_temp_min?: number | null
+          sweetness?: string | null
           tasting_date?: string | null
           tasting_notes?: string | null
           updated_at?: string
@@ -171,74 +298,72 @@ export type Database = {
       wines: {
         Row: {
           alcohol_content: number | null
-          appellation: string | null
-          body: Database["public"]["Enums"]["wine_body"] | null
+          appellation_id: string | null
           cellar_tracker_id: string | null
-          color: Database["public"]["Enums"]["wine_color"] | null
-          country: string
+          country_id: string | null
           created_at: string
-          drink_from: number | null
-          drink_until: number | null
-          grape_varieties: string[] | null
+          grape_variety_ids: string[] | null
           id: string
           name: string
           producer: string
-          region: string | null
-          serving_temp_max: number | null
-          serving_temp_min: number | null
-          subregion: string | null
-          sweetness: Database["public"]["Enums"]["wine_sweetness"] | null
+          region_id: string | null
           updated_at: string
           vintage: number | null
           wine_type: Database["public"]["Enums"]["wine_type"]
         }
         Insert: {
           alcohol_content?: number | null
-          appellation?: string | null
-          body?: Database["public"]["Enums"]["wine_body"] | null
+          appellation_id?: string | null
           cellar_tracker_id?: string | null
-          color?: Database["public"]["Enums"]["wine_color"] | null
-          country: string
+          country_id?: string | null
           created_at?: string
-          drink_from?: number | null
-          drink_until?: number | null
-          grape_varieties?: string[] | null
+          grape_variety_ids?: string[] | null
           id?: string
           name: string
           producer: string
-          region?: string | null
-          serving_temp_max?: number | null
-          serving_temp_min?: number | null
-          subregion?: string | null
-          sweetness?: Database["public"]["Enums"]["wine_sweetness"] | null
+          region_id?: string | null
           updated_at?: string
           vintage?: number | null
           wine_type: Database["public"]["Enums"]["wine_type"]
         }
         Update: {
           alcohol_content?: number | null
-          appellation?: string | null
-          body?: Database["public"]["Enums"]["wine_body"] | null
+          appellation_id?: string | null
           cellar_tracker_id?: string | null
-          color?: Database["public"]["Enums"]["wine_color"] | null
-          country?: string
+          country_id?: string | null
           created_at?: string
-          drink_from?: number | null
-          drink_until?: number | null
-          grape_varieties?: string[] | null
+          grape_variety_ids?: string[] | null
           id?: string
           name?: string
           producer?: string
-          region?: string | null
-          serving_temp_max?: number | null
-          serving_temp_min?: number | null
-          subregion?: string | null
-          sweetness?: Database["public"]["Enums"]["wine_sweetness"] | null
+          region_id?: string | null
           updated_at?: string
           vintage?: number | null
           wine_type?: Database["public"]["Enums"]["wine_type"]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "wines_appellation_id_fkey"
+            columns: ["appellation_id"]
+            isOneToOne: false
+            referencedRelation: "appellations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wines_country_id_fkey"
+            columns: ["country_id"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wines_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "regions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

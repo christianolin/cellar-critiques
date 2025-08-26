@@ -18,14 +18,19 @@ interface WineRating {
   food_pairing: string | null;
   tasting_date: string | null;
   created_at: string;
+  color: string | null;
+  body: string | null;
+  sweetness: string | null;
+  serving_temp_min: number | null;
+  serving_temp_max: number | null;
   wines: {
     id: string;
     name: string;
     producer: string;
     vintage: number | null;
-    region: string | null;
-    country: string;
     wine_type: string;
+    countries?: { name: string };
+    regions?: { name: string };
   };
 }
 
@@ -54,9 +59,9 @@ export default function Ratings() {
             name,
             producer,
             vintage,
-            region,
-            country,
-            wine_type
+            wine_type,
+            countries:country_id ( name ),
+            regions:region_id ( name )
           )
         `)
         .eq('user_id', user?.id)
@@ -84,9 +89,9 @@ export default function Ratings() {
             name,
             producer,
             vintage,
-            region,
-            country,
-            wine_type
+            wine_type,
+            countries:country_id ( name ),
+            regions:region_id ( name )
           )
         `)
         .neq('user_id', user?.id)
@@ -105,13 +110,15 @@ export default function Ratings() {
   const filteredRatings = ratings.filter(rating =>
     rating.wines.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     rating.wines.producer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    rating.wines.region?.toLowerCase().includes(searchTerm.toLowerCase())
+    rating.wines.regions?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    rating.wines.countries?.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const filteredFriendsRatings = friendsRatings.filter(rating =>
     rating.wines.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     rating.wines.producer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    rating.wines.region?.toLowerCase().includes(searchTerm.toLowerCase())
+    rating.wines.regions?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    rating.wines.countries?.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getRatingColor = (rating: number) => {
@@ -188,12 +195,12 @@ export default function Ratings() {
             <span className="text-sm font-medium">{getRatingLabel(rating.rating)}</span>
           </div>
           
-          {rating.wines.region && (
+          {rating.wines.regions?.name || rating.wines.countries?.name ? (
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Region:</span>
-              <span>{rating.wines.region}, {rating.wines.country}</span>
+              <span>{rating.wines.regions?.name || rating.wines.countries?.name}</span>
             </div>
-          )}
+          ) : null}
           
           {rating.tasting_date && (
             <div className="flex justify-between text-sm">
