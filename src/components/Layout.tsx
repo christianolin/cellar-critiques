@@ -28,7 +28,7 @@ export default function Layout({ children }: LayoutProps) {
           <div className="flex items-center space-x-4">
             <Link to="/" className="flex items-center space-x-2">
               <Wine className="h-8 w-8 text-primary" />
-              <span className="font-bold text-xl">Wine Club</span>
+              <span className="font-bold text-xl">Cellar Critiques</span>
             </Link>
           </div>
 

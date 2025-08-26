@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { Plus, Wine, Search } from 'lucide-react';
 import Layout from '@/components/Layout';
+import AddWineDialog from '@/components/AddWineDialog';
 
 interface WineInCellar {
   id: string;
@@ -120,10 +121,7 @@ export default function Cellar() {
               {wines.length} bottles in your collection
             </p>
           </div>
-          <Button className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Add Wine
-          </Button>
+          <AddWineDialog addToCellar onWineAdded={fetchCellarWines} />
         </div>
 
         <div className="mb-6">
@@ -149,10 +147,7 @@ export default function Cellar() {
                   : "No wines match your search criteria."
                 }
               </p>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Your First Wine
-              </Button>
+              <AddWineDialog addToCellar onWineAdded={fetchCellarWines} />
             </CardContent>
           </Card>
         ) : (
