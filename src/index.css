@@ -17,8 +17,11 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
+    /* Wine-inspired color palette */
+    --primary: 345 85% 35%; /* Deep wine red */
     --primary-foreground: 210 40% 98%;
+    --wine-gold: 40 85% 55%; /* Golden wine accent */
+    --wine-burgundy: 345 65% 25%; /* Dark burgundy */
 
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
