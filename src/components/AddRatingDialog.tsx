@@ -215,6 +215,19 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
 
       if (ratingError) throw ratingError;
 
+      // Add to consumption list since it's not from cellar
+      const { error: consumptionError } = await supabase
+        .from('wine_consumptions')
+        .insert({
+          user_id: user.id,
+          wine_id: wineData.id,
+          quantity: 1,
+          consumed_at: formData.tasting_date ? new Date(formData.tasting_date).toISOString() : new Date().toISOString(),
+          notes: formData.tasting_notes || null,
+        });
+
+      if (consumptionError) throw consumptionError;
+
       toast({
         title: "Success",
         description: "Wine and rating added successfully!",
@@ -259,8 +272,12 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !formData.wine_id || !formData.rating) return;
+    if (!user || !formData.wine_id || !formData.rating) {
+      console.error('Missing required data:', { user: !!user, wine_id: formData.wine_id, rating: formData.rating });
+      return;
+    }
 
+    console.log('Submitting rating:', formData);
     setLoading(true);
     try {
       const { data: ratingData, error } = await supabase
@@ -281,7 +298,12 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Rating error:', error);
+        throw error;
+      }
+
+      console.log('Rating created successfully:', ratingData);
 
       toast({
         title: "Success",

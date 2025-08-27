@@ -55,7 +55,7 @@ interface User {
 
 export default function Admin() {
   const { user } = useAuth();
-  const { isOwner, isAdminOrOwner } = useUserRole();
+  const { isOwner, isAdminOrOwner, loading: rolesLoading } = useUserRole();
   const [activeTab, setActiveTab] = useState<'countries' | 'regions' | 'appellations' | 'grapes' | 'users'>('countries');
   const [loading, setLoading] = useState(false);
   
@@ -570,6 +570,19 @@ export default function Admin() {
       </Table>
     );
   };
+
+  if (rolesLoading) {
+    return (
+      <Layout>
+        <div className="container mx-auto py-8">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Loading...</h1>
+            <p>Checking permissions...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   if (!isAdminOrOwner) {
     return (

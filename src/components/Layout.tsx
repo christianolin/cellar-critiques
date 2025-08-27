@@ -11,7 +11,7 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const { user, signOut } = useAuth();
-  const { isAdminOrOwner } = useUserRole();
+  const { isAdminOrOwner, loading: rolesLoading } = useUserRole();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -20,7 +20,7 @@ export default function Layout({ children }: LayoutProps) {
     { name: 'My Cellar', href: '/cellar', icon: Wine },
     { name: 'Friends', href: '/friends', icon: Users },
     { name: 'Ratings', href: '/ratings', icon: Star },
-    ...(isAdminOrOwner ? [{ name: 'Admin', href: '/admin', icon: Settings }] : []),
+    ...(!rolesLoading && isAdminOrOwner ? [{ name: 'Admin', href: '/admin', icon: Settings }] : []),
   ];
 
   const isActive = (path: string) => location.pathname === path;
