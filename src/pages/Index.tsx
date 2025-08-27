@@ -31,71 +31,18 @@ const Index = () => {
   return (
     <Layout>
       <div className="container mx-auto py-8 pb-20 md:pb-8">
-        <div className="mb-8">
-            <h1 className="text-4xl font-bold text-foreground mb-2">
-              Welcome to Cellar Critiques
-            </h1>
+        <div className="mb-8 text-center">
+          <h1 className="text-4xl font-bold text-foreground mb-2">
+            Welcome to Cellar Critiques
+          </h1>
           <p className="text-xl text-muted-foreground">
             Discover, collect, and rate wines with fellow enthusiasts
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/cellar')}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Wine className="h-6 w-6 text-primary" />
-                My Wine Cellar
-              </CardTitle>
-              <CardDescription>
-                Manage your wine collection and track your bottles
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button variant="ghost" className="w-full">
-                View Cellar
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/friends')}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-6 w-6 text-primary" />
-                Friends & Community
-              </CardTitle>
-              <CardDescription>
-                Connect with other wine enthusiasts and share discoveries
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button variant="ghost" className="w-full">
-                Explore Community
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/ratings')}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Star className="h-6 w-6 text-primary" />
-                Wine Ratings
-              </CardTitle>
-              <CardDescription>
-                Rate wines using the Robert Parker 100-point system
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button variant="ghost" className="w-full">
-                View Ratings
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
         <Card className="bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 justify-center">
               <Plus className="h-6 w-6 text-primary" />
               Quick Actions
             </CardTitle>

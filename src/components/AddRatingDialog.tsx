@@ -282,7 +282,7 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
     try {
       const { data: ratingData, error } = await supabase
         .from('wine_ratings')
-        .upsert({
+        .insert({
           user_id: user.id,
           wine_id: formData.wine_id,
           rating: formData.rating,
@@ -294,8 +294,6 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
           sweetness: formData.sweetness || null,
           serving_temp_min: formData.serving_temp_min,
           serving_temp_max: formData.serving_temp_max,
-        }, {
-          onConflict: 'user_id,wine_id'
         })
         .select()
         .single();

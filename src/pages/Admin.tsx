@@ -533,6 +533,7 @@ export default function Admin() {
                       <Select
                         value={item.user_roles?.[0]?.role || 'user'}
                         onValueChange={(value) => updateUserRole(item.id, value)}
+                        disabled={item.user_roles?.some((ur: any) => ur.role === 'owner')}
                       >
                         <SelectTrigger className="w-32">
                           <SelectValue />
