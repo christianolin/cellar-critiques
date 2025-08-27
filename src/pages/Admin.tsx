@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Edit, Trash2, Settings, Users } from 'lucide-react';
+import { Plus, Edit, Trash2, Settings, Users, ChevronUp, ChevronDown } from 'lucide-react';
 import Layout from '@/components/Layout';
 
 interface Country {
@@ -82,6 +82,7 @@ export default function Admin() {
   const [grapeVarieties, setGrapeVarieties] = useState<GrapeVariety[]>([]);
   const [wineDatabase, setWineDatabase] = useState<WineDatabase[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [wineProducers, setWineProducers] = useState<{ id: string; name: string }[]>([]);
   
   // Form states
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -90,9 +91,18 @@ export default function Admin() {
   const [sortField, setSortField] = useState<string>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   useEffect(() => {
     loadData();
-  }, [activeTab]);
+  }, [activeTab, sortField, sortDirection]);
 
   const loadData = async () => {
     setLoading(true);
@@ -156,6 +166,18 @@ export default function Admin() {
             .order(sortField, { ascending: sortDirection === 'asc' });
           if (wineDbError) throw wineDbError;
           setWineDatabase(wineDbData || []);
+          
+          // Also load producers and other data for dropdowns
+          const [{ data: allProducers }, { data: allCountriesForWine }, { data: allRegionsForWine }] = await Promise.all([
+            supabase.from('producers').select('*').order('name'),
+            supabase.from('countries').select('*').order('name'),
+            supabase.from('regions').select('*, countries(name)').order('name')
+          ]);
+          
+          // Update state for dropdowns
+          if (allProducers) setWineProducers(allProducers);
+          if (allCountriesForWine) setCountries(allCountriesForWine);
+          if (allRegionsForWine) setRegions(allRegionsForWine);
           break;
           
         case 'users':
@@ -510,6 +532,20 @@ export default function Admin() {
     }
   };
 
+  const getSortField = (header: string): string => {
+    switch (header.toLowerCase()) {
+      case 'name': return 'name';
+      case 'code': return 'code';
+      case 'country': return 'country_id';
+      case 'region': return 'region_id';
+      case 'type': return 'type';
+      case 'producer': return 'producer_id';
+      case 'username': return 'username';
+      case 'display name': return 'display_name';
+      default: return 'name';
+    }
+  };
+
   const renderForm = () => {
     switch (activeTab) {
       case 'countries':
@@ -647,17 +683,6 @@ export default function Admin() {
                 />
               </div>
               <div>
-                <Label htmlFor="producer">Producer</Label>
-                <Input
-                  id="producer"  
-                  value={formData.producer || ''}
-                  onChange={(e) => setFormData({ ...formData, producer: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
                 <Label htmlFor="wine_type">Wine Type</Label>
                 <Select
                   value={formData.wine_type || ''}
@@ -667,15 +692,55 @@ export default function Admin() {
                     <SelectValue placeholder="Select wine type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="red">Red</SelectItem>
-                    <SelectItem value="white">White</SelectItem>
-                    <SelectItem value="rose">Rosé</SelectItem>
-                    <SelectItem value="sparkling">Sparkling</SelectItem>
-                    <SelectItem value="dessert">Dessert</SelectItem>
-                    <SelectItem value="fortified">Fortified</SelectItem>
+                    <SelectItem value="Red">Red</SelectItem>
+                    <SelectItem value="White">White</SelectItem>
+                    <SelectItem value="Rosé">Rosé</SelectItem>
+                    <SelectItem value="Sparkling">Sparkling</SelectItem>
+                    <SelectItem value="Dessert">Dessert</SelectItem>
+                    <SelectItem value="Fortified">Fortified</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="producer_id">Producer</Label>
+                <Select
+                  value={formData.producer_id || ''}
+                  onValueChange={(value) => setFormData({ ...formData, producer_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select producer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {wineProducers.map((producer) => (
+                      <SelectItem key={producer.id} value={producer.id}>
+                        {producer.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="country_id">Country</Label>
+                <Select
+                  value={formData.country_id || ''}
+                  onValueChange={(value) => setFormData({ ...formData, country_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select country" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {countries.map((country) => (
+                      <SelectItem key={country.id} value={country.id}>
+                        {country.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="alcohol_content">Alcohol Content (%)</Label>
                 <Input
@@ -688,32 +753,24 @@ export default function Admin() {
                   onChange={(e) => setFormData({ ...formData, alcohol_content: e.target.value ? parseFloat(e.target.value) : null })}
                 />
               </div>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="country">Country</Label>
-                <Input
-                  id="country"
-                  value={formData.country || ''}
-                  onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="region">Region</Label>
-                <Input
-                  id="region"
-                  value={formData.region || ''}
-                  onChange={(e) => setFormData({ ...formData, region: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="appellation">Appellation</Label>
-                <Input
-                  id="appellation"
-                  value={formData.appellation || ''}
-                  onChange={(e) => setFormData({ ...formData, appellation: e.target.value })}
-                />
+                <Label htmlFor="region_id">Region (Optional)</Label>
+                <Select
+                  value={formData.region_id || ''}
+                  onValueChange={(value) => setFormData({ ...formData, region_id: value || null })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select region" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {regions.map((region) => (
+                      <SelectItem key={region.id} value={region.id}>
+                        {region.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div>
@@ -764,8 +821,26 @@ export default function Admin() {
       <Table>
         <TableHeader>
           <TableRow>
-            {headers.map((header) => (
-              <TableHead key={header}>{header}</TableHead>
+            {headers.map((header, index) => (
+              <TableHead 
+                key={header} 
+                className={index < headers.length - 1 ? "cursor-pointer hover:bg-muted/50" : ""}
+                onClick={() => {
+                  if (index < headers.length - 1) { // Don't make Actions column sortable
+                    const field = getSortField(header);
+                    handleSort(field);
+                  }
+                }}
+              >
+                <div className="flex items-center gap-1">
+                  {header}
+                  {index < headers.length - 1 && getSortField(header) === sortField && (
+                    sortDirection === 'asc' ? 
+                      <ChevronUp className="h-4 w-4" /> : 
+                      <ChevronDown className="h-4 w-4" />
+                  )}
+                </div>
+              </TableHead>
             ))}
           </TableRow>
         </TableHeader>
@@ -931,16 +1006,10 @@ export default function Admin() {
                   {activeTab === 'users' ? 'Manage user roles and permissions' : `Manage ${activeTab} master data`}
                 </CardDescription>
               </div>
-              {activeTab !== 'users' && activeTab !== 'wine_database' && (
+              {activeTab !== 'users' && (
                 <Button onClick={handleAdd}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Add {activeTab === 'countries' ? 'Country' : activeTab === 'regions' ? 'Region' : activeTab === 'appellations' ? 'Appellation' : 'Grape Variety'}
-                </Button>
-              )}
-              {activeTab === 'wine_database' && (
-                <Button onClick={handleImportWineData} disabled={loading}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  {loading ? 'Importing...' : 'Import Real Wine Data'}
+                  Add {activeTab === 'countries' ? 'Country' : activeTab === 'regions' ? 'Region' : activeTab === 'appellations' ? 'Appellation' : activeTab === 'grapes' ? 'Grape Variety' : activeTab === 'wine_database' ? 'Wine' : 'Item'}
                 </Button>
               )}
             </div>
