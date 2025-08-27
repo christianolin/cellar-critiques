@@ -40,17 +40,16 @@ interface GrapeVariety {
   type: string;
 }
 
-interface Wine {
+interface WineDatabase {
   id: string;
   name: string;
   producer: string;
-  vintage: number | null;
   wine_type: string;
-  bottle_size: string | null;
+  country: string;
+  region: string | null;
+  appellation: string | null;
   alcohol_content: number | null;
-  countries?: { name: string };
-  regions?: { name: string };
-  appellations?: { name: string };
+  description: string | null;
 }
 
 interface User {
@@ -69,7 +68,7 @@ interface User {
 export default function Admin() {
   const { user } = useAuth();
   const { isOwner, isAdminOrOwner, loading: rolesLoading } = useUserRole();
-  const [activeTab, setActiveTab] = useState<'countries' | 'regions' | 'appellations' | 'grapes' | 'wines' | 'users'>('countries');
+  const [activeTab, setActiveTab] = useState<'countries' | 'regions' | 'appellations' | 'grapes' | 'wine_database' | 'users'>('countries');
   const [loading, setLoading] = useState(false);
   
   // Data states
@@ -77,7 +76,7 @@ export default function Admin() {
   const [regions, setRegions] = useState<Region[]>([]);
   const [appellations, setAppellations] = useState<Appellation[]>([]);
   const [grapeVarieties, setGrapeVarieties] = useState<GrapeVariety[]>([]);
-  const [wines, setWines] = useState<Wine[]>([]);
+  const [wineDatabase, setWineDatabase] = useState<WineDatabase[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   
   // Form states
@@ -138,27 +137,13 @@ export default function Admin() {
           setGrapeVarieties(grapesData || []);
           break;
           
-        case 'wines':
-          const { data: winesData, error: winesError } = await supabase
-            .from('wines')
-            .select(`
-              *,
-              countries(name),
-              regions(name),
-              appellations(name)
-            `)
+        case 'wine_database':
+          const { data: wineDbData, error: wineDbError } = await supabase
+            .from('wine_database')
+            .select('*')
             .order('name');
-          if (winesError) throw winesError;
-          setWines(winesData || []);
-          // Also load master data for the form
-          const [countriesRes, regionsRes, appellationsRes] = await Promise.all([
-            supabase.from('countries').select('*').order('name'),
-            supabase.from('regions').select('*').order('name'),
-            supabase.from('appellations').select('*').order('name')
-          ]);
-          setCountries(countriesRes.data || []);
-          setRegions(regionsRes.data || []);
-          setAppellations(appellationsRes.data || []);
+          if (wineDbError) throw wineDbError;
+          setWineDatabase(wineDbData || []);
           break;
           
         case 'users':
@@ -346,7 +331,7 @@ export default function Admin() {
 
           return { canDelete: true, message: '' };
 
-        case 'wines':
+        case 'wine_database':
           // Check for wine cellar entries, ratings, and consumptions
           const [{ data: cellarEntries }, { data: ratings }, { data: consumptions }] = await Promise.all([
             supabase.from('wine_cellar').select('id').eq('wine_id', id),
@@ -446,7 +431,7 @@ export default function Admin() {
       case 'regions': return 'regions';
       case 'appellations': return 'appellations';
       case 'grapes': return 'grape_varieties';
-      case 'wines': return 'wines';
+      case 'wine_database': return 'wine_database';
       case 'users': return 'user_roles';
       default: return 'countries';
     }
@@ -608,7 +593,7 @@ export default function Admin() {
           </>
         );
         
-      case 'wines':
+      case 'wine_database':
         return (
           <>
             <div className="grid grid-cols-2 gap-4">
@@ -652,72 +637,52 @@ export default function Admin() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="vintage">Vintage</Label>
+                <Label htmlFor="alcohol_content">Alcohol Content (%)</Label>
                 <Input
-                  id="vintage"
+                  id="alcohol_content"
                   type="number"
-                  min="1800"
-                  max="2030"
-                  value={formData.vintage || ''}
-                  onChange={(e) => setFormData({ ...formData, vintage: e.target.value ? parseInt(e.target.value) : null })}
+                  step="0.1"
+                  min="0"
+                  max="25"
+                  value={formData.alcohol_content || ''}
+                  onChange={(e) => setFormData({ ...formData, alcohol_content: e.target.value ? parseFloat(e.target.value) : null })}
                 />
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="country_id">Country</Label>
-                <Select
-                  value={formData.country_id || ''}
-                  onValueChange={(value) => setFormData({ ...formData, country_id: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select country" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {countries.map((country) => (
-                      <SelectItem key={country.id} value={country.id}>
-                        {country.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="country">Country</Label>
+                <Input
+                  id="country"
+                  value={formData.country || ''}
+                  onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                  required
+                />
               </div>
               <div>
-                <Label htmlFor="region_id">Region</Label>
-                <Select
-                  value={formData.region_id || ''}
-                  onValueChange={(value) => setFormData({ ...formData, region_id: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select region" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {regions.map((region) => (
-                      <SelectItem key={region.id} value={region.id}>
-                        {region.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="region">Region</Label>
+                <Input
+                  id="region"
+                  value={formData.region || ''}
+                  onChange={(e) => setFormData({ ...formData, region: e.target.value })}
+                />
               </div>
               <div>
-                <Label htmlFor="appellation_id">Appellation</Label>
-                <Select
-                  value={formData.appellation_id || ''}
-                  onValueChange={(value) => setFormData({ ...formData, appellation_id: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select appellation" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {appellations.map((appellation) => (
-                      <SelectItem key={appellation.id} value={appellation.id}>
-                        {appellation.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="appellation">Appellation</Label>
+                <Input
+                  id="appellation"
+                  value={formData.appellation || ''}
+                  onChange={(e) => setFormData({ ...formData, appellation: e.target.value })}
+                />
               </div>
+            </div>
+            <div>
+              <Label htmlFor="description">Description</Label>
+              <Input
+                id="description"
+                value={formData.description || ''}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              />
             </div>
           </>
         );
@@ -745,9 +710,9 @@ export default function Admin() {
         data = grapeVarieties;
         headers = ['Name', 'Type', 'Actions'];
         break;
-      case 'wines':
-        data = wines;
-        headers = ['Name', 'Producer', 'Vintage', 'Type', 'Country', 'Actions'];
+      case 'wine_database':
+        data = wineDatabase;
+        headers = ['Name', 'Producer', 'Type', 'Country', 'Region', 'Actions'];
         break;
       case 'users':
         data = users;
@@ -792,13 +757,13 @@ export default function Admin() {
                   <TableCell className="capitalize">{item.type}</TableCell>
                 </>
               )}
-              {activeTab === 'wines' && (
+              {activeTab === 'wine_database' && (
                 <>
                   <TableCell>{item.name}</TableCell>
                   <TableCell>{item.producer}</TableCell>
-                  <TableCell>{item.vintage || 'N/A'}</TableCell>
                   <TableCell className="capitalize">{item.wine_type}</TableCell>
-                  <TableCell>{item.countries?.name || ''}</TableCell>
+                  <TableCell>{item.country}</TableCell>
+                  <TableCell>{item.region || 'N/A'}</TableCell>
                 </>
               )}
               {activeTab === 'users' && (
@@ -904,7 +869,7 @@ export default function Admin() {
             { key: 'regions', label: 'Regions' },
             { key: 'appellations', label: 'Appellations' },
             { key: 'grapes', label: 'Grape Varieties' },
-            { key: 'wines', label: 'Wines' },
+            { key: 'wine_database', label: 'Wine Database' },
             ...(isOwner ? [{ key: 'users', label: 'Users' }] : [])
           ].map((tab) => (
             <Button
@@ -929,7 +894,7 @@ export default function Admin() {
               {activeTab !== 'users' && (
                 <Button onClick={handleAdd}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Add {activeTab === 'countries' ? 'Country' : activeTab === 'regions' ? 'Region' : activeTab === 'appellations' ? 'Appellation' : activeTab === 'wines' ? 'Wine' : 'Grape Variety'}
+                  Add {activeTab === 'countries' ? 'Country' : activeTab === 'regions' ? 'Region' : activeTab === 'appellations' ? 'Appellation' : activeTab === 'wine_database' ? 'Wine' : 'Grape Variety'}
                 </Button>
               )}
             </div>
@@ -947,7 +912,7 @@ export default function Admin() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
-                {editingItem ? 'Edit' : 'Add'} {activeTab === 'countries' ? 'Country' : activeTab === 'regions' ? 'Region' : activeTab === 'appellations' ? 'Appellation' : activeTab === 'wines' ? 'Wine' : 'Grape Variety'}
+                {editingItem ? 'Edit' : 'Add'} {activeTab === 'countries' ? 'Country' : activeTab === 'regions' ? 'Region' : activeTab === 'appellations' ? 'Appellation' : activeTab === 'wine_database' ? 'Wine' : 'Grape Variety'}
               </DialogTitle>
               <DialogDescription>
                 {editingItem ? 'Update the details below' : 'Fill in the details below'}

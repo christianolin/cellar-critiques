@@ -308,6 +308,48 @@ export type Database = {
           },
         ]
       }
+      wine_database: {
+        Row: {
+          alcohol_content: number | null
+          appellation: string | null
+          country: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          producer: string
+          region: string | null
+          updated_at: string
+          wine_type: string
+        }
+        Insert: {
+          alcohol_content?: number | null
+          appellation?: string | null
+          country: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          producer: string
+          region?: string | null
+          updated_at?: string
+          wine_type: string
+        }
+        Update: {
+          alcohol_content?: number | null
+          appellation?: string | null
+          country?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          producer?: string
+          region?: string | null
+          updated_at?: string
+          wine_type?: string
+        }
+        Relationships: []
+      }
       wine_grape_composition: {
         Row: {
           created_at: string
