@@ -40,6 +40,19 @@ interface GrapeVariety {
   type: string;
 }
 
+interface Wine {
+  id: string;
+  name: string;
+  producer: string;
+  vintage: number | null;
+  wine_type: string;
+  bottle_size: string | null;
+  alcohol_content: number | null;
+  countries?: { name: string };
+  regions?: { name: string };
+  appellations?: { name: string };
+}
+
 interface User {
   id: string;
   email: string;
@@ -64,6 +77,7 @@ export default function Admin() {
   const [regions, setRegions] = useState<Region[]>([]);
   const [appellations, setAppellations] = useState<Appellation[]>([]);
   const [grapeVarieties, setGrapeVarieties] = useState<GrapeVariety[]>([]);
+  const [wines, setWines] = useState<Wine[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   
   // Form states
@@ -122,6 +136,29 @@ export default function Admin() {
             .order('name');
           if (grapesError) throw grapesError;
           setGrapeVarieties(grapesData || []);
+          break;
+          
+        case 'wines':
+          const { data: winesData, error: winesError } = await supabase
+            .from('wines')
+            .select(`
+              *,
+              countries(name),
+              regions(name),
+              appellations(name)
+            `)
+            .order('name');
+          if (winesError) throw winesError;
+          setWines(winesData || []);
+          // Also load master data for the form
+          const [countriesRes, regionsRes, appellationsRes] = await Promise.all([
+            supabase.from('countries').select('*').order('name'),
+            supabase.from('regions').select('*').order('name'),
+            supabase.from('appellations').select('*').order('name')
+          ]);
+          setCountries(countriesRes.data || []);
+          setRegions(regionsRes.data || []);
+          setAppellations(appellationsRes.data || []);
           break;
           
         case 'users':
@@ -309,6 +346,25 @@ export default function Admin() {
 
           return { canDelete: true, message: '' };
 
+        case 'wines':
+          // Check for wine cellar entries, ratings, and consumptions
+          const [{ data: cellarEntries }, { data: ratings }, { data: consumptions }] = await Promise.all([
+            supabase.from('wine_cellar').select('id').eq('wine_id', id),
+            supabase.from('wine_ratings').select('id').eq('wine_id', id),
+            supabase.from('wine_consumptions').select('id').eq('wine_id', id)
+          ]);
+
+          const totalReferences = (cellarEntries?.length || 0) + (ratings?.length || 0) + (consumptions?.length || 0);
+          
+          if (totalReferences > 0) {
+            return {
+              canDelete: false,
+              message: `This wine cannot be deleted because it has ${totalReferences} reference(s) in cellar entries, ratings, or consumption records.`
+            };
+          }
+
+          return { canDelete: true, message: '' };
+
         default:
           return { canDelete: true, message: '' };
       }
@@ -390,6 +446,7 @@ export default function Admin() {
       case 'regions': return 'regions';
       case 'appellations': return 'appellations';
       case 'grapes': return 'grape_varieties';
+      case 'wines': return 'wines';
       case 'users': return 'user_roles';
       default: return 'countries';
     }
@@ -550,6 +607,120 @@ export default function Admin() {
             </div>
           </>
         );
+        
+      case 'wines':
+        return (
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="name">Wine Name</Label>
+                <Input
+                  id="name"
+                  value={formData.name || ''}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="producer">Producer</Label>
+                <Input
+                  id="producer"  
+                  value={formData.producer || ''}
+                  onChange={(e) => setFormData({ ...formData, producer: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="wine_type">Wine Type</Label>
+                <Select
+                  value={formData.wine_type || ''}
+                  onValueChange={(value) => setFormData({ ...formData, wine_type: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select wine type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="red">Red</SelectItem>
+                    <SelectItem value="white">White</SelectItem>
+                    <SelectItem value="rose">Rosé</SelectItem>
+                    <SelectItem value="sparkling">Sparkling</SelectItem>
+                    <SelectItem value="dessert">Dessert</SelectItem>
+                    <SelectItem value="fortified">Fortified</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="vintage">Vintage</Label>
+                <Input
+                  id="vintage"
+                  type="number"
+                  min="1800"
+                  max="2030"
+                  value={formData.vintage || ''}
+                  onChange={(e) => setFormData({ ...formData, vintage: e.target.value ? parseInt(e.target.value) : null })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="country_id">Country</Label>
+                <Select
+                  value={formData.country_id || ''}
+                  onValueChange={(value) => setFormData({ ...formData, country_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select country" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {countries.map((country) => (
+                      <SelectItem key={country.id} value={country.id}>
+                        {country.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="region_id">Region</Label>
+                <Select
+                  value={formData.region_id || ''}
+                  onValueChange={(value) => setFormData({ ...formData, region_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select region" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {regions.map((region) => (
+                      <SelectItem key={region.id} value={region.id}>
+                        {region.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="appellation_id">Appellation</Label>
+                <Select
+                  value={formData.appellation_id || ''}
+                  onValueChange={(value) => setFormData({ ...formData, appellation_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select appellation" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {appellations.map((appellation) => (
+                      <SelectItem key={appellation.id} value={appellation.id}>
+                        {appellation.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </>
+        );
     }
   };
 
@@ -573,6 +744,10 @@ export default function Admin() {
       case 'grapes':
         data = grapeVarieties;
         headers = ['Name', 'Type', 'Actions'];
+        break;
+      case 'wines':
+        data = wines;
+        headers = ['Name', 'Producer', 'Vintage', 'Type', 'Country', 'Actions'];
         break;
       case 'users':
         data = users;
@@ -615,6 +790,15 @@ export default function Admin() {
                 <>
                   <TableCell>{item.name}</TableCell>
                   <TableCell className="capitalize">{item.type}</TableCell>
+                </>
+              )}
+              {activeTab === 'wines' && (
+                <>
+                  <TableCell>{item.name}</TableCell>
+                  <TableCell>{item.producer}</TableCell>
+                  <TableCell>{item.vintage || 'N/A'}</TableCell>
+                  <TableCell className="capitalize">{item.wine_type}</TableCell>
+                  <TableCell>{item.countries?.name || ''}</TableCell>
                 </>
               )}
               {activeTab === 'users' && (
@@ -745,7 +929,7 @@ export default function Admin() {
               {activeTab !== 'users' && (
                 <Button onClick={handleAdd}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Add {activeTab === 'countries' ? 'Country' : activeTab === 'regions' ? 'Region' : activeTab === 'appellations' ? 'Appellation' : 'Grape Variety'}
+                  Add {activeTab === 'countries' ? 'Country' : activeTab === 'regions' ? 'Region' : activeTab === 'appellations' ? 'Appellation' : activeTab === 'wines' ? 'Wine' : 'Grape Variety'}
                 </Button>
               )}
             </div>
@@ -763,7 +947,7 @@ export default function Admin() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
-                {editingItem ? 'Edit' : 'Add'} {activeTab === 'countries' ? 'Country' : activeTab === 'regions' ? 'Region' : activeTab === 'appellations' ? 'Appellation' : 'Grape Variety'}
+                {editingItem ? 'Edit' : 'Add'} {activeTab === 'countries' ? 'Country' : activeTab === 'regions' ? 'Region' : activeTab === 'appellations' ? 'Appellation' : activeTab === 'wines' ? 'Wine' : 'Grape Variety'}
               </DialogTitle>
               <DialogDescription>
                 {editingItem ? 'Update the details below' : 'Fill in the details below'}
