@@ -272,7 +272,33 @@ export default function Admin() {
 
           // Apply filters
           if (searchTerm) {
-            query = query.ilike('name', `%${searchTerm}%`);
+            // Intelligent multi-word search
+            const searchWords = searchTerm.trim().toLowerCase().split(/\s+/).filter(word => word.length >= 2);
+            
+            if (searchWords.length === 1) {
+              // Single word - search across all relevant fields
+              const word = searchWords[0];
+              query = query.or(`name.ilike.%${word}%,producers.name.ilike.%${word}%,description.ilike.%${word}%`);
+            } else {
+              // Multi-word search - create conditions for each word
+              let searchConditions: string[] = [];
+              
+              // Add full phrase search (exact order)
+              searchConditions.push(`name.ilike.%${searchTerm}%`);
+              searchConditions.push(`producers.name.ilike.%${searchTerm}%`);
+              
+              // Add individual word searches for order-independent matching
+              searchWords.forEach(word => {
+                searchConditions.push(`name.ilike.%${word}%`);
+                searchConditions.push(`producers.name.ilike.%${word}%`);
+                if (searchTerm.includes(' ')) { // Only add description for multi-word
+                  searchConditions.push(`description.ilike.%${word}%`);
+                }
+              });
+              
+              // Join all conditions with OR
+              query = query.or(searchConditions.join(','));
+            }
           }
           
           if (countryFilter) {
