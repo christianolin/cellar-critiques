@@ -1,12 +1,13 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
-import { Search, Wine, Calendar, StickyNote } from 'lucide-react';
+import { Wine, Search, Calendar, Plus } from 'lucide-react';
 import Layout from '@/components/Layout';
 
 interface ConsumedWine {
@@ -20,12 +21,9 @@ interface ConsumedWine {
     producer: string;
     vintage: number | null;
     wine_type: string;
-    countries?: { name: string; };
-    regions?: { name: string; };
+    countries?: { name: string };
+    regions?: { name: string };
   };
-  wine_ratings?: {
-    rating: number;
-  } | null;
 }
 
 export default function ConsumedWines() {
@@ -54,9 +52,6 @@ export default function ConsumedWines() {
             wine_type,
             countries:country_id ( name ),
             regions:region_id ( name )
-          ),
-          wine_ratings:rating_id (
-            rating
           )
         `)
         .eq('user_id', user?.id)
@@ -75,11 +70,57 @@ export default function ConsumedWines() {
     }
   };
 
-  const filteredWines = consumedWines.filter(wine =>
-    wine.wines.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    wine.wines.producer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    wine.wines.regions?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    wine.wines.countries?.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const addToCellar = async (wineId: string, wineName: string) => {
+    if (!user) return;
+
+    try {
+      // Check if wine already exists in cellar
+      const { data: existingEntry } = await supabase
+        .from('wine_cellar')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('wine_id', wineId)
+        .single();
+
+      if (existingEntry) {
+        // Update quantity
+        const { error } = await supabase
+          .from('wine_cellar')
+          .update({ quantity: existingEntry.quantity + 1 })
+          .eq('id', existingEntry.id);
+
+        if (error) throw error;
+      } else {
+        // Create new entry
+        const { error } = await supabase
+          .from('wine_cellar')
+          .insert({
+            user_id: user.id,
+            wine_id: wineId,
+            quantity: 1,
+          });
+
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Success",
+        description: `${wineName} added to your cellar`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add wine to cellar",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const filteredWines = consumedWines.filter(consumption =>
+    consumption.wines.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    consumption.wines.producer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    consumption.wines.regions?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    consumption.wines.countries?.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getWineTypeColor = (type: string) => {
@@ -100,7 +141,11 @@ export default function ConsumedWines() {
         <div className="container mx-auto py-8">
           <div className="animate-pulse space-y-4">
             <div className="h-8 bg-muted rounded w-1/3"></div>
-            <div className="h-64 bg-muted rounded-lg"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-48 bg-muted rounded-lg"></div>
+              ))}
+            </div>
           </div>
         </div>
       </Layout>
@@ -110,14 +155,16 @@ export default function ConsumedWines() {
   return (
     <Layout>
       <div className="container mx-auto py-8 pb-20 md:pb-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-            <Wine className="h-8 w-8 text-primary" />
-            Consumed Wines Archive
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            {consumedWines.reduce((sum, wine) => sum + wine.quantity, 0)} bottles consumed
-          </p>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+              <Wine className="h-8 w-8 text-primary" />
+              Consumed Wines
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              Your wine consumption history
+            </p>
+          </div>
         </div>
 
         <div className="mb-6">
@@ -139,75 +186,72 @@ export default function ConsumedWines() {
               <h3 className="text-lg font-semibold mb-2">No consumed wines</h3>
               <p className="text-muted-foreground text-center">
                 {consumedWines.length === 0 
-                  ? "You haven't consumed any wines yet." 
-                  : "No consumed wines match your search criteria."
+                  ? "Start consuming wines from your cellar to see them here!" 
+                  : "No wines match your search criteria."
                 }
               </p>
             </CardContent>
           </Card>
         ) : (
-          <div className="border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Wine</TableHead>
-                  <TableHead>Producer</TableHead>
-                  <TableHead>Vintage</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Region</TableHead>
-                  <TableHead>Consumed Date</TableHead>
-                  <TableHead>Quantity</TableHead>
-                  <TableHead>Rating</TableHead>
-                  <TableHead>Notes</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredWines.map((consumption) => {
-                  const wine = consumption.wines;
-                  return (
-                    <TableRow key={consumption.id}>
-                      <TableCell className="font-medium">{wine.name}</TableCell>
-                      <TableCell>{wine.producer}</TableCell>
-                      <TableCell>{wine.vintage || 'N/A'}</TableCell>
-                      <TableCell>
-                        <Badge className={getWineTypeColor(wine.wine_type)}>
-                          {wine.wine_type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {wine.regions?.name || wine.countries?.name || 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3 text-muted-foreground" />
-                          {new Date(consumption.consumed_at).toLocaleDateString()}
-                        </div>
-                      </TableCell>
-                      <TableCell>{consumption.quantity}</TableCell>
-                      <TableCell>
-                        {consumption.wine_ratings?.rating ? (
-                          <Badge variant="outline">{consumption.wine_ratings.rating}/100</Badge>
-                        ) : (
-                          <span className="text-muted-foreground">Not rated</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {consumption.notes ? (
-                          <div className="flex items-center gap-1">
-                            <StickyNote className="h-3 w-3 text-muted-foreground" />
-                            <span className="truncate max-w-[200px]" title={consumption.notes}>
-                              {consumption.notes}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">No notes</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredWines.map((consumption) => (
+              <Card key={consumption.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <CardTitle className="text-lg">{consumption.wines.name}</CardTitle>
+                      <CardDescription>
+                        {consumption.wines.producer} • {consumption.wines.vintage}
+                      </CardDescription>
+                    </div>
+                    <Badge className={getWineTypeColor(consumption.wines.wine_type)}>
+                      {consumption.wines.wine_type}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {consumption.wines.regions?.name || consumption.wines.countries?.name ? (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Region:</span>
+                        <span>{consumption.wines.regions?.name || consumption.wines.countries?.name}</span>
+                      </div>
+                    ) : null}
+                    
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Consumed:</span>
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        {new Date(consumption.consumed_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Quantity:</span>
+                      <span>{consumption.quantity} bottle{consumption.quantity > 1 ? 's' : ''}</span>
+                    </div>
+                    
+                    {consumption.notes && (
+                      <div className="text-sm">
+                        <span className="text-muted-foreground">Notes:</span>
+                        <p className="mt-1 text-foreground">{consumption.notes}</p>
+                      </div>
+                    )}
+
+                    <div className="pt-2">
+                      <Button 
+                        size="sm" 
+                        className="w-full"
+                        onClick={() => addToCellar(consumption.wines.id, consumption.wines.name)}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add to Cellar
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         )}
       </div>

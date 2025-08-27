@@ -1,44 +1,45 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
+import { Minus, Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
-import { Minus, Plus, Wine } from 'lucide-react';
+import ConsumeWineDialog from './ConsumeWineDialog';
+import { useNavigate } from 'react-router-dom';
 
 interface QuantityControlProps {
-  cellarEntry: any;
-  onUpdate: () => void;
+  cellarId: string;
+  wineId: string;
+  wineName: string;
+  currentQuantity: number;
+  onQuantityChange: () => void;
 }
 
-export default function QuantityControl({ cellarEntry, onUpdate }: QuantityControlProps) {
+export default function QuantityControl({ 
+  cellarId, 
+  wineId, 
+  wineName, 
+  currentQuantity, 
+  onQuantityChange 
+}: QuantityControlProps) {
   const { user } = useAuth();
-  const [showConsumeDialog, setShowConsumeDialog] = useState(false);
-  const [consumeQuantity, setConsumeQuantity] = useState(1);
-  const [consumeNotes, setConsumeNotes] = useState('');
-  const [askForRating, setAskForRating] = useState(false);
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [showConsumeDialog, setShowConsumeDialog] = useState(false);
 
-  const updateQuantity = async (newQuantity: number) => {
-    if (newQuantity < 0) return;
-
+  const handleIncrease = async () => {
+    if (!user) return;
+    
     setLoading(true);
     try {
       const { error } = await supabase
         .from('wine_cellar')
-        .update({ quantity: newQuantity })
-        .eq('id', cellarEntry.id);
+        .update({ quantity: currentQuantity + 1 })
+        .eq('id', cellarId);
 
       if (error) throw error;
-      onUpdate();
-      
-      toast({
-        title: "Success",
-        description: `Quantity updated to ${newQuantity}`,
-      });
+      onQuantityChange();
     } catch (error) {
       toast({
         title: "Error",
@@ -50,121 +51,50 @@ export default function QuantityControl({ cellarEntry, onUpdate }: QuantityContr
     }
   };
 
-  const handleDecreaseClick = async () => {
-    if (!user || loading || cellarEntry.quantity <= 0) return;
-
-    const consume = window.confirm('Do you want to mark this bottle as consumed?');
-    if (consume) {
-      setLoading(true);
-      try {
-        const newQuantity = cellarEntry.quantity - 1;
-
-        const { error: consumeError } = await supabase
-          .from('wine_consumptions')
-          .insert({
-            user_id: user.id,
-            wine_id: cellarEntry.wine_id,
-            quantity: 1,
-            notes: null,
-          });
-        if (consumeError) throw consumeError;
-
-        if (newQuantity > 0) {
-          const { error: updateError } = await supabase
-            .from('wine_cellar')
-            .update({ quantity: newQuantity })
-            .eq('id', cellarEntry.id);
-          if (updateError) throw updateError;
-        } else {
-          const { error: deleteError } = await supabase
-            .from('wine_cellar')
-            .delete()
-            .eq('id', cellarEntry.id);
-          if (deleteError) throw deleteError;
-        }
-
-        toast({
-          title: 'Success',
-          description: '1 bottle moved to consumed archive',
-        });
-
-        onUpdate();
-
-        const shouldRate = window.confirm(`Would you like to rate ${cellarEntry.wines.name} now?`);
-        if (shouldRate) {
-          window.location.href = '/ratings';
-        }
-      } catch (error) {
-        toast({
-          title: 'Error',
-          description: 'Failed to record consumption',
-          variant: 'destructive',
-        });
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      // Just decrease quantity without adding to archive
-      updateQuantity(cellarEntry.quantity - 1);
-    }
+  const handleDecrease = () => {
+    if (currentQuantity <= 0) return;
+    setShowConsumeDialog(true);
   };
-  const handleConsume = async () => {
-    if (!user || consumeQuantity <= 0) return;
 
+  const handleConsumeConfirm = async (shouldRate: boolean) => {
+    if (!user) return;
+    
     setLoading(true);
     try {
-      const newQuantity = cellarEntry.quantity - consumeQuantity;
-      
+      // Update cellar quantity
+      const newQuantity = currentQuantity - 1;
+      if (newQuantity > 0) {
+        await supabase
+          .from('wine_cellar')
+          .update({ quantity: newQuantity })
+          .eq('id', cellarId);
+      } else {
+        await supabase
+          .from('wine_cellar')
+          .delete()
+          .eq('id', cellarId);
+      }
+
       // Add to consumption archive
-      const { error: consumeError } = await supabase
+      await supabase
         .from('wine_consumptions')
         .insert({
           user_id: user.id,
-          wine_id: cellarEntry.wine_id,
-          quantity: consumeQuantity,
-          notes: consumeNotes || null,
+          wine_id: wineId,
+          quantity: 1,
+          notes: 'Consumed from cellar',
         });
-
-      if (consumeError) throw consumeError;
-
-      // Update cellar quantity
-      if (newQuantity > 0) {
-        const { error: updateError } = await supabase
-          .from('wine_cellar')
-          .update({ quantity: newQuantity })
-          .eq('id', cellarEntry.id);
-
-        if (updateError) throw updateError;
-      } else {
-        // Remove from cellar if quantity is 0
-        const { error: deleteError } = await supabase
-          .from('wine_cellar')
-          .delete()
-          .eq('id', cellarEntry.id);
-
-        if (deleteError) throw deleteError;
-      }
 
       toast({
         title: "Success",
-        description: `${consumeQuantity} bottle(s) moved to consumed archive`,
+        description: `${wineName} consumed and added to archive`,
       });
 
-      setShowConsumeDialog(false);
-      setConsumeQuantity(1);
-      setConsumeNotes('');
-      setAskForRating(false);
-      onUpdate();
+      onQuantityChange();
 
-      if (askForRating) {
-        // Show rating dialog
-        const shouldRate = window.confirm(
-          `Would you like to rate ${cellarEntry.wines.name} now?`
-        );
-        if (shouldRate) {
-          // Navigate to ratings page - you can implement this
-          window.location.href = '/ratings';
-        }
+      if (shouldRate) {
+        // Navigate to ratings page with the wine pre-selected
+        navigate(`/ratings?wine_id=${wineId}`);
       }
     } catch (error) {
       toast({
@@ -179,82 +109,32 @@ export default function QuantityControl({ cellarEntry, onUpdate }: QuantityContr
 
   return (
     <>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-2">
         <Button
           variant="outline"
           size="sm"
-          onClick={handleDecreaseClick}
-          disabled={loading || cellarEntry.quantity <= 0}
+          onClick={handleDecrease}
+          disabled={loading || currentQuantity <= 0}
         >
           <Minus className="h-3 w-3" />
         </Button>
-        <span className="text-sm font-medium w-8 text-center">{cellarEntry.quantity}</span>
+        <span className="min-w-[2rem] text-center">{currentQuantity}</span>
         <Button
           variant="outline"
           size="sm"
-          onClick={() => updateQuantity(cellarEntry.quantity + 1)}
+          onClick={handleIncrease}
           disabled={loading}
         >
           <Plus className="h-3 w-3" />
         </Button>
       </div>
 
-      <Dialog open={showConsumeDialog} onOpenChange={setShowConsumeDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Wine className="h-5 w-5 text-primary" />
-              Consume Wine
-            </DialogTitle>
-            <DialogDescription>
-              Record consumption of {cellarEntry.wines.name}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="consume-quantity">Quantity to consume</Label>
-              <Input
-                id="consume-quantity"
-                type="number"
-                min="1"
-                max={cellarEntry.quantity}
-                value={consumeQuantity}
-                onChange={(e) => setConsumeQuantity(parseInt(e.target.value) || 1)}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="consume-notes">Consumption Notes</Label>
-              <Textarea
-                id="consume-notes"
-                value={consumeNotes}
-                onChange={(e) => setConsumeNotes(e.target.value)}
-                placeholder="Occasion, location, thoughts..."
-              />
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="ask-rating"
-                checked={askForRating}
-                onChange={(e) => setAskForRating(e.target.checked)}
-              />
-              <Label htmlFor="ask-rating">Remind me to rate this wine</Label>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowConsumeDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleConsume} disabled={loading}>
-              {loading ? 'Recording...' : 'Consume Wine'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConsumeWineDialog
+        open={showConsumeDialog}
+        onOpenChange={setShowConsumeDialog}
+        wineName={wineName}
+        onConfirm={handleConsumeConfirm}
+      />
     </>
   );
 }

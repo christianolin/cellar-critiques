@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -96,6 +97,7 @@ export default function Profile() {
         description: "Profile updated successfully!",
       });
     } catch (error) {
+      console.error('Profile update error:', error);
       toast({
         title: "Error",
         description: "Failed to update profile",
@@ -170,23 +172,39 @@ export default function Profile() {
             {/* Basic Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  value={user?.email || ''}
+                  disabled
+                  className="bg-muted"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Email cannot be changed
+                </p>
+              </div>
+              <div>
                 <Label htmlFor="username">Username</Label>
                 <Input
                   id="username"
                   value={profileData.username}
-                  onChange={(e) => setProfileData({ ...profileData, username: e.target.value })}
-                  placeholder="Your username"
+                  disabled
+                  className="bg-muted"
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Username cannot be changed
+                </p>
               </div>
-              <div>
-                <Label htmlFor="display_name">Display Name</Label>
-                <Input
-                  id="display_name"
-                  value={profileData.display_name}
-                  onChange={(e) => setProfileData({ ...profileData, display_name: e.target.value })}
-                  placeholder="Your display name"
-                />
-              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="display_name">Display Name</Label>
+              <Input
+                id="display_name"
+                value={profileData.display_name}
+                onChange={(e) => setProfileData({ ...profileData, display_name: e.target.value })}
+                placeholder="Your display name"
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
