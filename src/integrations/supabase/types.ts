@@ -363,8 +363,6 @@ export type Database = {
           aroma_primary: string | null
           aroma_secondary: string | null
           aroma_tertiary: string | null
-          body: string | null
-          color: string | null
           created_at: string
           food_pairing: string | null
           id: string
@@ -382,7 +380,6 @@ export type Database = {
           rating: number
           serving_temp_max: number | null
           serving_temp_min: number | null
-          sweetness: string | null
           tasting_date: string | null
           tasting_notes: string | null
           updated_at: string
@@ -401,8 +398,6 @@ export type Database = {
           aroma_primary?: string | null
           aroma_secondary?: string | null
           aroma_tertiary?: string | null
-          body?: string | null
-          color?: string | null
           created_at?: string
           food_pairing?: string | null
           id?: string
@@ -420,7 +415,6 @@ export type Database = {
           rating: number
           serving_temp_max?: number | null
           serving_temp_min?: number | null
-          sweetness?: string | null
           tasting_date?: string | null
           tasting_notes?: string | null
           updated_at?: string
@@ -439,8 +433,6 @@ export type Database = {
           aroma_primary?: string | null
           aroma_secondary?: string | null
           aroma_tertiary?: string | null
-          body?: string | null
-          color?: string | null
           created_at?: string
           food_pairing?: string | null
           id?: string
@@ -458,7 +450,6 @@ export type Database = {
           rating?: number
           serving_temp_max?: number | null
           serving_temp_min?: number | null
-          sweetness?: string | null
           tasting_date?: string | null
           tasting_notes?: string | null
           updated_at?: string

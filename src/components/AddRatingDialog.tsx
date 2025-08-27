@@ -228,7 +228,7 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
               <Label htmlFor="wine">Select Wine *</Label>
               <Select value={selectedWine} onValueChange={setSelectedWine}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Choose a wine to rate" />
+                  <SelectValue placeholder="Choose any wine to rate" />
                 </SelectTrigger>
                 <SelectContent>
                   {wines.map((wine) => (
@@ -238,6 +238,9 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                You can rate any wine, not just wines in your cellar
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -269,11 +272,10 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
           </div>
 
           <Tabs defaultValue="appearance" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="appearance">Appearance</TabsTrigger>
               <TabsTrigger value="aroma">Aroma</TabsTrigger>
               <TabsTrigger value="palate">Palate</TabsTrigger>
-              <TabsTrigger value="legacy">Legacy Fields</TabsTrigger>
             </TabsList>
 
             <TabsContent value="appearance" className="space-y-4">
@@ -595,80 +597,6 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
               </div>
             </TabsContent>
 
-            <TabsContent value="legacy" className="space-y-4">
-              <h3 className="text-lg font-semibold">Legacy Fields</h3>
-              
-              <div>
-                <Label htmlFor="tasting_notes">General Tasting Notes</Label>
-                <Textarea
-                  id="tasting_notes"
-                  value={formData.tasting_notes}
-                  onChange={(e) => setFormData({ ...formData, tasting_notes: e.target.value })}
-                  placeholder="Overall impressions and notes..."
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="food_pairing">Food Pairing</Label>
-                <Textarea
-                  id="food_pairing"
-                  value={formData.food_pairing}
-                  onChange={(e) => setFormData({ ...formData, food_pairing: e.target.value })}
-                  placeholder="Suggested food pairings..."
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="color">Color (Legacy)</Label>
-                  <Input
-                    id="color"
-                    value={formData.color}
-                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                    placeholder="e.g. Deep ruby"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="body">Body (Legacy)</Label>
-                  <Input
-                    id="body"
-                    value={formData.body}
-                    onChange={(e) => setFormData({ ...formData, body: e.target.value })}
-                    placeholder="e.g. Full-bodied"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="sweetness">Sweetness (Legacy)</Label>
-                  <Input
-                    id="sweetness"
-                    value={formData.sweetness}
-                    onChange={(e) => setFormData({ ...formData, sweetness: e.target.value })}
-                    placeholder="e.g. Dry"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="serving_temp_min">Serving Temp Min (°C)</Label>
-                  <Input
-                    id="serving_temp_min"
-                    type="number"
-                    value={formData.serving_temp_min || ''}
-                    onChange={(e) => setFormData({ ...formData, serving_temp_min: e.target.value ? parseInt(e.target.value) : null })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="serving_temp_max">Serving Temp Max (°C)</Label>
-                  <Input
-                    id="serving_temp_max"
-                    type="number"
-                    value={formData.serving_temp_max || ''}
-                    onChange={(e) => setFormData({ ...formData, serving_temp_max: e.target.value ? parseInt(e.target.value) : null })}
-                  />
-                </div>
-              </div>
-            </TabsContent>
           </Tabs>
 
           <DialogFooter>

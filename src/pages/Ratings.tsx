@@ -20,9 +20,6 @@ interface WineRating {
   food_pairing: string | null;
   tasting_date: string | null;
   created_at: string;
-  color: string | null;
-  body: string | null;
-  sweetness: string | null;
   serving_temp_min: number | null;
   serving_temp_max: number | null;
   // Detailed rating fields
@@ -520,9 +517,9 @@ export default function Ratings() {
                           Tasted <ArrowUpDown className="h-3 w-3" />
                         </div>
                       </TableHead>
-                      <TableHead>Color</TableHead>
-                      <TableHead>Body</TableHead>
-                      <TableHead>Sweetness</TableHead>
+                       <TableHead>Appearance</TableHead>
+                       <TableHead>Palate</TableHead>
+                       <TableHead>Aroma</TableHead>
                       <TableHead>Serving Temp</TableHead>
                       <TableHead>Notes</TableHead>
                       <TableHead>Actions</TableHead>
@@ -547,9 +544,9 @@ export default function Ratings() {
                         <TableCell>
                           {rating.tasting_date ? new Date(rating.tasting_date).toLocaleDateString() : 'N/A'}
                         </TableCell>
-                        <TableCell>{rating.color || 'N/A'}</TableCell>
-                        <TableCell>{rating.body || 'N/A'}</TableCell>
-                        <TableCell>{rating.sweetness || 'N/A'}</TableCell>
+                         <TableCell>{rating.appearance_color || 'N/A'}</TableCell>
+                         <TableCell>{rating.palate_sweetness || 'N/A'}</TableCell>
+                         <TableCell>{rating.aroma_condition || 'N/A'}</TableCell>
                         <TableCell>
                           {rating.serving_temp_min && rating.serving_temp_max 
                             ? `${rating.serving_temp_min}-${rating.serving_temp_max}°C`
