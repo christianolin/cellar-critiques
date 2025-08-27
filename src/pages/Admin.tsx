@@ -447,6 +447,34 @@ export default function Admin() {
     }
   };
 
+  const handleImportWineData = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('import-wine-data');
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Success",
+        description: "Wine data import started successfully. This may take a few minutes.",
+      });
+      
+      // Refresh the wine database data after a delay
+      setTimeout(() => {
+        loadData();
+      }, 5000);
+    } catch (error: any) {
+      console.error('Import error:', error);
+      toast({
+        title: "Error",
+        description: `Failed to import wine data: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const updateUserRole = async (userId: string, newRole: string) => {
     try {
       // First, remove existing roles for this user
@@ -905,6 +933,12 @@ export default function Admin() {
                 <Button onClick={handleAdd}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add {activeTab === 'countries' ? 'Country' : activeTab === 'regions' ? 'Region' : activeTab === 'appellations' ? 'Appellation' : 'Grape Variety'}
+                </Button>
+              )}
+              {activeTab === 'wine_database' && (
+                <Button onClick={handleImportWineData} disabled={loading}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  {loading ? 'Importing...' : 'Import Real Wine Data'}
                 </Button>
               )}
             </div>
