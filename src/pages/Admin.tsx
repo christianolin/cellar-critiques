@@ -757,13 +757,13 @@ export default function Admin() {
                 <Label htmlFor="region_id">Region (Optional)</Label>
                 <Select
                   value={formData.region_id || ''}
-                  onValueChange={(value) => setFormData({ ...formData, region_id: value || null })}
+                  onValueChange={(value) => setFormData({ ...formData, region_id: value === 'none' ? null : value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select region" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {regions.map((region) => (
                       <SelectItem key={region.id} value={region.id}>
                         {region.name}
