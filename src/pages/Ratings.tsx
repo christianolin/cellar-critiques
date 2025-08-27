@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Search, Star, Calendar, Grid, List, ArrowUpDown } from 'lucide-react';
+import { Plus, Search, Star, Calendar, Grid, List, ArrowUpDown, Filter } from 'lucide-react';
 import Layout from '@/components/Layout';
 import AddRatingDialog from '@/components/AddRatingDialog';
 import EditRatingDialog from '@/components/EditRatingDialog';
@@ -43,6 +43,17 @@ export default function Ratings() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
+  const [filters, setFilters] = useState<{
+    vintage: string;
+    wine_type: string;
+    region: string;
+    producer: string;
+  }>({
+    vintage: '',
+    wine_type: '',  
+    region: '',
+    producer: ''
+  });
   const [sortKey, setSortKey] = useState<'name' | 'producer' | 'vintage' | 'type' | 'rating' | 'tasted'>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const toggleSort = (key: 'name' | 'producer' | 'vintage' | 'type' | 'rating' | 'tasted') => {
@@ -116,19 +127,43 @@ export default function Ratings() {
     }
   };
 
-  const filteredRatings = ratings.filter(rating =>
-    rating.wines.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    rating.wines.producer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    rating.wines.regions?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    rating.wines.countries?.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredRatings = ratings.filter(rating => {
+    // Search term filter
+    const matchesSearch = searchTerm === '' || 
+      rating.wines.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      rating.wines.producer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      rating.wines.regions?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      rating.wines.countries?.name.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Column filters
+    const matchesVintage = filters.vintage === '' || rating.wines.vintage?.toString() === filters.vintage;
+    const matchesType = filters.wine_type === '' || rating.wines.wine_type === filters.wine_type;
+    const matchesRegion = filters.region === '' || 
+      rating.wines.regions?.name === filters.region ||
+      rating.wines.countries?.name === filters.region;
+    const matchesProducer = filters.producer === '' || rating.wines.producer === filters.producer;
+    
+    return matchesSearch && matchesVintage && matchesType && matchesRegion && matchesProducer;
+  });
 
-  const filteredFriendsRatings = friendsRatings.filter(rating =>
-    rating.wines.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    rating.wines.producer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    rating.wines.regions?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    rating.wines.countries?.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredFriendsRatings = friendsRatings.filter(rating => {
+    // Search term filter
+    const matchesSearch = searchTerm === '' || 
+      rating.wines.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      rating.wines.producer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      rating.wines.regions?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      rating.wines.countries?.name.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Column filters
+    const matchesVintage = filters.vintage === '' || rating.wines.vintage?.toString() === filters.vintage;
+    const matchesType = filters.wine_type === '' || rating.wines.wine_type === filters.wine_type;
+    const matchesRegion = filters.region === '' || 
+      rating.wines.regions?.name === filters.region ||
+      rating.wines.countries?.name === filters.region;
+    const matchesProducer = filters.producer === '' || rating.wines.producer === filters.producer;
+    
+    return matchesSearch && matchesVintage && matchesType && matchesRegion && matchesProducer;
+  });
 
   const getRatingColor = (rating: number) => {
     if (rating >= 95) return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300';
@@ -294,7 +329,7 @@ export default function Ratings() {
           </div>
         </div>
 
-        <div className="mb-6">
+        <div className="mb-6 space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
@@ -303,6 +338,70 @@ export default function Ratings() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
             />
+          </div>
+          
+          {/* Filters */}
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Filters:</span>
+            </div>
+            
+            <select 
+              value={filters.vintage} 
+              onChange={(e) => setFilters({...filters, vintage: e.target.value})}
+              className="px-3 py-1 text-sm border border-input bg-background rounded-md"
+            >
+              <option value="">All Vintages</option>
+              {Array.from(new Set([...ratings, ...friendsRatings].map(r => r.wines.vintage).filter(Boolean)))
+                .sort((a, b) => (b as number) - (a as number))
+                .map(vintage => (
+                <option key={vintage} value={vintage?.toString()}>{vintage}</option>
+              ))}
+            </select>
+            
+            <select 
+              value={filters.wine_type} 
+              onChange={(e) => setFilters({...filters, wine_type: e.target.value})}
+              className="px-3 py-1 text-sm border border-input bg-background rounded-md"
+            >
+              <option value="">All Types</option>
+              {Array.from(new Set([...ratings, ...friendsRatings].map(r => r.wines.wine_type))).sort().map(type => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+            </select>
+            
+            <select 
+              value={filters.region} 
+              onChange={(e) => setFilters({...filters, region: e.target.value})}
+              className="px-3 py-1 text-sm border border-input bg-background rounded-md"
+            >
+              <option value="">All Regions</option>
+              {Array.from(new Set([...ratings, ...friendsRatings].map(r => r.wines.regions?.name || r.wines.countries?.name).filter(Boolean))).sort().map(region => (
+                <option key={region} value={region}>{region}</option>
+              ))}
+            </select>
+            
+            <select 
+              value={filters.producer} 
+              onChange={(e) => setFilters({...filters, producer: e.target.value})}
+              className="px-3 py-1 text-sm border border-input bg-background rounded-md"
+            >
+              <option value="">All Producers</option>
+              {Array.from(new Set([...ratings, ...friendsRatings].map(r => r.wines.producer))).sort().map(producer => (
+                <option key={producer} value={producer}>{producer}</option>
+              ))}
+            </select>
+            
+            {(filters.vintage || filters.wine_type || filters.region || filters.producer) && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setFilters({vintage: '', wine_type: '', region: '', producer: ''})}
+              >
+                Clear Filters
+              </Button>
+            )}
           </div>
         </div>
 

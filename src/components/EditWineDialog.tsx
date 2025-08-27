@@ -51,11 +51,13 @@ interface WineFormData {
   producer: string;
   vintage: number | null;
   wine_type: string;
+  bottle_size: string;
   country_id: string;
   region_id: string;
   appellation_id: string;
   grape_varieties: GrapeWithPercentage[];
   alcohol_content: number | null;
+  image_url: string | null;
   // Cellar specific fields
   quantity: number;
   purchase_date: string;
@@ -69,6 +71,7 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [countries, setCountries] = useState<Country[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
   const [appellations, setAppellations] = useState<Appellation[]>([]);
@@ -81,11 +84,13 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
     producer: cellarEntry.wines.producer,
     vintage: cellarEntry.wines.vintage,
     wine_type: cellarEntry.wines.wine_type,
+    bottle_size: cellarEntry.wines.bottle_size || '750ml',
     country_id: cellarEntry.wines.country_id || '',
     region_id: cellarEntry.wines.region_id || '',
     appellation_id: cellarEntry.wines.appellation_id || '',
     grape_varieties: [],
     alcohol_content: cellarEntry.wines.alcohol_content,
+    image_url: cellarEntry.wines.image_url || null,
     quantity: cellarEntry.quantity,
     purchase_date: cellarEntry.purchase_date || '',
     purchase_price: cellarEntry.purchase_price,
@@ -188,6 +193,62 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
     });
   };
 
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `wine-${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('wine-images')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('wine-images')
+        .getPublicUrl(fileName);
+
+      setFormData({ ...formData, image_url: publicUrl });
+      
+      toast({
+        title: "Success",
+        description: "Image uploaded successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload image",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -200,12 +261,14 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
         producer: formData.producer,
         vintage: formData.vintage,
         wine_type: formData.wine_type as "red" | "white" | "rose" | "sparkling" | "dessert" | "fortified",
+        bottle_size: formData.bottle_size,
         country_id: formData.country_id || null,
         region_id: formData.region_id || null,
         appellation_id: formData.appellation_id || null,
         grape_variety_ids: formData.grape_varieties.map(g => g.id),
         alcohol_content: formData.alcohol_content,
-        cellar_tracker_id: formData.cellar_tracker_id
+        cellar_tracker_id: formData.cellar_tracker_id,
+        image_url: formData.image_url
       };
 
       const { error: wineError } = await supabase
@@ -301,6 +364,30 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
               />
             </div>
             <div>
+              <Label htmlFor="bottle_size">Bottle Size</Label>
+              <Select value={formData.bottle_size} onValueChange={(value) => setFormData({ ...formData, bottle_size: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select bottle size" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="187.5ml">Split/Piccolo (187.5ml)</SelectItem>
+                  <SelectItem value="375ml">Half Bottle/Demi (375ml)</SelectItem>
+                  <SelectItem value="750ml">Standard Bottle (750ml)</SelectItem>
+                  <SelectItem value="1000ml">Liter (1000ml)</SelectItem>
+                  <SelectItem value="1500ml">Magnum (1500ml)</SelectItem>
+                  <SelectItem value="3000ml">Double Magnum/Jeroboam (3L)</SelectItem>
+                  <SelectItem value="4500ml">Rehoboam (4.5L)</SelectItem>
+                  <SelectItem value="6000ml">Imperial/Methuselah (6L)</SelectItem>
+                  <SelectItem value="9000ml">Salmanazar (9L)</SelectItem>
+                  <SelectItem value="12000ml">Balthazar (12L)</SelectItem>
+                  <SelectItem value="15000ml">Nebuchadnezzar (15L)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
               <Label htmlFor="wine_type">Wine Type *</Label>
               <Select value={formData.wine_type} onValueChange={(value) => setFormData({ ...formData, wine_type: value })}>
                 <SelectTrigger>
@@ -315,6 +402,32 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
                   <SelectItem value="fortified">Fortified</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label htmlFor="wine_image">Wine Image</Label>
+              <div className="space-y-2">
+                <Input
+                  id="wine_image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={uploadingImage}
+                />
+                {uploadingImage && <p className="text-sm text-muted-foreground">Uploading...</p>}
+                {formData.image_url && (
+                  <div className="flex items-center gap-2">
+                    <img src={formData.image_url} alt="Wine preview" className="w-16 h-16 object-cover rounded" />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setFormData({ ...formData, image_url: null })}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

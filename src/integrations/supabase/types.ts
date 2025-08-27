@@ -413,11 +413,13 @@ export type Database = {
         Row: {
           alcohol_content: number | null
           appellation_id: string | null
+          bottle_size: string | null
           cellar_tracker_id: string | null
           country_id: string | null
           created_at: string
           grape_variety_ids: string[] | null
           id: string
+          image_url: string | null
           name: string
           producer: string
           region_id: string | null
@@ -428,11 +430,13 @@ export type Database = {
         Insert: {
           alcohol_content?: number | null
           appellation_id?: string | null
+          bottle_size?: string | null
           cellar_tracker_id?: string | null
           country_id?: string | null
           created_at?: string
           grape_variety_ids?: string[] | null
           id?: string
+          image_url?: string | null
           name: string
           producer: string
           region_id?: string | null
@@ -443,11 +447,13 @@ export type Database = {
         Update: {
           alcohol_content?: number | null
           appellation_id?: string | null
+          bottle_size?: string | null
           cellar_tracker_id?: string | null
           country_id?: string | null
           created_at?: string
           grape_variety_ids?: string[] | null
           id?: string
+          image_url?: string | null
           name?: string
           producer?: string
           region_id?: string | null
