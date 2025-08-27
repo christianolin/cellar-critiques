@@ -54,9 +54,10 @@ interface AddRatingDialogProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   trigger?: React.ReactNode;
+  prefilledWine?: any; // Wine data to pre-fill the form
 }
 
-export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onOpenChange: externalOnOpenChange, trigger }: AddRatingDialogProps) {
+export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onOpenChange: externalOnOpenChange, trigger, prefilledWine }: AddRatingDialogProps) {
   const { user } = useAuth();
   const [internalOpen, setInternalOpen] = useState(false);
   const open = externalOpen !== undefined ? externalOpen : internalOpen;
@@ -116,13 +117,34 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
     cellar_tracker_id: '',
     image_url: null as string | null,
   });
+  
+  const [cellarTrackerLoading, setCellarTrackerLoading] = useState(false);
 
   useEffect(() => {
     if (open) {
       fetchCellarWines();
       fetchMasterData();
+      
+      // Handle pre-filled wine data from cellar
+      if (prefilledWine) {
+        setMode('new');
+        setNewWineData({
+          name: prefilledWine.name || '',
+          producer: prefilledWine.producer || '',
+          vintage: prefilledWine.vintage || null,
+          wine_type: prefilledWine.wine_type || 'red',
+          alcohol_content: prefilledWine.alcohol_content || null,
+          bottle_size: prefilledWine.bottle_size || '750ml',
+          country_id: prefilledWine.country_id || '',
+          region_id: prefilledWine.region_id || '',
+          appellation_id: prefilledWine.appellation_id || '',
+          grape_varieties: [],
+          cellar_tracker_id: prefilledWine.cellar_tracker_id || '',
+          image_url: prefilledWine.image_url || null,
+        });
+      }
     }
-  }, [open]);
+  }, [open, prefilledWine]);
 
   // Get selected wine data for prefilling
   const selectedWineData = cellarWines.find(wine => wine.id === selectedWine);
@@ -416,6 +438,97 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
     }
   };
 
+  const fetchCellarTrackerData = async () => {
+    if (!newWineData.cellar_tracker_id) {
+      toast({
+        title: "Error",
+        description: "Please enter a CellarTracker ID",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCellarTrackerLoading(true);
+    try {
+      const response = await fetch(`https://www.cellartracker.com/wine.asp?iWine=${newWineData.cellar_tracker_id}`);
+      const html = await response.text();
+      
+      // Parse the HTML to extract wine information
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      
+      // Extract wine name (from the title or wine name element)
+      const titleElement = doc.querySelector('title');
+      let name = '';
+      if (titleElement?.textContent) {
+        const titleText = titleElement.textContent;
+        // Extract wine name from title (usually after "CellarTracker! - ")
+        const match = titleText.match(/CellarTracker! - (.+?) \(/);
+        if (match) {
+          name = match[1].trim();
+        }
+      }
+      
+      // Extract producer (look for producer information)
+      let producer = '';
+      const producerElements = doc.querySelectorAll('td, span, div');
+      for (const element of producerElements) {
+        const text = element.textContent?.toLowerCase() || '';
+        if (text.includes('producer') || text.includes('winery')) {
+          const nextElement = element.nextElementSibling;
+          if (nextElement?.textContent) {
+            producer = nextElement.textContent.trim();
+            break;
+          }
+        }
+      }
+      
+      // Extract vintage (look for 4-digit year)
+      let vintage = null;
+      const vintageMatch = html.match(/\b(19|20)\d{2}\b/);
+      if (vintageMatch) {
+        vintage = parseInt(vintageMatch[0]);
+      }
+      
+      // Extract wine type (red, white, etc.)
+      let wine_type = 'red';
+      const typeText = html.toLowerCase();
+      if (typeText.includes('white wine') || typeText.includes('white')) {
+        wine_type = 'white';
+      } else if (typeText.includes('sparkling') || typeText.includes('champagne')) {
+        wine_type = 'sparkling';
+      } else if (typeText.includes('rosé') || typeText.includes('rose')) {
+        wine_type = 'rose';
+      } else if (typeText.includes('dessert') || typeText.includes('sweet')) {
+        wine_type = 'dessert';
+      } else if (typeText.includes('fortified') || typeText.includes('port') || typeText.includes('sherry')) {
+        wine_type = 'fortified';
+      }
+      
+      // Update the form with extracted data
+      setNewWineData({
+        ...newWineData,
+        name: name || newWineData.name,
+        producer: producer || newWineData.producer,
+        vintage: vintage || newWineData.vintage,
+        wine_type: wine_type as any,
+      });
+      
+      toast({
+        title: "Success",
+        description: "Wine data imported from CellarTracker",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch data from CellarTracker. Please fill in manually.",
+        variant: "destructive",
+      });
+    } finally {
+      setCellarTrackerLoading(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {trigger && (
@@ -504,7 +617,10 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <h4 className="font-medium">Add New Wine</h4>
+                  <h4 className="font-medium">Wine Information</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Fill in the wine details or use CellarTracker import to auto-fill
+                  </p>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="name">Wine Name *</Label>
@@ -732,12 +848,25 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
                     </div>
                     <div>
                       <Label htmlFor="cellar_tracker_id">CellarTracker ID</Label>
-                      <Input
-                        id="cellar_tracker_id"
-                        value={newWineData.cellar_tracker_id}
-                        onChange={(e) => setNewWineData({ ...newWineData, cellar_tracker_id: e.target.value })}
-                        placeholder="e.g. 12345"
-                      />
+                      <div className="flex gap-2">
+                        <Input
+                          id="cellar_tracker_id"
+                          value={newWineData.cellar_tracker_id}
+                          onChange={(e) => setNewWineData({ ...newWineData, cellar_tracker_id: e.target.value })}
+                          placeholder="e.g. 175293"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={fetchCellarTrackerData}
+                          disabled={cellarTrackerLoading || !newWineData.cellar_tracker_id}
+                        >
+                          {cellarTrackerLoading ? 'Fetching...' : 'Import'}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Enter a CellarTracker ID and click Import to auto-fill wine details
+                      </p>
                     </div>
                   </div>
                 </div>

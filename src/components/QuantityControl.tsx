@@ -14,6 +14,7 @@ interface QuantityControlProps {
   wineName: string;
   currentQuantity: number;
   onQuantityChange: () => void;
+  wineData?: any; // Full wine data for pre-filling rating dialog
 }
 
 export default function QuantityControl({ 
@@ -21,7 +22,8 @@ export default function QuantityControl({
   wineId, 
   wineName, 
   currentQuantity, 
-  onQuantityChange 
+  onQuantityChange,
+  wineData 
 }: QuantityControlProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -139,6 +141,7 @@ export default function QuantityControl({
         open={showRatingDialog}
         onOpenChange={setShowRatingDialog}
         onRatingAdded={onQuantityChange}
+        prefilledWine={wineData}
       />
     </>
   );

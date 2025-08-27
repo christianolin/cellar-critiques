@@ -689,6 +689,7 @@ export default function Cellar() {
                                   wineName={wine.name}
                                   currentQuantity={cellarEntry.quantity}
                                   onQuantityChange={fetchCellarWines}
+                                  wineData={wine}
                                 />
                               </TableCell>
                             )}
@@ -769,6 +770,7 @@ export default function Cellar() {
                           wineName={wine.name}
                           currentQuantity={cellarEntry.quantity}
                           onQuantityChange={fetchCellarWines}
+                          wineData={wine}
                         />
                       </div>
                       {cellarEntry.purchase_price && (
