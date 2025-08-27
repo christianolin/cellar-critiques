@@ -7,12 +7,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Edit, Trash2, Settings, Users, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, Edit, Trash2, Settings, Users, ChevronUp, ChevronDown, Check, ChevronsUpDown, Search } from 'lucide-react';
 import Layout from '@/components/Layout';
+import { cn } from '@/lib/utils';
 
 interface Country {
   id: string;
@@ -44,7 +47,7 @@ interface WineDatabase {
   id: string;
   name: string;
   wine_type: string;
-  alcohol_content: number | null;
+  vintage: number | null;
   description: string | null;
   producer_id: string;
   country_id: string;
@@ -84,6 +87,11 @@ export default function Admin() {
   const [users, setUsers] = useState<User[]>([]);
   const [wineProducers, setWineProducers] = useState<{ id: string; name: string }[]>([]);
   
+  // Search states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredRegions, setFilteredRegions] = useState<Region[]>([]);
+  const [filteredAppellations, setFilteredAppellations] = useState<Appellation[]>([]);
+  
   // Form states
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
@@ -103,6 +111,36 @@ export default function Admin() {
   useEffect(() => {
     loadData();
   }, [activeTab, sortField, sortDirection]);
+
+  // Effect for cascading dropdowns - filter regions based on selected country
+  useEffect(() => {
+    if (formData.country_id) {
+      const filtered = regions.filter(region => region.country_id === formData.country_id);
+      setFilteredRegions(filtered);
+      // If the current region is not in the filtered list, clear it
+      if (formData.region_id && !filtered.find(r => r.id === formData.region_id)) {
+        setFormData(prev => ({ ...prev, region_id: null, appellation_id: null }));
+      }
+    } else {
+      setFilteredRegions([]);
+      setFormData(prev => ({ ...prev, region_id: null, appellation_id: null }));
+    }
+  }, [formData.country_id, regions]);
+
+  // Effect for cascading dropdowns - filter appellations based on selected region
+  useEffect(() => {
+    if (formData.region_id) {
+      const filtered = appellations.filter(appellation => appellation.region_id === formData.region_id);
+      setFilteredAppellations(filtered);
+      // If the current appellation is not in the filtered list, clear it
+      if (formData.appellation_id && !filtered.find(a => a.id === formData.appellation_id)) {
+        setFormData(prev => ({ ...prev, appellation_id: null }));
+      }
+    } else {
+      setFilteredAppellations([]);
+      setFormData(prev => ({ ...prev, appellation_id: null }));
+    }
+  }, [formData.region_id, appellations]);
 
   const loadData = async () => {
     setLoading(true);
@@ -168,16 +206,18 @@ export default function Admin() {
           setWineDatabase(wineDbData || []);
           
           // Also load producers and other data for dropdowns
-          const [{ data: allProducers }, { data: allCountriesForWine }, { data: allRegionsForWine }] = await Promise.all([
+          const [{ data: allProducers }, { data: allCountriesForWine }, { data: allRegionsForWine }, { data: allAppellations }] = await Promise.all([
             supabase.from('producers').select('*').order('name'),
             supabase.from('countries').select('*').order('name'),
-            supabase.from('regions').select('*, countries(name)').order('name')
+            supabase.from('regions').select('*, countries(name)').order('name'),
+            supabase.from('appellations').select('*, regions(name)').order('name')
           ]);
           
           // Update state for dropdowns
           if (allProducers) setWineProducers(allProducers);
           if (allCountriesForWine) setCountries(allCountriesForWine);
           if (allRegionsForWine) setRegions(allRegionsForWine);
+          if (allAppellations) setAppellations(allAppellations);
           break;
           
         case 'users':
@@ -683,6 +723,19 @@ export default function Admin() {
                 />
               </div>
               <div>
+                <Label htmlFor="vintage">Vintage (Optional)</Label>
+                <Input
+                  id="vintage"
+                  type="number"
+                  min="1800"
+                  max={new Date().getFullYear() + 2}
+                  value={formData.vintage || ''}
+                  onChange={(e) => setFormData({ ...formData, vintage: e.target.value ? parseInt(e.target.value) : null })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
                 <Label htmlFor="wine_type">Wine Type</Label>
                 <Select
                   value={formData.wine_type || ''}
@@ -701,77 +754,209 @@ export default function Admin() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="producer_id">Producer</Label>
-                <Select
-                  value={formData.producer_id || ''}
-                  onValueChange={(value) => setFormData({ ...formData, producer_id: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select producer" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {wineProducers.map((producer) => (
-                      <SelectItem key={producer.id} value={producer.id}>
-                        {producer.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="country_id">Country</Label>
-                <Select
-                  value={formData.country_id || ''}
-                  onValueChange={(value) => setFormData({ ...formData, country_id: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select country" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {countries.map((country) => (
-                      <SelectItem key={country.id} value={country.id}>
-                        {country.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between"
+                    >
+                      {formData.producer_id
+                        ? wineProducers.find((producer) => producer.id === formData.producer_id)?.name
+                        : "Select producer..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search producers..." />
+                      <CommandEmpty>No producer found.</CommandEmpty>
+                      <CommandGroup>
+                        {wineProducers.map((producer) => (
+                          <CommandItem
+                            key={producer.id}
+                            value={producer.name}
+                            onSelect={() => {
+                              setFormData({ ...formData, producer_id: producer.id });
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                formData.producer_id === producer.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {producer.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="alcohol_content">Alcohol Content (%)</Label>
-                <Input
-                  id="alcohol_content"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="25"
-                  value={formData.alcohol_content || ''}
-                  onChange={(e) => setFormData({ ...formData, alcohol_content: e.target.value ? parseFloat(e.target.value) : null })}
-                />
+                <Label htmlFor="country_id">Country</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between"
+                    >
+                      {formData.country_id
+                        ? countries.find((country) => country.id === formData.country_id)?.name
+                        : "Select country..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search countries..." />
+                      <CommandEmpty>No country found.</CommandEmpty>
+                      <CommandGroup>
+                        {countries.map((country) => (
+                          <CommandItem
+                            key={country.id}
+                            value={country.name}
+                            onSelect={() => {
+                              setFormData({ ...formData, country_id: country.id });
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                formData.country_id === country.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {country.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div>
                 <Label htmlFor="region_id">Region (Optional)</Label>
-                <Select
-                  value={formData.region_id || ''}
-                  onValueChange={(value) => setFormData({ ...formData, region_id: value === 'none' ? null : value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select region" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    {regions.map((region) => (
-                      <SelectItem key={region.id} value={region.id}>
-                        {region.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between"
+                      disabled={!formData.country_id}
+                    >
+                      {formData.region_id
+                        ? filteredRegions.find((region) => region.id === formData.region_id)?.name
+                        : formData.country_id ? "Select region..." : "Select country first"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search regions..." />
+                      <CommandEmpty>No region found.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value="none"
+                          onSelect={() => {
+                            setFormData({ ...formData, region_id: null });
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              !formData.region_id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          None
+                        </CommandItem>
+                        {filteredRegions.map((region) => (
+                          <CommandItem
+                            key={region.id}
+                            value={region.name}
+                            onSelect={() => {
+                              setFormData({ ...formData, region_id: region.id });
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                formData.region_id === region.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {region.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="appellation_id">Appellation (Optional)</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between"
+                      disabled={!formData.region_id}
+                    >
+                      {formData.appellation_id
+                        ? filteredAppellations.find((appellation) => appellation.id === formData.appellation_id)?.name
+                        : formData.region_id ? "Select appellation..." : "Select region first"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search appellations..." />
+                      <CommandEmpty>No appellation found.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value="none"
+                          onSelect={() => {
+                            setFormData({ ...formData, appellation_id: null });
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              !formData.appellation_id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          None
+                        </CommandItem>
+                        {filteredAppellations.map((appellation) => (
+                          <CommandItem
+                            key={appellation.id}
+                            value={appellation.name}
+                            onSelect={() => {
+                              setFormData({ ...formData, appellation_id: appellation.id });
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                formData.appellation_id === appellation.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {appellation.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div />
             </div>
             <div>
               <Label htmlFor="description">Description</Label>
@@ -809,12 +994,25 @@ export default function Admin() {
         break;
       case 'wine_database':
         data = wineDatabase;
-        headers = ['Name', 'Producer', 'Type', 'Country', 'Region', 'Actions'];
+        headers = ['Name', 'Vintage', 'Producer', 'Type', 'Country', 'Region', 'Appellation', 'Actions'];
         break;
       case 'users':
         data = users;
         headers = ['Username', 'Display Name', 'Roles', 'Actions'];
         break;
+    }
+
+    // Filter data based on search term for wine_database
+    if (activeTab === 'wine_database' && searchTerm) {
+      data = data.filter(item =>
+        item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.producers?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.wine_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.countries?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.regions?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.appellations?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.vintage?.toString().includes(searchTerm)
+      );
     }
 
     return (
@@ -875,10 +1073,12 @@ export default function Admin() {
               {activeTab === 'wine_database' && (
                 <>
                   <TableCell>{item.name}</TableCell>
+                  <TableCell>{item.vintage || 'N/A'}</TableCell>
                   <TableCell>{item.producers?.name || ''}</TableCell>
                   <TableCell className="capitalize">{item.wine_type}</TableCell>
                   <TableCell>{item.countries?.name || ''}</TableCell>
                   <TableCell>{item.regions?.name || 'N/A'}</TableCell>
+                  <TableCell>{item.appellations?.name || 'N/A'}</TableCell>
                 </>
               )}
               {activeTab === 'users' && (
@@ -1015,6 +1215,19 @@ export default function Admin() {
             </div>
           </CardHeader>
           <CardContent>
+            {activeTab === 'wine_database' && (
+              <div className="mb-4">
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search wines..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+              </div>
+            )}
             {loading ? (
               <div className="text-center py-8">Loading...</div>
             ) : (
