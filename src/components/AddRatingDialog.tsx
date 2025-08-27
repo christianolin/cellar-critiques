@@ -121,6 +121,9 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
     }
   }, [open]);
 
+  // Get selected wine data for prefilling
+  const selectedWineData = cellarWines.find(wine => wine.id === selectedWine);
+
   const fetchCellarWines = async () => {
     try {
       const { data, error } = await supabase
@@ -160,21 +163,12 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
         supabase.from('grape_varieties').select('id, name, type').order('name')
       ]);
 
-      if (countriesRes.error) throw countriesRes.error;
-      if (regionsRes.error) throw regionsRes.error;
-      if (appellationsRes.error) throw appellationsRes.error;
-      if (grapeVarietiesRes.error) throw grapeVarietiesRes.error;
-
       setCountries(countriesRes.data || []);
       setRegions(regionsRes.data || []);
       setAppellations(appellationsRes.data || []);
       setGrapeVarieties(grapeVarietiesRes.data || []);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load master data",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to load master data", variant: "destructive" });
     }
   };
 
@@ -212,35 +206,21 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
 
     let wineId = selectedWine;
 
-    // If adding new wine, create it first
     if (mode === 'new') {
       if (!newWineData.name || !newWineData.producer) {
-        toast({
-          title: "Error",
-          description: "Wine name and producer are required",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: "Wine name and producer are required", variant: "destructive" });
         return;
       }
-
       setLoading(true);
       try {
         wineId = await createNewWine();
       } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to create wine",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: "Failed to create wine", variant: "destructive" });
         setLoading(false);
         return;
       }
     } else if (!selectedWine) {
-      toast({
-        title: "Error",
-        description: "Please select a wine",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Please select a wine", variant: "destructive" });
       return;
     }
 
@@ -257,7 +237,6 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
           food_pairing: formData.food_pairing || null,
           serving_temp_min: formData.serving_temp_min,
           serving_temp_max: formData.serving_temp_max,
-          // Detailed rating fields
           appearance_color: formData.appearance_color || null,
           appearance_intensity: formData.appearance_intensity || null,
           appearance_clarity: formData.appearance_clarity || null,
@@ -284,21 +263,12 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Rating added successfully!",
-      });
-
+      toast({ title: "Success", description: "Rating added successfully!" });
       setOpen(false);
       resetForm();
       onRatingAdded?.();
     } catch (error) {
-      console.error('Error creating rating:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add rating",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to add rating", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -455,7 +425,7 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
           Add Rating
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add Wine Rating</DialogTitle>
           <DialogDescription>
@@ -464,321 +434,361 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Wine Selection Mode */}
-          <div className="flex gap-2 mb-4">
-            <Button
-              type="button"
-              variant={mode === 'existing' ? 'default' : 'outline'}
-              onClick={() => setMode('existing')}
-            >
-              Select Existing Wine
-            </Button>
-            <Button
-              type="button"
-              variant={mode === 'new' ? 'default' : 'outline'}
-              onClick={() => setMode('new')}
-            >
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Add New Wine
-            </Button>
-          </div>
-
-          {/* Wine Selection */}
-          {mode === 'existing' ? (
-            <div>
-              <Label htmlFor="wine">Select Wine *</Label>
-              <Select value={selectedWine} onValueChange={setSelectedWine}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose any wine to rate" />
-                </SelectTrigger>
-                <SelectContent>
-                  {wines.map((wine) => (
-                    <SelectItem key={wine.id} value={wine.id}>
-                      {wine.name} - {wine.producer} {wine.vintage ? `(${wine.vintage})` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                Select from existing wines in the database
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Add New Wine</h3>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="name">Wine Name *</Label>
-                  <Input
-                    id="name"
-                    value={newWineData.name}
-                    onChange={(e) => setNewWineData({ ...newWineData, name: e.target.value })}
-                    placeholder="e.g., Château Margaux"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="producer">Producer *</Label>
-                  <Input
-                    id="producer"
-                    value={newWineData.producer}
-                    onChange={(e) => setNewWineData({ ...newWineData, producer: e.target.value })}
-                    placeholder="e.g., Château Margaux"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="wine_type">Wine Type *</Label>
-                  <Select
-                    value={newWineData.wine_type}
-                    onValueChange={(value: any) => setNewWineData({ ...newWineData, wine_type: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="red">Red</SelectItem>
-                      <SelectItem value="white">White</SelectItem>
-                      <SelectItem value="rose">Rosé</SelectItem>
-                      <SelectItem value="sparkling">Sparkling</SelectItem>
-                      <SelectItem value="dessert">Dessert</SelectItem>
-                      <SelectItem value="fortified">Fortified</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="bottle_size">Bottle Size</Label>
-                  <Select
-                    value={newWineData.bottle_size}
-                    onValueChange={(value) => setNewWineData({ ...newWineData, bottle_size: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="187.5ml">Split/Piccolo (187.5ml)</SelectItem>
-                      <SelectItem value="375ml">Half Bottle/Demi (375ml)</SelectItem>
-                      <SelectItem value="750ml">Standard Bottle (750ml)</SelectItem>
-                      <SelectItem value="1000ml">Liter (1000ml)</SelectItem>
-                      <SelectItem value="1500ml">Magnum (1500ml)</SelectItem>
-                      <SelectItem value="3000ml">Double Magnum/Jeroboam (3L)</SelectItem>
-                      <SelectItem value="4500ml">Rehoboam (4.5L)</SelectItem>
-                      <SelectItem value="6000ml">Imperial/Methuselah (6L)</SelectItem>
-                      <SelectItem value="9000ml">Salmanazar (9L)</SelectItem>
-                      <SelectItem value="12000ml">Balthazar (12L)</SelectItem>
-                      <SelectItem value="15000ml">Nebuchadnezzar (15L)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="vintage">Vintage</Label>
-                  <Input
-                    id="vintage"
-                    type="number"
-                    min="1800"
-                    max="2030"
-                    value={newWineData.vintage ?? ''}
-                    onChange={(e) => setNewWineData({ ...newWineData, vintage: e.target.value ? parseInt(e.target.value) : null })}
-                    placeholder="e.g., 2020"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="wine_image">Wine Image</Label>
-                  <div className="space-y-2">
-                    <Input
-                      id="wine_image"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      disabled={uploadingImage}
-                    />
-                    {uploadingImage && <p className="text-sm text-muted-foreground">Uploading...</p>}
-                    {newWineData.image_url && (
-                      <div className="flex items-center gap-2">
-                        <img src={newWineData.image_url} alt="Wine preview" className="w-16 h-16 object-cover rounded" />
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => setNewWineData({ ...newWineData, image_url: null })}
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="country">Country *</Label>
-                  <Select
-                    value={newWineData.country_id}
-                    onValueChange={(value) => setNewWineData({ ...newWineData, country_id: value, region_id: '', appellation_id: '' })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select country" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {countries.map((country) => (
-                        <SelectItem key={country.id} value={country.id}>
-                          {country.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="region">Region</Label>
-                  <Select
-                    value={newWineData.region_id}
-                    onValueChange={(value) => setNewWineData({ ...newWineData, region_id: value, appellation_id: '' })}
-                    disabled={!newWineData.country_id}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select region" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filteredRegions.map((region) => (
-                        <SelectItem key={region.id} value={region.id}>
-                          {region.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="appellation">Appellation</Label>
-                  <Select
-                    value={newWineData.appellation_id}
-                    onValueChange={(value) => setNewWineData({ ...newWineData, appellation_id: value })}
-                    disabled={!newWineData.region_id}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select appellation" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filteredAppellations.map((appellation) => (
-                        <SelectItem key={appellation.id} value={appellation.id}>
-                          {appellation.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="grape_varieties">Grape Varieties with Percentages</Label>
-                <Select value="" onValueChange={addGrapeVariety}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Add grape varieties" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {grapeVarieties.map((grape) => (
-                      <SelectItem key={grape.id} value={grape.id}>
-                        {grape.name} ({grape.type})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                
-                {newWineData.grape_varieties.length > 0 && (
-                  <div className="space-y-2 mt-2">
-                    {newWineData.grape_varieties.map((grape) => (
-                      <div key={grape.id} className="flex items-center gap-2 p-2 bg-secondary rounded-md">
-                        <span className="flex-1 text-sm">{grape.name}</span>
-                        <Input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={grape.percentage}
-                          onChange={(e) => updateGrapePercentage(grape.id, parseInt(e.target.value) || 0)}
-                          className="w-20"
-                          placeholder="%"
-                        />
-                        <span className="text-sm">%</span>
-                        <X
-                          className="h-4 w-4 cursor-pointer"
-                          onClick={() => removeGrapeVariety(grape.id)}
-                        />
-                      </div>
-                    ))}
-                    <div className="text-xs text-muted-foreground">
-                      Total: {newWineData.grape_varieties.reduce((sum, g) => sum + g.percentage, 0)}%
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="alcohol_content">Alcohol Content (%)</Label>
-                  <Input
-                    id="alcohol_content"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="50"
-                    value={newWineData.alcohol_content ?? ''}
-                    onChange={(e) => setNewWineData({ ...newWineData, alcohol_content: e.target.value ? parseFloat(e.target.value) : null })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="cellar_tracker_id">CellarTracker ID</Label>
-                  <Input
-                    id="cellar_tracker_id"
-                    value={newWineData.cellar_tracker_id}
-                    onChange={(e) => setNewWineData({ ...newWineData, cellar_tracker_id: e.target.value })}
-                    placeholder="e.g. 12345"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Rating Fields */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="rating">Rating (50-100) *</Label>
-              <Input
-                id="rating"
-                type="number"
-                min="50"
-                max="100"
-                value={formData.rating}
-                onChange={(e) => setFormData({ ...formData, rating: parseInt(e.target.value) || 85 })}
-                required
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                60-69: Major flaws, poor | 70-79: Small flaws, average | 80-84: Above average | 85-89: Good/very good | 90-94: Superior & exceptional | 95-100: Benchmark wines, classics
-              </p>
-            </div>
-            <div>
-              <Label htmlFor="tasting_date">Tasting Date</Label>
-              <Input
-                id="tasting_date"
-                type="date"
-                value={formData.tasting_date}
-                onChange={(e) => setFormData({ ...formData, tasting_date: e.target.value })}
-              />
-            </div>
-          </div>
-
-          <Tabs defaultValue="appearance" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+          <Tabs defaultValue="wine" className="w-full">
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="wine">Wine Info</TabsTrigger>
+              <TabsTrigger value="rating">Rating</TabsTrigger>
               <TabsTrigger value="appearance">Appearance</TabsTrigger>
               <TabsTrigger value="aroma">Aroma</TabsTrigger>
               <TabsTrigger value="palate">Palate</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="wine" className="space-y-4">
+              <h3 className="text-lg font-semibold">Wine Selection</h3>
+              
+              <div className="flex gap-2 mb-4">
+                <Button
+                  type="button"
+                  variant={mode === 'cellar' ? 'default' : 'outline'}
+                  onClick={() => setMode('cellar')}
+                >
+                  <Wine className="h-4 w-4 mr-2" />
+                  Select from Cellar
+                </Button>
+                <Button
+                  type="button"
+                  variant={mode === 'new' ? 'default' : 'outline'}
+                  onClick={() => setMode('new')}
+                >
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Add New Wine
+                </Button>
+              </div>
+
+              {mode === 'cellar' ? (
+                <div>
+                  <Label htmlFor="wine">Select Wine *</Label>
+                  <Select value={selectedWine} onValueChange={setSelectedWine}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose wine from your cellar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cellarWines.map((wine) => (
+                        <SelectItem key={wine.id} value={wine.id}>
+                          {wine.name} - {wine.producer} {wine.vintage ? `(${wine.vintage})` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Select from wines in your cellar
+                  </p>
+
+                  {selectedWineData && (
+                    <div className="mt-4 p-4 bg-muted rounded-lg">
+                      <h4 className="font-medium mb-2">Wine Information (from your cellar)</h4>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div><strong>Name:</strong> {selectedWineData.name}</div>
+                        <div><strong>Producer:</strong> {selectedWineData.producer}</div>
+                        <div><strong>Vintage:</strong> {selectedWineData.vintage || 'N/A'}</div>
+                        <div><strong>Type:</strong> {selectedWineData.wine_type}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <h4 className="font-medium">Add New Wine</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="name">Wine Name *</Label>
+                      <Input
+                        id="name"
+                        value={newWineData.name}
+                        onChange={(e) => setNewWineData({ ...newWineData, name: e.target.value })}
+                        placeholder="e.g., Château Margaux"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="producer">Producer *</Label>
+                      <Input
+                        id="producer"
+                        value={newWineData.producer}
+                        onChange={(e) => setNewWineData({ ...newWineData, producer: e.target.value })}
+                        placeholder="e.g., Château Margaux"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="wine_type">Wine Type *</Label>
+                      <Select
+                        value={newWineData.wine_type}
+                        onValueChange={(value: any) => setNewWineData({ ...newWineData, wine_type: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="red">Red</SelectItem>
+                          <SelectItem value="white">White</SelectItem>
+                          <SelectItem value="rose">Rosé</SelectItem>
+                          <SelectItem value="sparkling">Sparkling</SelectItem>
+                          <SelectItem value="dessert">Dessert</SelectItem>
+                          <SelectItem value="fortified">Fortified</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="bottle_size">Bottle Size</Label>
+                      <Select
+                        value={newWineData.bottle_size}
+                        onValueChange={(value) => setNewWineData({ ...newWineData, bottle_size: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="187.5ml">Split/Piccolo (187.5ml)</SelectItem>
+                          <SelectItem value="375ml">Half Bottle/Demi (375ml)</SelectItem>
+                          <SelectItem value="750ml">Standard Bottle (750ml)</SelectItem>
+                          <SelectItem value="1000ml">Liter (1000ml)</SelectItem>
+                          <SelectItem value="1500ml">Magnum (1500ml)</SelectItem>
+                          <SelectItem value="3000ml">Double Magnum/Jeroboam (3L)</SelectItem>
+                          <SelectItem value="4500ml">Rehoboam (4.5L)</SelectItem>
+                          <SelectItem value="6000ml">Imperial/Methuselah (6L)</SelectItem>
+                          <SelectItem value="9000ml">Salmanazar (9L)</SelectItem>
+                          <SelectItem value="12000ml">Balthazar (12L)</SelectItem>
+                          <SelectItem value="15000ml">Nebuchadnezzar (15L)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="vintage">Vintage</Label>
+                      <Input
+                        id="vintage"
+                        type="number"
+                        min="1800"
+                        max="2030"
+                        value={newWineData.vintage ?? ''}
+                        onChange={(e) => setNewWineData({ ...newWineData, vintage: e.target.value ? parseInt(e.target.value) : null })}
+                        placeholder="e.g., 2020"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="wine_image">Wine Image</Label>
+                      <div className="space-y-2">
+                        <Input
+                          id="wine_image"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          disabled={uploadingImage}
+                        />
+                        {uploadingImage && <p className="text-sm text-muted-foreground">Uploading...</p>}
+                        {newWineData.image_url && (
+                          <div className="flex items-center gap-2">
+                            <img src={newWineData.image_url} alt="Wine preview" className="w-16 h-16 object-cover rounded" />
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => setNewWineData({ ...newWineData, image_url: null })}
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="country">Country *</Label>
+                      <Select
+                        value={newWineData.country_id}
+                        onValueChange={(value) => setNewWineData({ ...newWineData, country_id: value, region_id: '', appellation_id: '' })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select country" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {countries.map((country) => (
+                            <SelectItem key={country.id} value={country.id}>
+                              {country.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="region">Region</Label>
+                      <Select
+                        value={newWineData.region_id}
+                        onValueChange={(value) => setNewWineData({ ...newWineData, region_id: value, appellation_id: '' })}
+                        disabled={!newWineData.country_id}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select region" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {filteredRegions.map((region) => (
+                            <SelectItem key={region.id} value={region.id}>
+                              {region.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="appellation">Appellation</Label>
+                      <Select
+                        value={newWineData.appellation_id}
+                        onValueChange={(value) => setNewWineData({ ...newWineData, appellation_id: value })}
+                        disabled={!newWineData.region_id}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select appellation" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {filteredAppellations.map((appellation) => (
+                            <SelectItem key={appellation.id} value={appellation.id}>
+                              {appellation.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="grape_varieties">Grape Varieties with Percentages</Label>
+                    <Select value="" onValueChange={addGrapeVariety}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Add grape varieties" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {grapeVarieties.map((grape) => (
+                          <SelectItem key={grape.id} value={grape.id}>
+                            {grape.name} ({grape.type})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    
+                    {newWineData.grape_varieties.length > 0 && (
+                      <div className="space-y-2 mt-2">
+                        {newWineData.grape_varieties.map((grape) => (
+                          <div key={grape.id} className="flex items-center gap-2 p-2 bg-secondary rounded-md">
+                            <span className="flex-1 text-sm">{grape.name}</span>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={grape.percentage}
+                              onChange={(e) => updateGrapePercentage(grape.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                              placeholder="%"
+                            />
+                            <span className="text-sm">%</span>
+                            <X
+                              className="h-4 w-4 cursor-pointer"
+                              onClick={() => removeGrapeVariety(grape.id)}
+                            />
+                          </div>
+                        ))}
+                        <div className="text-xs text-muted-foreground">
+                          Total: {newWineData.grape_varieties.reduce((sum, g) => sum + g.percentage, 0)}%
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="alcohol_content">Alcohol Content (%)</Label>
+                      <Input
+                        id="alcohol_content"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max="50"
+                        value={newWineData.alcohol_content ?? ''}
+                        onChange={(e) => setNewWineData({ ...newWineData, alcohol_content: e.target.value ? parseFloat(e.target.value) : null })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="cellar_tracker_id">CellarTracker ID</Label>
+                      <Input
+                        id="cellar_tracker_id"
+                        value={newWineData.cellar_tracker_id}
+                        onChange={(e) => setNewWineData({ ...newWineData, cellar_tracker_id: e.target.value })}
+                        placeholder="e.g. 12345"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="rating" className="space-y-4">
+              <h3 className="text-lg font-semibold">Rating Information</h3>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="rating">Rating (50-100) *</Label>
+                  <Input
+                    id="rating"
+                    type="number"
+                    min="50"
+                    max="100"
+                    value={formData.rating}
+                    onChange={(e) => setFormData({ ...formData, rating: parseInt(e.target.value) || 85 })}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    60-69: Major flaws, poor | 70-79: Small flaws, average | 80-84: Above average | 85-89: Good/very good | 90-94: Superior & exceptional | 95-100: Benchmark wines, classics
+                  </p>
+                </div>
+                <div>
+                  <Label htmlFor="tasting_date">Tasting Date</Label>
+                  <Input
+                    id="tasting_date"
+                    type="date"
+                    value={formData.tasting_date}
+                    onChange={(e) => setFormData({ ...formData, tasting_date: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="tasting_notes">Tasting Notes</Label>
+                  <Textarea
+                    id="tasting_notes"
+                    value={formData.tasting_notes}
+                    onChange={(e) => setFormData({ ...formData, tasting_notes: e.target.value })}
+                    placeholder="Overall impression and notes..."
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="food_pairing">Food Pairing</Label>
+                  <Textarea
+                    id="food_pairing"
+                    value={formData.food_pairing}
+                    onChange={(e) => setFormData({ ...formData, food_pairing: e.target.value })}
+                    placeholder="Suggested pairings..."
+                  />
+                </div>
+              </div>
+            </TabsContent>
 
             <TabsContent value="appearance" className="space-y-4">
               <h3 className="text-lg font-semibold">Appearance</h3>
@@ -1122,28 +1132,6 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
                 max={25}
                 value={formData.serving_temp_max ?? ''}
                 onChange={(e) => setFormData({ ...formData, serving_temp_max: e.target.value ? parseInt(e.target.value) : null })}
-              />
-            </div>
-          </div>
-
-          {/* Tasting Notes & Food Pairing */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="tasting_notes">Tasting Notes</Label>
-              <Textarea
-                id="tasting_notes"
-                value={formData.tasting_notes}
-                onChange={(e) => setFormData({ ...formData, tasting_notes: e.target.value })}
-                placeholder="Overall impression and notes..."
-              />
-            </div>
-            <div>
-              <Label htmlFor="food_pairing">Food Pairing</Label>
-              <Textarea
-                id="food_pairing"
-                value={formData.food_pairing}
-                onChange={(e) => setFormData({ ...formData, food_pairing: e.target.value })}
-                placeholder="Suggested pairings..."
               />
             </div>
           </div>

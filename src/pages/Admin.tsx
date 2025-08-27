@@ -56,7 +56,7 @@ interface User {
 export default function Admin() {
   const { user } = useAuth();
   const { isOwner, isAdminOrOwner, loading: rolesLoading } = useUserRole();
-  const [activeTab, setActiveTab] = useState<'countries' | 'regions' | 'appellations' | 'grapes' | 'users'>('countries');
+  const [activeTab, setActiveTab] = useState<'countries' | 'regions' | 'appellations' | 'grapes' | 'wines' | 'users'>('countries');
   const [loading, setLoading] = useState(false);
   
   // Data states
@@ -720,6 +720,7 @@ export default function Admin() {
             { key: 'regions', label: 'Regions' },
             { key: 'appellations', label: 'Appellations' },
             { key: 'grapes', label: 'Grape Varieties' },
+            { key: 'wines', label: 'Wines' },
             ...(isOwner ? [{ key: 'users', label: 'Users' }] : [])
           ].map((tab) => (
             <Button
