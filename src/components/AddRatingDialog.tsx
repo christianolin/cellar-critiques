@@ -18,6 +18,7 @@ interface AddRatingDialogProps {
 
 interface WineInCellar {
   id: string;
+  quantity: number;
   wines: {
     id: string;
     name: string;
@@ -72,6 +73,7 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
         .from('wine_cellar')
         .select(`
           id,
+          quantity,
           wines (
             id,
             name,
@@ -99,7 +101,7 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
 
     setLoading(true);
     try {
-      const { error } = await supabase
+      const { data: ratingData, error } = await supabase
         .from('wine_ratings')
         .insert({
           user_id: user.id,
@@ -113,9 +115,45 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
           sweetness: formData.sweetness || null,
           serving_temp_min: formData.serving_temp_min,
           serving_temp_max: formData.serving_temp_max,
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Ask if user wants to decrease cellar inventory
+      const cellarWine = cellarWines.find(cw => cw.wines.id === formData.wine_id);
+      if (cellarWine) {
+        const decreaseInventory = window.confirm(
+          `Would you like to decrease your cellar inventory by 1 bottle of ${cellarWine.wines.name}?`
+        );
+        
+        if (decreaseInventory) {
+          const newQuantity = cellarWine.quantity - 1;
+          if (newQuantity > 0) {
+            await supabase
+              .from('wine_cellar')
+              .update({ quantity: newQuantity })
+              .eq('id', cellarWine.id);
+          } else {
+            await supabase
+              .from('wine_cellar')
+              .delete()
+              .eq('id', cellarWine.id);
+          }
+          
+          // Add to consumption archive
+          await supabase
+            .from('wine_consumptions')
+            .insert({
+              user_id: user.id,
+              wine_id: formData.wine_id,
+              quantity: 1,
+              rating_id: ratingData?.id,
+              notes: `Consumed for rating`,
+            });
+        }
+      }
 
       toast({
         title: "Success",
@@ -194,21 +232,23 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
                 <>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <div>
-                        <Label htmlFor="rating">Rating (50-100) *</Label>
-                        <Input
-                          id="rating"
-                          type="number"
-                          min="50"
-                          max="100"
-                          value={formData.rating || ''}
-                          onChange={(e) => setFormData({ ...formData, rating: e.target.value ? parseInt(e.target.value) : null })}
-                          required
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Robert Parker 100-point scale: 50-59 Unacceptable, 60-69 Below Average, 70-79 Average, 80-89 Above Average, 90-95 Outstanding, 96-100 Extraordinary
-                        </p>
-                      </div>
+                    <div>
+                      <Label htmlFor="rating" className="flex items-center gap-2">
+                        Rating (50-100) *
+                        <span className="text-xs text-muted-foreground cursor-help" title="Robert Parker Scale: 96-100 Extraordinary, 94-95 Outstanding, 90-93 Excellent, 85-89 Very Good, 80-84 Good, 70-79 Average, 50-69 Below Average">
+                          ℹ️
+                        </span>
+                      </Label>
+                      <Input
+                        id="rating"
+                        type="number"
+                        min="50"
+                        max="100"
+                        value={formData.rating || ''}
+                        onChange={(e) => setFormData({ ...formData, rating: e.target.value ? parseInt(e.target.value) : null })}
+                        required
+                      />
+                    </div>
                     </div>
                     <div>
                       <Label htmlFor="tasting_date">Tasting Date</Label>
@@ -378,7 +418,7 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
           
           <TabsContent value="add-wine" className="space-y-4">
             <AddWineDialog 
-              addToCellar 
+              addToCellar={false}
               onWineAdded={() => {
                 fetchCellarWines();
                 setActiveTab('select-wine');

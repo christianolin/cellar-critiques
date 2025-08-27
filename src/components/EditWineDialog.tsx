@@ -162,15 +162,21 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
     const grape = grapeVarieties.find(g => g.id === grapeId);
     if (grape && !formData.grape_varieties.find(g => g.id === grapeId)) {
       const newGrapes = [...formData.grape_varieties, { ...grape, percentage: 0 }];
-      setFormData({ ...formData, grape_varieties: newGrapes });
+      const evenPercentage = Math.floor(100 / newGrapes.length);
+      const updatedGrapes = newGrapes.map(g => ({ ...g, percentage: evenPercentage }));
+      setFormData({ ...formData, grape_varieties: updatedGrapes });
     }
   };
 
   const removeGrapeVariety = (grapeId: string) => {
-    setFormData({
-      ...formData,
-      grape_varieties: formData.grape_varieties.filter(g => g.id !== grapeId)
-    });
+    const remainingGrapes = formData.grape_varieties.filter(g => g.id !== grapeId);
+    if (remainingGrapes.length > 0) {
+      const evenPercentage = Math.floor(100 / remainingGrapes.length);
+      const updatedGrapes = remainingGrapes.map(g => ({ ...g, percentage: evenPercentage }));
+      setFormData({ ...formData, grape_varieties: updatedGrapes });
+    } else {
+      setFormData({ ...formData, grape_varieties: [] });
+    }
   };
 
   const updateGrapePercentage = (grapeId: string, percentage: number) => {
@@ -493,14 +499,14 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
                 id="notes"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Any additional notes..."
+                placeholder="Additional cellar notes..."
               />
             </div>
           </div>
 
           <DialogFooter>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Updating...' : 'Update Wine'}
+            <Button type="submit" disabled={loading || !formData.name || !formData.producer || !formData.wine_type}>
+              {loading ? 'Updating Wine...' : 'Update Wine'}
             </Button>
           </DialogFooter>
         </form>

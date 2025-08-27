@@ -11,7 +11,7 @@ import { Plus, Wine, Search, Grid, List, BarChart3, TrendingUp, DollarSign } fro
 import Layout from '@/components/Layout';
 import AddWineDialog from '@/components/AddWineDialog';
 import EditWineDialog from '@/components/EditWineDialog';
-import QuantityControls from '@/components/QuantityControls';
+import QuantityControl from '@/components/QuantityControl';
 
 interface WineInCellar {
   id: string;
@@ -286,7 +286,7 @@ export default function Cellar() {
                         {wine.regions?.name || wine.countries?.name || 'N/A'}
                       </TableCell>
                       <TableCell>
-                        <QuantityControls cellarEntry={cellarEntry} onUpdate={fetchCellarWines} />
+                        <QuantityControl cellarEntry={cellarEntry} onUpdate={fetchCellarWines} />
                       </TableCell>
                       <TableCell>
                         {cellarEntry.purchase_price ? `${cellarEntry.purchase_price} DKK` : 'N/A'}
@@ -326,9 +326,9 @@ export default function Cellar() {
                         <span className="text-muted-foreground">Region:</span>
                         <span>{wine.regions?.name || wine.countries?.name || 'N/A'}</span>
                       </div>
-                      <div className="flex justify-between text-sm">
+                      <div className="flex justify-between items-center text-sm">
                         <span className="text-muted-foreground">Quantity:</span>
-                        <QuantityControls cellarEntry={cellarEntry} onUpdate={fetchCellarWines} />
+                        <QuantityControl cellarEntry={cellarEntry} onUpdate={fetchCellarWines} />
                       </div>
                       {cellarEntry.purchase_price && (
                         <div className="flex justify-between text-sm">

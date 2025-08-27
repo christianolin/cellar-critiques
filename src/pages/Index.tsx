@@ -32,9 +32,9 @@ const Index = () => {
     <Layout>
       <div className="container mx-auto py-8 pb-20 md:pb-8">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-foreground mb-2">
-            Welcome to Cellar Critiques
-          </h1>
+            <h1 className="text-4xl font-bold text-foreground mb-2">
+              Welcome to Cellar Critiques
+            </h1>
           <p className="text-xl text-muted-foreground">
             Discover, collect, and rate wines with fellow enthusiasts
           </p>

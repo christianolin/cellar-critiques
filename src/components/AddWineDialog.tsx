@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Upload, X } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 
 interface AddWineDialogProps {
   addToCellar?: boolean;
@@ -56,24 +56,22 @@ interface WineFormData {
   appellation_id: string;
   grape_varieties: GrapeWithPercentage[];
   alcohol_content: number | null;
+  cellar_tracker_id: string;
   // Cellar specific fields
   quantity?: number;
   purchase_date?: string;
   purchase_price?: number;
   storage_location?: string;
   notes?: string;
-  cellar_tracker_id?: string;
-  image_url?: string;
 }
 
 export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddWineDialogProps) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [countries, setCountries] = useState<Country[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
-  const [appellations, setAppellations] = useState<Appellation[]>([]);
+  const [appellations, setAppellation] = useState<Appellation[]>([]);
   const [grapeVarieties, setGrapeVarieties] = useState<GrapeVariety[]>([]);
   const [filteredRegions, setFilteredRegions] = useState<Region[]>([]);
   const [filteredAppellations, setFilteredAppellations] = useState<Appellation[]>([]);
@@ -88,14 +86,13 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
     appellation_id: '',
     grape_varieties: [],
     alcohol_content: null,
+    cellar_tracker_id: '',
     ...(addToCellar ? {
       quantity: 1,
       purchase_date: '',
       purchase_price: null,
       storage_location: '',
-      notes: '',
-      cellar_tracker_id: '',
-      image_url: ''
+      notes: ''
     } : {})
   });
 
@@ -120,7 +117,7 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
 
       setCountries(countriesRes.data || []);
       setRegions(regionsRes.data || []);
-      setAppellations(appellationsRes.data || []);
+      setAppellation(appellationsRes.data || []);
       setGrapeVarieties(grapeVarietiesRes.data || []);
     } catch (error) {
       toast({
@@ -156,23 +153,19 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
   const addGrapeVariety = (grapeId: string) => {
     const grape = grapeVarieties.find(g => g.id === grapeId);
     if (grape && !formData.grape_varieties.find(g => g.id === grapeId)) {
-      const currentGrapes = [...formData.grape_varieties];
-      const newPercentage = currentGrapes.length === 0 ? 100 : Math.floor(100 / (currentGrapes.length + 1));
-      
-      // Redistribute percentages equally
-      const redistributedGrapes = currentGrapes.map(g => ({ ...g, percentage: newPercentage }));
-      const newGrapes = [...redistributedGrapes, { ...grape, percentage: newPercentage }];
-      
-      setFormData({ ...formData, grape_varieties: newGrapes });
+      const newGrapes = [...formData.grape_varieties, { ...grape, percentage: 0 }];
+      const evenPercentage = Math.floor(100 / newGrapes.length);
+      const updatedGrapes = newGrapes.map(g => ({ ...g, percentage: evenPercentage }));
+      setFormData({ ...formData, grape_varieties: updatedGrapes });
     }
   };
 
   const removeGrapeVariety = (grapeId: string) => {
     const remainingGrapes = formData.grape_varieties.filter(g => g.id !== grapeId);
     if (remainingGrapes.length > 0) {
-      const newPercentage = Math.floor(100 / remainingGrapes.length);
-      const redistributedGrapes = remainingGrapes.map(g => ({ ...g, percentage: newPercentage }));
-      setFormData({ ...formData, grape_varieties: redistributedGrapes });
+      const evenPercentage = Math.floor(100 / remainingGrapes.length);
+      const updatedGrapes = remainingGrapes.map(g => ({ ...g, percentage: evenPercentage }));
+      setFormData({ ...formData, grape_varieties: updatedGrapes });
     } else {
       setFormData({ ...formData, grape_varieties: [] });
     }
@@ -250,17 +243,15 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
         appellation_id: '',
         grape_varieties: [],
         alcohol_content: null,
+        cellar_tracker_id: '',
         ...(addToCellar ? {
           quantity: 1,
           purchase_date: '',
           purchase_price: null,
           storage_location: '',
-          notes: '',
-          cellar_tracker_id: '',
-          image_url: ''
+          notes: ''
         } : {})
       });
-      setImageFile(null);
       setOpen(false);
       onWineAdded?.();
       
@@ -406,10 +397,7 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
 
           <div>
             <Label htmlFor="grape_varieties">Grape Varieties with Percentages</Label>
-            <Select 
-              value="" 
-              onValueChange={addGrapeVariety}
-            >
+            <Select value="" onValueChange={addGrapeVariety}>
               <SelectTrigger>
                 <SelectValue placeholder="Add grape varieties" />
               </SelectTrigger>
@@ -421,6 +409,7 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
                 ))}
               </SelectContent>
             </Select>
+            
             {formData.grape_varieties.length > 0 && (
               <div className="space-y-2 mt-2">
                 {formData.grape_varieties.map((grape) => (
@@ -466,7 +455,7 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
               <Label htmlFor="cellar_tracker_id">CellarTracker ID</Label>
               <Input
                 id="cellar_tracker_id"
-                value={formData.cellar_tracker_id || ''}
+                value={formData.cellar_tracker_id}
                 onChange={(e) => setFormData({ ...formData, cellar_tracker_id: e.target.value })}
                 placeholder="e.g. 12345"
               />
@@ -491,14 +480,14 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
                     />
                   </div>
                   <div>
-              <Label htmlFor="purchase_price">Purchase Price (DKK)</Label>
-              <Input
-                id="purchase_price"
-                type="number"
-                step="0.01"
-                value={formData.purchase_price || ''}
-                onChange={(e) => setFormData({ ...formData, purchase_price: e.target.value ? parseFloat(e.target.value) : null })}
-              />
+                    <Label htmlFor="purchase_price">Purchase Price (DKK)</Label>
+                    <Input
+                      id="purchase_price"
+                      type="number"
+                      step="0.01"
+                      value={formData.purchase_price || ''}
+                      onChange={(e) => setFormData({ ...formData, purchase_price: e.target.value ? parseFloat(e.target.value) : null })}
+                    />
                   </div>
                 </div>
 
@@ -529,7 +518,7 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
                     id="notes"
                     value={formData.notes || ''}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    placeholder="Any additional notes..."
+                    placeholder="Additional cellar notes..."
                   />
                 </div>
               </div>
@@ -537,11 +526,8 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
           )}
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Adding...' : (addToCellar ? 'Add to Cellar' : 'Add Wine')}
+            <Button type="submit" disabled={loading || !formData.name || !formData.producer || !formData.wine_type || !formData.country_id}>
+              {loading ? (addToCellar ? 'Adding to Cellar...' : 'Creating Wine...') : (addToCellar ? 'Add to Cellar' : 'Create Wine')}
             </Button>
           </DialogFooter>
         </form>
