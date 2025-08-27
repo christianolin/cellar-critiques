@@ -1,0 +1,66 @@
+-- Insert comprehensive wine data into wine_database
+INSERT INTO public.wine_database (name, producer_id, wine_type, country_id, region_id, appellation_id, alcohol_content, description) VALUES
+
+-- French wines
+((SELECT name FROM producers WHERE name = 'Domaine de la Romanée-Conti'), 'red', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Burgundy'), (SELECT id FROM appellations WHERE name = 'Romanée-Conti'), 13.5, 'Legendary Burgundian Pinot Noir from the most prestigious vineyard in the world'),
+('Clos de Vougeot Grand Cru', (SELECT id FROM producers WHERE name = 'Domaine Leroy'), 'red', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Burgundy'), (SELECT id FROM appellations WHERE name = 'Clos de Vougeot'), 13.0, 'Exceptional Grand Cru Burgundy with incredible depth and complexity'),
+('Châteauneuf-du-Pape Rouge', (SELECT id FROM producers WHERE name = 'Domaine du Pegau'), 'red', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Rhône Valley'), (SELECT id FROM appellations WHERE name = 'Châteauneuf-du-Pape'), 14.5, 'Traditional Southern Rhône blend with power and elegance'),
+('Sancerre', (SELECT id FROM producers WHERE name = 'Henri Bourgeois'), 'white', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Loire Valley'), (SELECT id FROM appellations WHERE name = 'Sancerre'), 12.5, 'Crisp and mineral Sauvignon Blanc from the Loire'),
+('Champagne Brut', (SELECT id FROM producers WHERE name = 'Krug'), 'sparkling', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Champagne'), (SELECT id FROM appellations WHERE name = 'Champagne'), 12.0, 'Prestige cuvée with exceptional complexity and finesse'),
+('Chablis Grand Cru Les Clos', (SELECT id FROM producers WHERE name = 'Domaine William Fèvre'), 'white', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Burgundy'), (SELECT id FROM appellations WHERE name = 'Chablis Grand Cru'), 13.0, 'Pure expression of Chardonnay with mineral precision'),
+('Côte-Rôtie La Mouline', (SELECT id FROM producers WHERE name = 'E. Guigal'), 'red', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Rhône Valley'), (SELECT id FROM appellations WHERE name = 'Côte-Rôtie'), 13.5, 'Single vineyard Syrah with violet aromatics and silky texture'),
+('Margaux', (SELECT id FROM producers WHERE name = 'Château Margaux'), 'red', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Bordeaux'), (SELECT id FROM appellations WHERE name = 'Margaux'), 13.0, 'First Growth Bordeaux with unparalleled elegance'),
+('Saint-Julien', (SELECT id FROM producers WHERE name = 'Château Ducru-Beaucaillou'), 'red', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Bordeaux'), (SELECT id FROM appellations WHERE name = 'Saint-Julien'), 13.5, 'Super Second Growth with classic Bordeaux structure'),
+('Sauternes', (SELECT id FROM producers WHERE name = 'Château d''Yquem'), 'dessert', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Bordeaux'), (SELECT id FROM appellations WHERE name = 'Sauternes'), 14.0, 'The king of dessert wines with honeyed complexity'),
+
+-- Italian wines
+('Barolo Cannubi', (SELECT id FROM producers WHERE name = 'Marchesi di Barolo'), 'red', (SELECT id FROM countries WHERE name = 'Italy'), (SELECT id FROM regions WHERE name = 'Piedmont'), (SELECT id FROM appellations WHERE name = 'Barolo'), 14.0, 'King of wines from the prestigious Cannubi vineyard'),
+('Brunello di Montalcino', (SELECT id FROM producers WHERE name = 'Biondi-Santi'), 'red', (SELECT id FROM countries WHERE name = 'Italy'), (SELECT id FROM regions WHERE name = 'Tuscany'), (SELECT id FROM appellations WHERE name = 'Brunello di Montalcino'), 14.5, 'Noble Sangiovese with exceptional aging potential'),
+('Amarone della Valpolicella', (SELECT id FROM producers WHERE name = 'Giuseppe Quintarelli'), 'red', (SELECT id FROM countries WHERE name = 'Italy'), (SELECT id FROM regions WHERE name = 'Veneto'), (SELECT id FROM appellations WHERE name = 'Amarone della Valpolicella'), 16.0, 'Rich and concentrated wine from dried grapes'),
+('Chianti Classico Riserva', (SELECT id FROM producers WHERE name = 'Antinori'), 'red', (SELECT id FROM countries WHERE name = 'Italy'), (SELECT id FROM regions WHERE name = 'Tuscany'), (SELECT id FROM appellations WHERE name = 'Chianti Classico'), 13.5, 'Traditional Tuscan blend with modern winemaking'),
+('Prosecco di Valdobbiadene', (SELECT id FROM producers WHERE name = 'Bisol'), 'sparkling', (SELECT id FROM countries WHERE name = 'Italy'), (SELECT id FROM regions WHERE name = 'Veneto'), (SELECT id FROM appellations WHERE name = 'Prosecco di Valdobbiadene'), 11.0, 'Premium Italian sparkling with delicate bubbles'),
+('Soave Classico', (SELECT id FROM producers WHERE name = 'Pieropan'), 'white', (SELECT id FROM countries WHERE name = 'Italy'), (SELECT id FROM regions WHERE name = 'Veneto'), (SELECT id FROM appellations WHERE name = 'Soave'), 12.5, 'Elegant white wine with mineral character'),
+('Gattinara', (SELECT id FROM producers WHERE name = 'Antoniolo'), 'red', (SELECT id FROM countries WHERE name = 'Italy'), (SELECT id FROM regions WHERE name = 'Piedmont'), (SELECT id FROM appellations WHERE name = 'Gattinara'), 13.5, 'Noble Nebbiolo from Northern Piedmont'),
+
+-- Spanish wines
+('Ribera del Duero', (SELECT id FROM producers WHERE name = 'Vega Sicilia'), 'red', (SELECT id FROM countries WHERE name = 'Spain'), (SELECT id FROM regions WHERE name = 'Castilla y León'), (SELECT id FROM appellations WHERE name = 'Ribera del Duero'), 14.0, 'Spain''s most prestigious red wine estate'),
+('Rioja Gran Reserva', (SELECT id FROM producers WHERE name = 'López de Heredia'), 'red', (SELECT id FROM countries WHERE name = 'Spain'), (SELECT id FROM regions WHERE name = 'La Rioja'), (SELECT id FROM appellations WHERE name = 'Rioja'), 13.5, 'Traditional Rioja with extended aging'),
+('Priorat', (SELECT id FROM producers WHERE name = 'Álvaro Palacios'), 'red', (SELECT id FROM countries WHERE name = 'Spain'), (SELECT id FROM regions WHERE name = 'Catalonia'), (SELECT id FROM appellations WHERE name = 'Priorat'), 15.0, 'Powerful wine from slate soils'),
+('Rías Baixas', (SELECT id FROM producers WHERE name = 'Pazo de Señorans'), 'white', (SELECT id FROM countries WHERE name = 'Spain'), (SELECT id FROM regions WHERE name = 'Galicia'), (SELECT id FROM appellations WHERE name = 'Rías Baixas'), 12.5, 'Atlantic-influenced Albariño with saline minerality'),
+('Jerez Fino', (SELECT id FROM producers WHERE name = 'Tío Pepe'), 'fortified', (SELECT id FROM countries WHERE name = 'Spain'), (SELECT id FROM regions WHERE name = 'Andalusia'), (SELECT id FROM appellations WHERE name = 'Jerez'), 15.0, 'Dry sherry aged under flor'),
+
+-- German wines
+('Riesling Kabinett', (SELECT id FROM producers WHERE name = 'Dr. Loosen'), 'white', (SELECT id FROM countries WHERE name = 'Germany'), (SELECT id FROM regions WHERE name = 'Mosel'), (SELECT id FROM appellations WHERE name = 'Mosel'), 8.5, 'Delicate Riesling with perfect balance'),
+('Spätburgunder', (SELECT id FROM producers WHERE name = 'Meyer-Näkel'), 'red', (SELECT id FROM countries WHERE name = 'Germany'), (SELECT id FROM regions WHERE name = 'Ahr'), (SELECT id FROM appellations WHERE name = 'Ahr'), 13.0, 'German Pinot Noir with elegance and finesse'),
+('Eiswein', (SELECT id FROM producers WHERE name = 'Inniskillin'), 'dessert', (SELECT id FROM countries WHERE name = 'Germany'), (SELECT id FROM regions WHERE name = 'Rheinhessen'), (SELECT id FROM appellations WHERE name = 'Rheinhessen'), 11.0, 'Concentrated dessert wine from frozen grapes'),
+
+-- Portuguese wines
+('Porto Vintage', (SELECT id FROM producers WHERE name = 'Taylor Fladgate'), 'fortified', (SELECT id FROM countries WHERE name = 'Portugal'), (SELECT id FROM regions WHERE name = 'Douro'), (SELECT id FROM appellations WHERE name = 'Porto'), 20.0, 'Vintage Port with exceptional aging potential'),
+('Vinho Verde', (SELECT id FROM producers WHERE name = 'Quinta da Aveleda'), 'white', (SELECT id FROM countries WHERE name = 'Portugal'), (SELECT id FROM regions WHERE name = 'Minho'), (SELECT id FROM appellations WHERE name = 'Vinho Verde'), 9.0, 'Light and refreshing Portuguese white'),
+
+-- American wines
+('Napa Valley Cabernet', (SELECT id FROM producers WHERE name = 'Screaming Eagle'), 'red', (SELECT id FROM countries WHERE name = 'United States'), (SELECT id FROM regions WHERE name = 'Napa Valley'), (SELECT id FROM appellations WHERE name = 'Napa Valley'), 15.0, 'Cult Napa Cabernet with incredible concentration'),
+('Sonoma Pinot Noir', (SELECT id FROM producers WHERE name = 'Williams Selyem'), 'red', (SELECT id FROM countries WHERE name = 'United States'), (SELECT id FROM regions WHERE name = 'Sonoma County'), (SELECT id FROM appellations WHERE name = 'Russian River Valley'), 14.0, 'Elegant Pinot Noir from cool climate'),
+('Willamette Valley Pinot', (SELECT id FROM producers WHERE name = 'Domaine Drouhin'), 'red', (SELECT id FROM countries WHERE name = 'United States'), (SELECT id FROM regions WHERE name = 'Oregon'), (SELECT id FROM appellations WHERE name = 'Willamette Valley'), 13.5, 'Burgundian-style Pinot Noir from Oregon'),
+('Finger Lakes Riesling', (SELECT id FROM producers WHERE name = 'Dr. Konstantin Frank'), 'white', (SELECT id FROM countries WHERE name = 'United States'), (SELECT id FROM regions WHERE name = 'New York'), (SELECT id FROM appellations WHERE name = 'Finger Lakes'), 11.5, 'Cool-climate Riesling with German influence'),
+
+-- Australian wines
+('Barossa Valley Shiraz', (SELECT id FROM producers WHERE name = 'Penfolds'), 'red', (SELECT id FROM countries WHERE name = 'Australia'), (SELECT id FROM regions WHERE name = 'Barossa Valley'), (SELECT id FROM appellations WHERE name = 'Barossa Valley'), 14.5, 'Rich and powerful Australian Shiraz'),
+('Margaret River Chardonnay', (SELECT id FROM producers WHERE name = 'Leeuwin Estate'), 'white', (SELECT id FROM countries WHERE name = 'Australia'), (SELECT id FROM regions WHERE name = 'Margaret River'), (SELECT id FROM appellations WHERE name = 'Margaret River'), 13.0, 'Premium Australian Chardonnay with French influence'),
+('Hunter Valley Semillon', (SELECT id FROM producers WHERE name = 'Tyrrell''s'), 'white', (SELECT id FROM countries WHERE name = 'Australia'), (SELECT id FROM regions WHERE name = 'Hunter Valley'), (SELECT id FROM appellations WHERE name = 'Hunter Valley'), 11.0, 'Unique Australian Semillon with aging potential'),
+
+-- New Zealand wines
+('Marlborough Sauvignon Blanc', (SELECT id FROM producers WHERE name = 'Cloudy Bay'), 'white', (SELECT id FROM countries WHERE name = 'New Zealand'), (SELECT id FROM regions WHERE name = 'Marlborough'), (SELECT id FROM appellations WHERE name = 'Marlborough'), 13.0, 'Iconic New Zealand Sauvignon Blanc'),
+('Central Otago Pinot Noir', (SELECT id FROM producers WHERE name = 'Felton Road'), 'red', (SELECT id FROM countries WHERE name = 'New Zealand'), (SELECT id FROM regions WHERE name = 'Central Otago'), (SELECT id FROM appellations WHERE name = 'Central Otago'), 14.0, 'Premium Pinot Noir from the world''s southernmost wine region'),
+
+-- South African wines
+('Stellenbosch Cabernet', (SELECT id FROM producers WHERE name = 'Klein Constantia'), 'red', (SELECT id FROM countries WHERE name = 'South Africa'), (SELECT id FROM regions WHERE name = 'Stellenbosch'), (SELECT id FROM appellations WHERE name = 'Stellenbosch'), 14.0, 'South African Cabernet with Old World elegance'),
+('Constantia Sauvignon Blanc', (SELECT id FROM producers WHERE name = 'Groot Constantia'), 'white', (SELECT id FROM countries WHERE name = 'South Africa'), (SELECT id FROM regions WHERE name = 'Constantia'), (SELECT id FROM appellations WHERE name = 'Constantia'), 12.5, 'Cool-climate Sauvignon Blanc from historic estate'),
+
+-- Chilean wines
+('Maipo Valley Cabernet', (SELECT id FROM producers WHERE name = 'Viña Almaviva'), 'red', (SELECT id FROM countries WHERE name = 'Chile'), (SELECT id FROM regions WHERE name = 'Central Valley'), (SELECT id FROM appellations WHERE name = 'Maipo Valley'), 14.5, 'Premium Chilean Cabernet Sauvignon'),
+('Casablanca Chardonnay', (SELECT id FROM producers WHERE name = 'Veramonte'), 'white', (SELECT id FROM countries WHERE name = 'Chile'), (SELECT id FROM regions WHERE name = 'Aconcagua'), (SELECT id FROM appellations WHERE name = 'Casablanca Valley'), 13.5, 'Cool-climate Chilean Chardonnay'),
+
+-- Argentine wines
+('Mendoza Malbec', (SELECT id FROM producers WHERE name = 'Catena Zapata'), 'red', (SELECT id FROM countries WHERE name = 'Argentina'), (SELECT id FROM regions WHERE name = 'Mendoza'), (SELECT id FROM appellations WHERE name = 'Mendoza'), 14.0, 'Flagship Argentine Malbec from high altitude'),
+('Salta Torrontés', (SELECT id FROM producers WHERE name = 'Colomé'), 'white', (SELECT id FROM countries WHERE name = 'Argentina'), (SELECT id FROM regions WHERE name = 'Salta'), (SELECT id FROM appellations WHERE name = 'Cafayate'), 13.0, 'Aromatic Argentine white from extreme altitude');
