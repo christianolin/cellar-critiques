@@ -14,6 +14,7 @@ import EditWineDialog from '@/components/EditWineDialog';
 import DeleteConsumptionDialog from '@/components/DeleteConsumptionDialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import QuantityControl from '@/components/QuantityControl';
+import { ColumnSelector, type ColumnConfig } from '@/components/ColumnSelector';
 
 interface WineInCellar {
   id: string;
@@ -58,6 +59,77 @@ export default function Cellar() {
     country: '',
     producer: ''
   });
+
+  // Column visibility state for cellar table
+  const cellarColumns: ColumnConfig[] = [
+    { key: 'name', label: 'Wine Name', defaultVisible: true },
+    { key: 'producer', label: 'Producer', defaultVisible: true },
+    { key: 'vintage', label: 'Vintage', defaultVisible: true },
+    { key: 'type', label: 'Type', defaultVisible: true },
+    { key: 'region', label: 'Region', defaultVisible: true },
+    { key: 'quantity', label: 'Quantity', defaultVisible: true },
+    { key: 'price', label: 'Price', defaultVisible: true },
+    { key: 'location', label: 'Storage Location', defaultVisible: false },
+    { key: 'purchase_date', label: 'Purchase Date', defaultVisible: false },
+    { key: 'bottle_size', label: 'Bottle Size', defaultVisible: false },
+    { key: 'country', label: 'Country', defaultVisible: false },
+    { key: 'appellation', label: 'Appellation', defaultVisible: false },
+    { key: 'notes', label: 'Notes', defaultVisible: false },
+  ];
+
+  const getDefaultVisibleColumns = () => 
+    cellarColumns.filter(col => col.defaultVisible !== false).map(col => col.key);
+
+  const [visibleCellarColumns, setVisibleCellarColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem('cellarVisibleColumns');
+    return saved ? JSON.parse(saved) : getDefaultVisibleColumns();
+  });
+
+  // Column visibility state for consumed table
+  const consumedColumns: ColumnConfig[] = [
+    { key: 'name', label: 'Wine Name', defaultVisible: true },
+    { key: 'producer', label: 'Producer', defaultVisible: true },
+    { key: 'vintage', label: 'Vintage', defaultVisible: true },
+    { key: 'type', label: 'Type', defaultVisible: false },
+    { key: 'consumed_date', label: 'Consumed Date', defaultVisible: true },
+    { key: 'quantity', label: 'Quantity', defaultVisible: true },
+    { key: 'notes', label: 'Notes', defaultVisible: false },
+  ];
+
+  const [visibleConsumedColumns, setVisibleConsumedColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem('consumedVisibleColumns');
+    return saved ? JSON.parse(saved) : consumedColumns.filter(col => col.defaultVisible !== false).map(col => col.key);
+  });
+
+  const handleCellarColumnToggle = (columnKey: string) => {
+    const newVisibleColumns = visibleCellarColumns.includes(columnKey)
+      ? visibleCellarColumns.filter(key => key !== columnKey)
+      : [...visibleCellarColumns, columnKey];
+    
+    setVisibleCellarColumns(newVisibleColumns);
+    localStorage.setItem('cellarVisibleColumns', JSON.stringify(newVisibleColumns));
+  };
+
+  const handleConsumedColumnToggle = (columnKey: string) => {
+    const newVisibleColumns = visibleConsumedColumns.includes(columnKey)
+      ? visibleConsumedColumns.filter(key => key !== columnKey)
+      : [...visibleConsumedColumns, columnKey];
+    
+    setVisibleConsumedColumns(newVisibleColumns);
+    localStorage.setItem('consumedVisibleColumns', JSON.stringify(newVisibleColumns));
+  };
+
+  const resetCellarColumns = () => {
+    const defaultColumns = getDefaultVisibleColumns();
+    setVisibleCellarColumns(defaultColumns);
+    localStorage.setItem('cellarVisibleColumns', JSON.stringify(defaultColumns));
+  };
+
+  const resetConsumedColumns = () => {
+    const defaultColumns = consumedColumns.filter(col => col.defaultVisible !== false).map(col => col.key);
+    setVisibleConsumedColumns(defaultColumns);
+    localStorage.setItem('consumedVisibleColumns', JSON.stringify(defaultColumns));
+  };
 
   useEffect(() => {
     if (user) {
@@ -490,87 +562,171 @@ export default function Cellar() {
                 </CardContent>
               </Card>
             ) : viewMode === 'table' ? (
-          <div className="border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('name')}>
-                    <div className="flex items-center gap-1">
-                      Wine <ArrowUpDown className="h-3 w-3" />
-                    </div>
-                  </TableHead>
-                  <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('producer')}>
-                    <div className="flex items-center gap-1">
-                      Producer <ArrowUpDown className="h-3 w-3" />
-                    </div>
-                  </TableHead>
-                  <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('vintage')}>
-                    <div className="flex items-center gap-1">
-                      Vintage <ArrowUpDown className="h-3 w-3" />
-                    </div>
-                  </TableHead>
-                  <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('wine_type')}>
-                    <div className="flex items-center gap-1">
-                      Type <ArrowUpDown className="h-3 w-3" />
-                    </div>
-                  </TableHead>
-                  <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('region')}>
-                    <div className="flex items-center gap-1">
-                      Region <ArrowUpDown className="h-3 w-3" />
-                    </div>
-                  </TableHead>
-                  <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('quantity')}>
-                    <div className="flex items-center gap-1">
-                      Quantity <ArrowUpDown className="h-3 w-3" />
-                    </div>
-                  </TableHead>
-                  <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('purchase_price')}>
-                    <div className="flex items-center gap-1">
-                      Price (DKK) <ArrowUpDown className="h-3 w-3" />
-                    </div>
-                  </TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedWines.map((cellarEntry) => {
-                  const wine = cellarEntry.wines;
-                  return (
-                    <TableRow key={cellarEntry.id}>
-                      <TableCell className="font-medium">{wine.name}</TableCell>
-                      <TableCell>{wine.producer}</TableCell>
-                      <TableCell>{wine.vintage || 'N/A'}</TableCell>
-                      <TableCell>
-                        <Badge className={getWineTypeColor(wine.wine_type)}>
-                          {wine.wine_type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {wine.regions?.name || wine.countries?.name || 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        <QuantityControl 
-                          cellarId={cellarEntry.id}
-                          wineId={cellarEntry.wines.id}
-                          wineName={wine.name}
-                          currentQuantity={cellarEntry.quantity}
-                          onQuantityChange={fetchCellarWines}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {cellarEntry.purchase_price ? `${cellarEntry.purchase_price} DKK` : 'N/A'}
-                      </TableCell>
-                      <TableCell>{cellarEntry.storage_location || 'N/A'}</TableCell>
-                      <TableCell>
-                        <EditWineDialog cellarEntry={cellarEntry} onWineUpdated={fetchCellarWines} />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+              <div className="space-y-4">
+                <div className="flex justify-end">
+                  <ColumnSelector
+                    columns={cellarColumns}
+                    visibleColumns={visibleCellarColumns}
+                    onColumnToggle={handleCellarColumnToggle}
+                    onResetColumns={resetCellarColumns}
+                  />
+                </div>
+                <div className="border rounded-lg">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        {visibleCellarColumns.includes('name') && (
+                          <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('name')}>
+                            <div className="flex items-center gap-1">
+                              Wine <ArrowUpDown className="h-3 w-3" />
+                            </div>
+                          </TableHead>
+                        )}
+                        {visibleCellarColumns.includes('producer') && (
+                          <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('producer')}>
+                            <div className="flex items-center gap-1">
+                              Producer <ArrowUpDown className="h-3 w-3" />
+                            </div>
+                          </TableHead>
+                        )}
+                        {visibleCellarColumns.includes('vintage') && (
+                          <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('vintage')}>
+                            <div className="flex items-center gap-1">
+                              Vintage <ArrowUpDown className="h-3 w-3" />
+                            </div>
+                          </TableHead>
+                        )}
+                        {visibleCellarColumns.includes('type') && (
+                          <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('wine_type')}>
+                            <div className="flex items-center gap-1">
+                              Type <ArrowUpDown className="h-3 w-3" />
+                            </div>
+                          </TableHead>
+                        )}
+                        {visibleCellarColumns.includes('region') && (
+                          <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('region')}>
+                            <div className="flex items-center gap-1">
+                              Region <ArrowUpDown className="h-3 w-3" />
+                            </div>
+                          </TableHead>
+                        )}
+                        {visibleCellarColumns.includes('country') && (
+                          <TableHead>Country</TableHead>
+                        )}
+                        {visibleCellarColumns.includes('appellation') && (
+                          <TableHead>Appellation</TableHead>
+                        )}
+                        {visibleCellarColumns.includes('quantity') && (
+                          <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('quantity')}>
+                            <div className="flex items-center gap-1">
+                              Quantity <ArrowUpDown className="h-3 w-3" />
+                            </div>
+                          </TableHead>
+                        )}
+                        {visibleCellarColumns.includes('price') && (
+                          <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('purchase_price')}>
+                            <div className="flex items-center gap-1">
+                              Price (DKK) <ArrowUpDown className="h-3 w-3" />
+                            </div>
+                          </TableHead>
+                        )}
+                        {visibleCellarColumns.includes('purchase_date') && (
+                          <TableHead>Purchase Date</TableHead>
+                        )}
+                        {visibleCellarColumns.includes('bottle_size') && (
+                          <TableHead>Bottle Size</TableHead>
+                        )}
+                        {visibleCellarColumns.includes('location') && (
+                          <TableHead>Storage Location</TableHead>
+                        )}
+                        {visibleCellarColumns.includes('notes') && (
+                          <TableHead>Notes</TableHead>
+                        )}
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sortedWines.map((cellarEntry) => {
+                        const wine = cellarEntry.wines;
+                        return (
+                          <TableRow key={cellarEntry.id}>
+                            {visibleCellarColumns.includes('name') && (
+                              <TableCell className="font-medium">{wine.name}</TableCell>
+                            )}
+                            {visibleCellarColumns.includes('producer') && (
+                              <TableCell>{wine.producer}</TableCell>
+                            )}
+                            {visibleCellarColumns.includes('vintage') && (
+                              <TableCell>{wine.vintage || 'N/A'}</TableCell>
+                            )}
+                            {visibleCellarColumns.includes('type') && (
+                              <TableCell>
+                                <Badge className={getWineTypeColor(wine.wine_type)}>
+                                  {wine.wine_type}
+                                </Badge>
+                              </TableCell>
+                            )}
+                            {visibleCellarColumns.includes('region') && (
+                              <TableCell>
+                                {wine.regions?.name || 'N/A'}
+                              </TableCell>
+                            )}
+                            {visibleCellarColumns.includes('country') && (
+                              <TableCell>
+                                {wine.countries?.name || 'N/A'}
+                              </TableCell>
+                            )}
+                            {visibleCellarColumns.includes('appellation') && (
+                              <TableCell>
+                                {wine.appellations?.name || 'N/A'}
+                              </TableCell>
+                            )}
+                            {visibleCellarColumns.includes('quantity') && (
+                              <TableCell>
+                                <QuantityControl 
+                                  cellarId={cellarEntry.id}
+                                  wineId={cellarEntry.wines.id}
+                                  wineName={wine.name}
+                                  currentQuantity={cellarEntry.quantity}
+                                  onQuantityChange={fetchCellarWines}
+                                />
+                              </TableCell>
+                            )}
+                            {visibleCellarColumns.includes('price') && (
+                              <TableCell>
+                                {cellarEntry.purchase_price ? `${cellarEntry.purchase_price} DKK` : 'N/A'}
+                              </TableCell>
+                            )}
+                            {visibleCellarColumns.includes('purchase_date') && (
+                              <TableCell>
+                                {cellarEntry.purchase_date ? new Date(cellarEntry.purchase_date).toLocaleDateString() : 'N/A'}
+                              </TableCell>
+                            )}
+                            {visibleCellarColumns.includes('bottle_size') && (
+                              <TableCell>
+                                {wine.bottle_size || 'N/A'}
+                              </TableCell>
+                            )}
+                            {visibleCellarColumns.includes('location') && (
+                              <TableCell>{cellarEntry.storage_location || 'N/A'}</TableCell>
+                            )}
+                            {visibleCellarColumns.includes('notes') && (
+                              <TableCell>
+                                <div className="max-w-32 truncate" title={cellarEntry.notes || ''}>
+                                  {cellarEntry.notes || 'N/A'}
+                                </div>
+                              </TableCell>
+                            )}
+                            <TableCell>
+                              <EditWineDialog cellarEntry={cellarEntry} onWineUpdated={fetchCellarWines} />
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredWines.map((cellarEntry) => {
@@ -643,36 +799,77 @@ export default function Cellar() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">Consumed Wines</h3>
+                <ColumnSelector
+                  columns={consumedColumns}
+                  visibleColumns={visibleConsumedColumns}
+                  onColumnToggle={handleConsumedColumnToggle}
+                  onResetColumns={resetConsumedColumns}
+                />
               </div>
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Wine</TableHead>
-                      <TableHead>Producer</TableHead>
-                      <TableHead>Vintage</TableHead>
-                      <TableHead>Consumed Date</TableHead>
-                      <TableHead>Quantity</TableHead>
+                      {visibleConsumedColumns.includes('name') && (
+                        <TableHead>Wine</TableHead>
+                      )}
+                      {visibleConsumedColumns.includes('producer') && (
+                        <TableHead>Producer</TableHead>
+                      )}
+                      {visibleConsumedColumns.includes('vintage') && (
+                        <TableHead>Vintage</TableHead>
+                      )}
+                      {visibleConsumedColumns.includes('type') && (
+                        <TableHead>Type</TableHead>
+                      )}
+                      {visibleConsumedColumns.includes('consumed_date') && (
+                        <TableHead>Consumed Date</TableHead>
+                      )}
+                      {visibleConsumedColumns.includes('quantity') && (
+                        <TableHead>Quantity</TableHead>
+                      )}
+                      {visibleConsumedColumns.includes('notes') && (
+                        <TableHead>Notes</TableHead>
+                      )}
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {consumedWines.map((consumption) => (
                       <TableRow key={consumption.id}>
-                        <TableCell>
-                          <div>
+                        {visibleConsumedColumns.includes('name') && (
+                          <TableCell>
                             <div className="font-medium">{consumption.wines?.name || 'Unknown Wine'}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {consumption.wines?.wine_type || 'Unknown Type'}
+                          </TableCell>
+                        )}
+                        {visibleConsumedColumns.includes('producer') && (
+                          <TableCell>{consumption.wines?.producer || 'Unknown Producer'}</TableCell>
+                        )}
+                        {visibleConsumedColumns.includes('vintage') && (
+                          <TableCell>{consumption.wines?.vintage || 'NV'}</TableCell>
+                        )}
+                        {visibleConsumedColumns.includes('type') && (
+                          <TableCell>
+                            <Badge className={getWineTypeColor(consumption.wines?.wine_type || '')}>
+                              {consumption.wines?.wine_type || 'Unknown'}
+                            </Badge>
+                          </TableCell>
+                        )}
+                        {visibleConsumedColumns.includes('consumed_date') && (
+                          <TableCell>
+                            {new Date(consumption.consumed_at).toLocaleDateString()}
+                          </TableCell>
+                        )}
+                        {visibleConsumedColumns.includes('quantity') && (
+                          <TableCell>{consumption.quantity}</TableCell>
+                        )}
+                        {visibleConsumedColumns.includes('notes') && (
+                          <TableCell>
+                            <div className="max-w-32 truncate" title={consumption.notes || ''}>
+                              {consumption.notes || 'N/A'}
                             </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{consumption.wines?.producer || 'Unknown Producer'}</TableCell>
-                        <TableCell>{consumption.wines?.vintage || 'NV'}</TableCell>
-                        <TableCell>
-                          {new Date(consumption.consumed_at).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>{consumption.quantity}</TableCell>
+                          </TableCell>
+                        )}
                         <TableCell>
                           <div className="flex gap-2">
                             <Button size="sm" onClick={() => addToCellar(consumption.wines?.id, consumption.wines?.name)}>
