@@ -7,9 +7,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Wine, Search, Grid, List } from 'lucide-react';
+import { Plus, Wine, Search, Grid, List, BarChart3, TrendingUp, DollarSign } from 'lucide-react';
 import Layout from '@/components/Layout';
 import AddWineDialog from '@/components/AddWineDialog';
+import EditWineDialog from '@/components/EditWineDialog';
 
 interface WineInCellar {
   id: string;
@@ -35,7 +36,7 @@ export default function Cellar() {
   const [wines, setWines] = useState<WineInCellar[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
 
   useEffect(() => {
     if (user) {
@@ -94,6 +95,33 @@ export default function Cellar() {
     return colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-800';
   };
 
+  const calculateStats = () => {
+    const totalBottles = wines.reduce((sum, wine) => sum + wine.quantity, 0);
+    const totalValue = wines.reduce((sum, wine) => sum + (wine.purchase_price || 0) * wine.quantity, 0);
+    const totalLiters = totalBottles * 0.75; // Assuming 750ml bottles
+    
+    const typeStats = wines.reduce((acc, wine) => {
+      const type = wine.wines.wine_type;
+      acc[type] = (acc[type] || 0) + wine.quantity;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const typePercentages = Object.entries(typeStats).map(([type, count]) => ({
+      type,
+      count,
+      percentage: Math.round((count / totalBottles) * 100)
+    }));
+
+    return {
+      totalBottles,
+      totalValue,
+      totalLiters,
+      typePercentages
+    };
+  };
+
+  const stats = calculateStats();
+
   if (loading) {
     return (
       <Layout>
@@ -121,7 +149,7 @@ export default function Cellar() {
               My Wine Cellar
             </h1>
             <p className="text-muted-foreground mt-2">
-              {wines.length} bottles in your collection
+              {stats.totalBottles} bottles in your collection
             </p>
           </div>
           <div className="flex gap-2">
@@ -143,6 +171,59 @@ export default function Cellar() {
             </div>
             <AddWineDialog addToCellar onWineAdded={fetchCellarWines} />
           </div>
+        </div>
+
+        {/* KPI Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-2">
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <div className="text-2xl font-bold">{stats.totalBottles}</div>
+                  <p className="text-xs text-muted-foreground">Total Bottles</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-2">
+                <Wine className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <div className="text-2xl font-bold">{stats.totalLiters.toFixed(1)}L</div>
+                  <p className="text-xs text-muted-foreground">Total Volume</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-2">
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <div className="text-2xl font-bold">${stats.totalValue.toFixed(0)}</div>
+                  <p className="text-xs text-muted-foreground">Total Value</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-2">
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <div className="text-lg font-bold">
+                    {stats.typePercentages.map(t => `${t.percentage}% ${t.type}`).join(', ')}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Wine Types</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="mb-6">
@@ -184,6 +265,7 @@ export default function Cellar() {
                   <TableHead>Quantity</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Location</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -207,6 +289,9 @@ export default function Cellar() {
                         {cellarEntry.purchase_price ? `$${cellarEntry.purchase_price}` : 'N/A'}
                       </TableCell>
                       <TableCell>{cellarEntry.storage_location || 'N/A'}</TableCell>
+                      <TableCell>
+                        <EditWineDialog cellarEntry={cellarEntry} onWineUpdated={fetchCellarWines} />
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -254,6 +339,9 @@ export default function Cellar() {
                           <span>{cellarEntry.storage_location}</span>
                         </div>
                       )}
+                      <div className="flex justify-end pt-2">
+                        <EditWineDialog cellarEntry={cellarEntry} onWineUpdated={fetchCellarWines} />
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

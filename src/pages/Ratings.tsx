@@ -8,7 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { Plus, Search, Star, Calendar } from 'lucide-react';
 import Layout from '@/components/Layout';
-import AddWineDialog from '@/components/AddWineDialog';
+import AddRatingDialog from '@/components/AddRatingDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface WineRating {
@@ -243,7 +243,7 @@ export default function Ratings() {
               Robert Parker 100-point system
             </p>
           </div>
-          <AddWineDialog onWineAdded={() => {
+          <AddRatingDialog onRatingAdded={() => {
             fetchRatings();
             fetchFriendsRatings();
           }} />
@@ -279,7 +279,7 @@ export default function Ratings() {
                       : "No ratings match your search criteria."
                     }
                   </p>
-                  <AddWineDialog onWineAdded={() => {
+                  <AddRatingDialog onRatingAdded={() => {
                     fetchRatings();
                     fetchFriendsRatings();
                   }} />

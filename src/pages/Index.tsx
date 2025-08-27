@@ -33,7 +33,7 @@ const Index = () => {
       <div className="container mx-auto py-8 pb-20 md:pb-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-foreground mb-2">
-            Welcome to Wine Club
+            Welcome to Cellar Critiques
           </h1>
           <p className="text-xl text-muted-foreground">
             Discover, collect, and rate wines with fellow enthusiasts
@@ -102,13 +102,13 @@ const Index = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Button className="w-full">
+              <Button className="w-full" onClick={() => navigate('/cellar')}>
                 Add New Wine
               </Button>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full" onClick={() => navigate('/ratings')}>
                 Rate a Wine
               </Button>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full" onClick={() => navigate('/friends')}>
                 Invite Friends
               </Button>
             </div>

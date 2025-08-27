@@ -8,11 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Upload, X } from 'lucide-react';
+import { Edit, X } from 'lucide-react';
 
-interface AddWineDialogProps {
-  addToCellar?: boolean;
-  onWineAdded?: () => void;
+interface EditWineDialogProps {
+  cellarEntry: any;
+  onWineUpdated?: () => void;
 }
 
 interface Country {
@@ -39,6 +39,13 @@ interface GrapeVariety {
   type: string;
 }
 
+interface GrapeWithPercentage {
+  id: string;
+  name: string;
+  type: string;
+  percentage: number;
+}
+
 interface WineFormData {
   name: string;
   producer: string;
@@ -47,23 +54,21 @@ interface WineFormData {
   country_id: string;
   region_id: string;
   appellation_id: string;
-  grape_variety_ids: string[];
+  grape_varieties: GrapeWithPercentage[];
   alcohol_content: number | null;
   // Cellar specific fields
-  quantity?: number;
-  purchase_date?: string;
-  purchase_price?: number;
-  storage_location?: string;
-  notes?: string;
-  cellar_tracker_id?: string;
-  image_url?: string;
+  quantity: number;
+  purchase_date: string;
+  purchase_price: number | null;
+  storage_location: string;
+  notes: string;
+  cellar_tracker_id: string;
 }
 
-export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddWineDialogProps) {
+export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineDialogProps) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [countries, setCountries] = useState<Country[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
   const [appellations, setAppellations] = useState<Appellation[]>([]);
@@ -72,24 +77,21 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
   const [filteredAppellations, setFilteredAppellations] = useState<Appellation[]>([]);
 
   const [formData, setFormData] = useState<WineFormData>({
-    name: '',
-    producer: '',
-    vintage: null,
-    wine_type: '',
-    country_id: '',
-    region_id: '',
-    appellation_id: '',
-    grape_variety_ids: [],
-    alcohol_content: null,
-    ...(addToCellar ? {
-      quantity: 1,
-      purchase_date: '',
-      purchase_price: null,
-      storage_location: '',
-      notes: '',
-      cellar_tracker_id: '',
-      image_url: ''
-    } : {})
+    name: cellarEntry.wines.name,
+    producer: cellarEntry.wines.producer,
+    vintage: cellarEntry.wines.vintage,
+    wine_type: cellarEntry.wines.wine_type,
+    country_id: cellarEntry.wines.country_id || '',
+    region_id: cellarEntry.wines.region_id || '',
+    appellation_id: cellarEntry.wines.appellation_id || '',
+    grape_varieties: [],
+    alcohol_content: cellarEntry.wines.alcohol_content,
+    quantity: cellarEntry.quantity,
+    purchase_date: cellarEntry.purchase_date || '',
+    purchase_price: cellarEntry.purchase_price,
+    storage_location: cellarEntry.storage_location || '',
+    notes: cellarEntry.notes || '',
+    cellar_tracker_id: cellarEntry.wines.cellar_tracker_id || '',
   });
 
   // Load master data
@@ -115,6 +117,18 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
       setRegions(regionsRes.data || []);
       setAppellations(appellationsRes.data || []);
       setGrapeVarieties(grapeVarietiesRes.data || []);
+
+      // Initialize grape varieties with percentages from existing data
+      if (cellarEntry.wines.grape_variety_ids && cellarEntry.wines.grape_variety_ids.length > 0) {
+        const selectedGrapes = grapeVarietiesRes.data?.filter(grape => 
+          cellarEntry.wines.grape_variety_ids.includes(grape.id)
+        ).map(grape => ({
+          ...grape,
+          percentage: Math.floor(100 / cellarEntry.wines.grape_variety_ids.length)
+        })) || [];
+        
+        setFormData(prev => ({ ...prev, grape_varieties: selectedGrapes }));
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -129,7 +143,6 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
     if (formData.country_id) {
       const filtered = regions.filter(region => region.country_id === formData.country_id);
       setFilteredRegions(filtered);
-      setFormData(prev => ({ ...prev, region_id: '', appellation_id: '' }));
     } else {
       setFilteredRegions([]);
     }
@@ -140,11 +153,34 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
     if (formData.region_id) {
       const filtered = appellations.filter(appellation => appellation.region_id === formData.region_id);
       setFilteredAppellations(filtered);
-      setFormData(prev => ({ ...prev, appellation_id: '' }));
     } else {
       setFilteredAppellations([]);
     }
   }, [formData.region_id, appellations]);
+
+  const addGrapeVariety = (grapeId: string) => {
+    const grape = grapeVarieties.find(g => g.id === grapeId);
+    if (grape && !formData.grape_varieties.find(g => g.id === grapeId)) {
+      const newGrapes = [...formData.grape_varieties, { ...grape, percentage: 0 }];
+      setFormData({ ...formData, grape_varieties: newGrapes });
+    }
+  };
+
+  const removeGrapeVariety = (grapeId: string) => {
+    setFormData({
+      ...formData,
+      grape_varieties: formData.grape_varieties.filter(g => g.id !== grapeId)
+    });
+  };
+
+  const updateGrapePercentage = (grapeId: string, percentage: number) => {
+    setFormData({
+      ...formData,
+      grape_varieties: formData.grape_varieties.map(g => 
+        g.id === grapeId ? { ...g, percentage } : g
+      )
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,7 +188,7 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
 
     setLoading(true);
     try {
-      // First create the wine entry
+      // Update wine entry
       const wineData = {
         name: formData.name,
         producer: formData.producer,
@@ -161,72 +197,46 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
         country_id: formData.country_id || null,
         region_id: formData.region_id || null,
         appellation_id: formData.appellation_id || null,
-        grape_variety_ids: formData.grape_variety_ids,
+        grape_variety_ids: formData.grape_varieties.map(g => g.id),
         alcohol_content: formData.alcohol_content,
         cellar_tracker_id: formData.cellar_tracker_id
       };
 
-      const { data: wine, error: wineError } = await supabase
+      const { error: wineError } = await supabase
         .from('wines')
-        .insert(wineData)
-        .select()
-        .single();
+        .update(wineData)
+        .eq('id', cellarEntry.wines.id);
 
       if (wineError) throw wineError;
 
-      // If adding to cellar, create cellar entry
-      if (addToCellar) {
-        const cellarData = {
-          user_id: user.id,
-          wine_id: wine.id,
-          quantity: formData.quantity,
-          purchase_date: formData.purchase_date || null,
-          purchase_price: formData.purchase_price,
-          storage_location: formData.storage_location,
-          notes: formData.notes,
-        };
+      // Update cellar entry
+      const cellarData = {
+        quantity: formData.quantity,
+        purchase_date: formData.purchase_date || null,
+        purchase_price: formData.purchase_price,
+        storage_location: formData.storage_location,
+        notes: formData.notes,
+      };
 
-        const { error: cellarError } = await supabase
-          .from('wine_cellar')
-          .insert(cellarData);
+      const { error: cellarError } = await supabase
+        .from('wine_cellar')
+        .update(cellarData)
+        .eq('id', cellarEntry.id);
 
-        if (cellarError) throw cellarError;
-      }
+      if (cellarError) throw cellarError;
 
       toast({
         title: "Success",
-        description: addToCellar ? "Wine added to your cellar!" : "Wine created successfully!",
+        description: "Wine updated successfully!",
       });
 
-      // Reset form
-      setFormData({
-        name: '',
-        producer: '',
-        vintage: null,
-        wine_type: '',
-        country_id: '',
-        region_id: '',
-        appellation_id: '',
-        grape_variety_ids: [],
-        alcohol_content: null,
-        ...(addToCellar ? {
-          quantity: 1,
-          purchase_date: '',
-          purchase_price: null,
-          storage_location: '',
-          notes: '',
-          cellar_tracker_id: '',
-          image_url: ''
-        } : {})
-      });
-      setImageFile(null);
       setOpen(false);
-      onWineAdded?.();
+      onWineUpdated?.();
       
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to add wine",
+        description: "Failed to update wine",
         variant: "destructive",
       });
     } finally {
@@ -237,16 +247,15 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          {addToCellar ? 'Add Wine to Cellar' : 'Add Wine'}
+        <Button variant="ghost" size="sm">
+          <Edit className="h-4 w-4" />
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add New Wine</DialogTitle>
+          <DialogTitle>Edit Wine</DialogTitle>
           <DialogDescription>
-            Add wine information. Fields marked with * are required.
+            Update wine and cellar information
           </DialogDescription>
         </DialogHeader>
         
@@ -305,7 +314,7 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="country">Country *</Label>
+              <Label htmlFor="country">Country</Label>
               <Select 
                 value={formData.country_id} 
                 onValueChange={(value) => setFormData({ ...formData, country_id: value })}
@@ -365,17 +374,7 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
 
           <div>
             <Label htmlFor="grape_varieties">Grape Varieties with Percentages</Label>
-            <Select 
-              value="" 
-              onValueChange={(value) => {
-                if (!formData.grape_variety_ids.includes(value)) {
-                  setFormData({ 
-                    ...formData, 
-                    grape_variety_ids: [...formData.grape_variety_ids, value] 
-                  });
-                }
-              }}
-            >
+            <Select value="" onValueChange={addGrapeVariety}>
               <SelectTrigger>
                 <SelectValue placeholder="Add grape varieties" />
               </SelectTrigger>
@@ -387,32 +386,31 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
                 ))}
               </SelectContent>
             </Select>
-            {formData.grape_variety_ids.length > 0 && (
+            
+            {formData.grape_varieties.length > 0 && (
               <div className="space-y-2 mt-2">
-                {formData.grape_variety_ids.map((grapeId) => {
-                  const grape = grapeVarieties.find(g => g.id === grapeId);
-                  return grape ? (
-                    <div key={grapeId} className="flex items-center gap-2 p-2 bg-secondary rounded-md">
-                      <span className="flex-1 text-sm">{grape.name}</span>
-                      <Input
-                        type="number"
-                        min="0"
-                        max="100"
-                        defaultValue={0}
-                        className="w-20"
-                        placeholder="%"
-                      />
-                      <span className="text-sm">%</span>
-                      <X
-                        className="h-4 w-4 cursor-pointer"
-                        onClick={() => setFormData({
-                          ...formData,
-                          grape_variety_ids: formData.grape_variety_ids.filter(id => id !== grapeId)
-                        })}
-                      />
-                    </div>
-                  ) : null;
-                })}
+                {formData.grape_varieties.map((grape) => (
+                  <div key={grape.id} className="flex items-center gap-2 p-2 bg-secondary rounded-md">
+                    <span className="flex-1 text-sm">{grape.name}</span>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={grape.percentage}
+                      onChange={(e) => updateGrapePercentage(grape.id, parseInt(e.target.value) || 0)}
+                      className="w-20"
+                      placeholder="%"
+                    />
+                    <span className="text-sm">%</span>
+                    <X
+                      className="h-4 w-4 cursor-pointer"
+                      onClick={() => removeGrapeVariety(grape.id)}
+                    />
+                  </div>
+                ))}
+                <div className="text-xs text-muted-foreground">
+                  Total: {formData.grape_varieties.reduce((sum, g) => sum + g.percentage, 0)}%
+                </div>
               </div>
             )}
           </div>
@@ -434,7 +432,7 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
               <Label htmlFor="cellar_tracker_id">CellarTracker ID</Label>
               <Input
                 id="cellar_tracker_id"
-                value={formData.cellar_tracker_id || ''}
+                value={formData.cellar_tracker_id}
                 onChange={(e) => setFormData({ ...formData, cellar_tracker_id: e.target.value })}
                 placeholder="e.g. 12345"
               />
@@ -442,74 +440,67 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
           </div>
 
           {/* Cellar Information */}
-          {addToCellar && (
-            <>
-              <div className="border-t pt-4">
-                <h4 className="font-semibold mb-3">Cellar Information</h4>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="quantity">Quantity</Label>
-                    <Input
-                      id="quantity"
-                      type="number"
-                      min="1"
-                      value={formData.quantity || ''}
-                      onChange={(e) => setFormData({ ...formData, quantity: e.target.value ? parseInt(e.target.value) : 1 })}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="purchase_price">Purchase Price</Label>
-                    <Input
-                      id="purchase_price"
-                      type="number"
-                      step="0.01"
-                      value={formData.purchase_price || ''}
-                      onChange={(e) => setFormData({ ...formData, purchase_price: e.target.value ? parseFloat(e.target.value) : null })}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 mt-4">
-                  <div>
-                    <Label htmlFor="purchase_date">Purchase Date</Label>
-                    <Input
-                      id="purchase_date"
-                      type="date"
-                      value={formData.purchase_date || ''}
-                      onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="storage_location">Storage Location</Label>
-                    <Input
-                      id="storage_location"
-                      value={formData.storage_location || ''}
-                      onChange={(e) => setFormData({ ...formData, storage_location: e.target.value })}
-                      placeholder="e.g. Rack A, Bin 5"
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <Label htmlFor="notes">Notes</Label>
-                  <Textarea
-                    id="notes"
-                    value={formData.notes || ''}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    placeholder="Any additional notes..."
-                  />
-                </div>
+          <div className="border-t pt-4">
+            <h4 className="font-semibold mb-3">Cellar Information</h4>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="quantity">Quantity</Label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  min="1"
+                  value={formData.quantity}
+                  onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 1 })}
+                />
               </div>
-            </>
-          )}
+              <div>
+                <Label htmlFor="purchase_price">Purchase Price</Label>
+                <Input
+                  id="purchase_price"
+                  type="number"
+                  step="0.01"
+                  value={formData.purchase_price || ''}
+                  onChange={(e) => setFormData({ ...formData, purchase_price: e.target.value ? parseFloat(e.target.value) : null })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <div>
+                <Label htmlFor="purchase_date">Purchase Date</Label>
+                <Input
+                  id="purchase_date"
+                  type="date"
+                  value={formData.purchase_date}
+                  onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="storage_location">Storage Location</Label>
+                <Input
+                  id="storage_location"
+                  value={formData.storage_location}
+                  onChange={(e) => setFormData({ ...formData, storage_location: e.target.value })}
+                  placeholder="e.g. Rack A, Bin 5"
+                />
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="Any additional notes..."
+              />
+            </div>
+          </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Adding...' : (addToCellar ? 'Add to Cellar' : 'Add Wine')}
+              {loading ? 'Updating...' : 'Update Wine'}
             </Button>
           </DialogFooter>
         </form>
