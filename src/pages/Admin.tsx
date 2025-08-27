@@ -272,52 +272,32 @@ export default function Admin() {
 
           // Apply filters
           if (searchTerm) {
-            // Intelligent multi-word search without cross-table filters in OR
             const words = searchTerm.trim().toLowerCase().split(/\s+/).filter(w => w.length >= 2);
-            const phrase = searchTerm.trim().toLowerCase();
+            const uniqueWords = Array.from(new Set(words));
+            const isSingle = uniqueWords.length <= 1;
 
-            // Look up matching producers separately, then OR by producer_id.in.(...)
-            let producerIds: string[] = [];
+            // For each word, find matching producers (parallel)
+            let producersByWord = new Map<string, string[]>();
             try {
-              const prodConds: string[] = [];
-              if (words.length <= 1) {
-                if (phrase.length >= 2) prodConds.push(`name.ilike.*${phrase}*`);
-              } else {
-                prodConds.push(`name.ilike.*${phrase}*`);
-                words.forEach(w => prodConds.push(`name.ilike.*${w}*`));
-              }
-              if (prodConds.length) {
-                const { data: matchedProducers } = await supabase
+              const lookups = uniqueWords.map(async (w) => {
+                const { data } = await supabase
                   .from('producers')
                   .select('id')
-                  .or(prodConds.join(','))
-                  .limit(200);
-                producerIds = (matchedProducers || []).map(p => p.id);
-              }
-            } catch (e) {
-              // ignore producer lookup failures
-            }
-
-            const orConds: string[] = [];
-            if (words.length <= 1) {
-              if (phrase.length >= 2) {
-                orConds.push(`name.ilike.*${phrase}*`);
-                orConds.push(`description.ilike.*${phrase}*`);
-              }
-            } else {
-              orConds.push(`name.ilike.*${phrase}*`);
-              words.forEach(w => {
-                orConds.push(`name.ilike.*${w}*`);
-                orConds.push(`description.ilike.*${w}*`);
+                  .ilike('name', `*${w}*`)
+                  .limit(500);
+                return [w, (data || []).map(p => p.id as string)] as const;
               });
-            }
+              const results = await Promise.all(lookups);
+              producersByWord = new Map(results);
+            } catch (_) {}
 
-            if (producerIds.length) {
-              orConds.push(`producer_id.in.(${producerIds.join(',')})`);
-            }
-
-            if (orConds.length) {
-              query = query.or(orConds.join(','));
+            // Require every word to match at least one field (AND of OR-groups)
+            for (const w of uniqueWords) {
+              const conds: string[] = [`name.ilike.*${w}*`];
+              if (isSingle) conds.push(`description.ilike.*${w}*`);
+              const ids = producersByWord.get(w) || [];
+              if (ids.length) conds.push(`producer_id.in.(${ids.join(',')})`);
+              query = query.or(conds.join(',')); // multiple .or calls combine with AND
             }
           }
           
