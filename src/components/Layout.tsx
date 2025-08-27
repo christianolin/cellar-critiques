@@ -2,7 +2,8 @@ import { ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
-import { Wine, Home, Users, Star, User, LogOut } from 'lucide-react';
+import { useUserRole } from '@/hooks/useUserRole';
+import { Wine, Home, Users, Star, User, LogOut, Settings } from 'lucide-react';
 
 interface LayoutProps {
   children: ReactNode;
@@ -10,6 +11,7 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const { user, signOut } = useAuth();
+  const { isAdminOrOwner } = useUserRole();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -18,7 +20,7 @@ export default function Layout({ children }: LayoutProps) {
     { name: 'My Cellar', href: '/cellar', icon: Wine },
     { name: 'Friends', href: '/friends', icon: Users },
     { name: 'Ratings', href: '/ratings', icon: Star },
-    { name: 'Admin', href: '/admin', icon: Users },
+    ...(isAdminOrOwner ? [{ name: 'Admin', href: '/admin', icon: Settings }] : []),
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -77,7 +79,7 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* Mobile navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t">
-        <div className="grid grid-cols-5 gap-1 p-2">
+        <div className={`grid gap-1 p-2 ${navigation.length === 5 ? 'grid-cols-5' : 'grid-cols-4'}`}>
           {navigation.map((item) => {
             const Icon = item.icon;
             return (

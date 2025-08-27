@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Search, Star, Calendar, Grid, List } from 'lucide-react';
+import { Plus, Search, Star, Calendar, Grid, List, ArrowUpDown } from 'lucide-react';
 import Layout from '@/components/Layout';
 import AddRatingDialog from '@/components/AddRatingDialog';
 import EditRatingDialog from '@/components/EditRatingDialog';
@@ -335,12 +335,36 @@ export default function Ratings() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('name')}>Wine</TableHead>
-                      <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('producer')}>Producer</TableHead>
-                      <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('vintage')}>Vintage</TableHead>
-                      <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('type')}>Type</TableHead>
-                      <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('rating')}>Rating</TableHead>
-                      <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('tasted')}>Tasted</TableHead>
+                      <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('name')}>
+                        <div className="flex items-center gap-1">
+                          Wine <ArrowUpDown className="h-3 w-3" />
+                        </div>
+                      </TableHead>
+                      <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('producer')}>
+                        <div className="flex items-center gap-1">
+                          Producer <ArrowUpDown className="h-3 w-3" />
+                        </div>
+                      </TableHead>
+                      <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('vintage')}>
+                        <div className="flex items-center gap-1">
+                          Vintage <ArrowUpDown className="h-3 w-3" />
+                        </div>
+                      </TableHead>
+                      <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('type')}>
+                        <div className="flex items-center gap-1">
+                          Type <ArrowUpDown className="h-3 w-3" />
+                        </div>
+                      </TableHead>
+                      <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('rating')}>
+                        <div className="flex items-center gap-1">
+                          Rating <ArrowUpDown className="h-3 w-3" />
+                        </div>
+                      </TableHead>
+                      <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('tasted')}>
+                        <div className="flex items-center gap-1">
+                          Tasted <ArrowUpDown className="h-3 w-3" />
+                        </div>
+                      </TableHead>
                       <TableHead>Color</TableHead>
                       <TableHead>Body</TableHead>
                       <TableHead>Sweetness</TableHead>

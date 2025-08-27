@@ -6,10 +6,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserRole } from '@/hooks/useUserRole';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Edit, Trash2, Settings } from 'lucide-react';
+import { Plus, Edit, Trash2, Settings, Users } from 'lucide-react';
 import Layout from '@/components/Layout';
 
 interface Country {
@@ -38,9 +40,23 @@ interface GrapeVariety {
   type: string;
 }
 
+interface User {
+  id: string;
+  email: string;
+  created_at: string;
+  profiles?: {
+    display_name?: string;
+    username?: string;
+  };
+  user_roles?: {
+    role: string;
+  }[];
+}
+
 export default function Admin() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'countries' | 'regions' | 'appellations' | 'grapes'>('countries');
+  const { isOwner, isAdminOrOwner } = useUserRole();
+  const [activeTab, setActiveTab] = useState<'countries' | 'regions' | 'appellations' | 'grapes' | 'users'>('countries');
   const [loading, setLoading] = useState(false);
   
   // Data states
@@ -48,6 +64,7 @@ export default function Admin() {
   const [regions, setRegions] = useState<Region[]>([]);
   const [appellations, setAppellations] = useState<Appellation[]>([]);
   const [grapeVarieties, setGrapeVarieties] = useState<GrapeVariety[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   
   // Form states
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -106,6 +123,39 @@ export default function Admin() {
           if (grapesError) throw grapesError;
           setGrapeVarieties(grapesData || []);
           break;
+          
+        case 'users':
+          if (!isOwner) break; // Only owners can see users
+          const { data: usersData, error: usersError } = await supabase
+            .from('profiles')
+            .select(`
+              user_id,
+              username,
+              display_name,
+              created_at
+            `)
+            .order('created_at', { ascending: false });
+          
+          if (usersError) throw usersError;
+          
+          // Get user roles
+          const { data: rolesData } = await supabase
+            .from('user_roles')
+            .select('user_id, role');
+          
+          const usersWithRoles = (usersData || []).map(profile => ({
+            id: profile.user_id,
+            email: '', // We can't access email from profiles
+            created_at: profile.created_at,
+            profiles: {
+              display_name: profile.display_name,
+              username: profile.username,
+            },
+            user_roles: rolesData?.filter(r => r.user_id === profile.user_id) || []
+          }));
+          
+          setUsers(usersWithRoles);
+          break;
       }
     } catch (error) {
       toast({
@@ -134,12 +184,21 @@ export default function Admin() {
     if (!confirm('Are you sure you want to delete this item?')) return;
     
     try {
-      const { error } = await supabase
-        .from(getTableName())
-        .delete()
-        .eq('id', id);
-        
-      if (error) throw error;
+      if (activeTab === 'users') {
+        // Delete user role
+        const { error } = await supabase
+          .from('user_roles')
+          .delete()
+          .eq('user_id', id)
+          .eq('role', editingItem.role);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from(getTableName())
+          .delete()
+          .eq('id', id);
+        if (error) throw error;
+      }
       
       toast({
         title: "Success",
@@ -160,8 +219,29 @@ export default function Admin() {
     e.preventDefault();
     
     try {
-      if (editingItem) {
-        // Update
+      if (activeTab === 'users' && formData.role) {
+        // Handle user role changes
+        if (editingItem) {
+          // Remove old role if changing
+          if (editingItem.role !== formData.role) {
+            await supabase
+              .from('user_roles')
+              .delete()
+              .eq('user_id', editingItem.id)
+              .eq('role', editingItem.role);
+          }
+        }
+        
+        // Add new role
+        const { error } = await supabase
+          .from('user_roles')
+          .upsert({
+            user_id: formData.user_id,
+            role: formData.role
+          });
+        if (error) throw error;
+      } else if (editingItem) {
+        // Update other entities
         const { error } = await supabase
           .from(getTableName())
           .update(formData)
@@ -204,7 +284,41 @@ export default function Admin() {
       case 'regions': return 'regions';
       case 'appellations': return 'appellations';
       case 'grapes': return 'grape_varieties';
+      case 'users': return 'user_roles';
       default: return 'countries';
+    }
+  };
+
+  const updateUserRole = async (userId: string, newRole: string) => {
+    try {
+      // First, remove existing roles for this user
+      await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId);
+      
+      // Then add the new role
+      const { error } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: userId,
+          role: newRole as "owner" | "admin" | "user"
+        });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Success",
+        description: "User role updated successfully",
+      });
+      
+      loadData();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update user role",
+        variant: "destructive",
+      });
     }
   };
 
@@ -354,6 +468,10 @@ export default function Admin() {
         data = grapeVarieties;
         headers = ['Name', 'Type', 'Actions'];
         break;
+      case 'users':
+        data = users;
+        headers = ['Username', 'Display Name', 'Roles', 'Actions'];
+        break;
     }
 
     return (
@@ -393,22 +511,57 @@ export default function Admin() {
                   <TableCell className="capitalize">{item.type}</TableCell>
                 </>
               )}
+              {activeTab === 'users' && (
+                <>
+                  <TableCell>{item.profiles?.username || 'No username'}</TableCell>
+                  <TableCell>{item.profiles?.display_name || 'No display name'}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-1 flex-wrap">
+                      {item.user_roles?.map((ur: any) => (
+                        <Badge key={ur.role} variant="secondary" className="capitalize">
+                          {ur.role}
+                        </Badge>
+                      ))}
+                    </div>
+                  </TableCell>
+                </>
+              )}
               <TableCell>
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(item)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDelete(item.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {activeTab === 'users' ? (
+                    isOwner && (
+                      <Select
+                        value={item.user_roles?.[0]?.role || 'user'}
+                        onValueChange={(value) => updateUserRole(item.id, value)}
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="user">User</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="owner">Owner</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )
+                  ) : (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(item)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(item.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
                 </div>
               </TableCell>
             </TableRow>
@@ -418,22 +571,36 @@ export default function Admin() {
     );
   };
 
+  if (!isAdminOrOwner) {
+    return (
+      <Layout>
+        <div className="container mx-auto py-8">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
+            <p>You don't have permission to access this page.</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="container mx-auto py-8 pb-20 md:pb-8">
         <div className="flex items-center gap-2 mb-8">
           <Settings className="h-8 w-8 text-primary" />
           <h1 className="text-3xl font-bold text-foreground">
-            Master Data Administration
+            Administration Panel
           </h1>
         </div>
 
-        <div className="flex gap-4 mb-6">
+        <div className="flex gap-4 mb-6 flex-wrap">
           {[
             { key: 'countries', label: 'Countries' },
             { key: 'regions', label: 'Regions' },
             { key: 'appellations', label: 'Appellations' },
-            { key: 'grapes', label: 'Grape Varieties' }
+            { key: 'grapes', label: 'Grape Varieties' },
+            ...(isOwner ? [{ key: 'users', label: 'Users' }] : [])
           ].map((tab) => (
             <Button
               key={tab.key}
@@ -451,13 +618,15 @@ export default function Admin() {
               <div>
                 <CardTitle className="capitalize">{activeTab}</CardTitle>
                 <CardDescription>
-                  Manage {activeTab} master data
+                  {activeTab === 'users' ? 'Manage user roles and permissions' : `Manage ${activeTab} master data`}
                 </CardDescription>
               </div>
+              {activeTab !== 'users' && (
                 <Button onClick={handleAdd}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add {activeTab === 'countries' ? 'Country' : activeTab === 'regions' ? 'Region' : activeTab === 'appellations' ? 'Appellation' : 'Grape Variety'}
                 </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent>

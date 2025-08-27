@@ -629,6 +629,80 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
                   </div>
                 </div>
 
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="combined_color">Color</Label>
+                    <Select value={formData.color} onValueChange={(value) => setFormData({ ...formData, color: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select color" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pale">Pale</SelectItem>
+                        <SelectItem value="light">Light</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="deep">Deep</SelectItem>
+                        <SelectItem value="intense">Intense</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="combined_body">Body</Label>
+                    <Select value={formData.body} onValueChange={(value) => setFormData({ ...formData, body: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select body" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="light">Light</SelectItem>
+                        <SelectItem value="medium-minus">Medium(-)</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="medium-plus">Medium(+)</SelectItem>
+                        <SelectItem value="full">Full</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="combined_sweetness">Sweetness</Label>
+                    <Select value={formData.sweetness} onValueChange={(value) => setFormData({ ...formData, sweetness: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select sweetness" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="bone-dry">Bone Dry</SelectItem>
+                        <SelectItem value="dry">Dry</SelectItem>
+                        <SelectItem value="off-dry">Off-Dry</SelectItem>
+                        <SelectItem value="medium-dry">Medium-Dry</SelectItem>
+                        <SelectItem value="medium-sweet">Medium-Sweet</SelectItem>
+                        <SelectItem value="sweet">Sweet</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="combined_serving_temp_min">Serving Temp Min (°C)</Label>
+                    <Input
+                      id="combined_serving_temp_min"
+                      type="number"
+                      min="0"
+                      max="25"
+                      value={formData.serving_temp_min || ''}
+                      onChange={(e) => setFormData({ ...formData, serving_temp_min: e.target.value ? parseInt(e.target.value) : null })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="combined_serving_temp_max">Serving Temp Max (°C)</Label>
+                    <Input
+                      id="combined_serving_temp_max"
+                      type="number"
+                      min="0"
+                      max="25"
+                      value={formData.serving_temp_max || ''}
+                      onChange={(e) => setFormData({ ...formData, serving_temp_max: e.target.value ? parseInt(e.target.value) : null })}
+                    />
+                  </div>
+                </div>
+
                 <div>
                   <Label htmlFor="combined_tasting_notes">Tasting Notes</Label>
                   <Textarea

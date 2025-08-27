@@ -7,10 +7,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Wine, Search, Grid, List, BarChart3, TrendingUp, DollarSign } from 'lucide-react';
+import { Plus, Wine, Search, Grid, List, BarChart3, TrendingUp, DollarSign, Filter, ArrowUpDown } from 'lucide-react';
 import Layout from '@/components/Layout';
 import AddWineDialog from '@/components/AddWineDialog';
 import EditWineDialog from '@/components/EditWineDialog';
+import DeleteConsumptionDialog from '@/components/DeleteConsumptionDialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import QuantityControl from '@/components/QuantityControl';
 
@@ -350,13 +351,41 @@ export default function Cellar() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('name')}>Wine</TableHead>
-                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('producer')}>Producer</TableHead>
-                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('vintage')}>Vintage</TableHead>
-                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('wine_type')}>Type</TableHead>
-                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('region')}>Region</TableHead>
-                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('quantity')}>Quantity</TableHead>
-                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('purchase_price')}>Price (DKK)</TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('name')}>
+                    <div className="flex items-center gap-1">
+                      Wine <ArrowUpDown className="h-3 w-3" />
+                    </div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('producer')}>
+                    <div className="flex items-center gap-1">
+                      Producer <ArrowUpDown className="h-3 w-3" />
+                    </div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('vintage')}>
+                    <div className="flex items-center gap-1">
+                      Vintage <ArrowUpDown className="h-3 w-3" />
+                    </div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('wine_type')}>
+                    <div className="flex items-center gap-1">
+                      Type <ArrowUpDown className="h-3 w-3" />
+                    </div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('region')}>
+                    <div className="flex items-center gap-1">
+                      Region <ArrowUpDown className="h-3 w-3" />
+                    </div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('quantity')}>
+                    <div className="flex items-center gap-1">
+                      Quantity <ArrowUpDown className="h-3 w-3" />
+                    </div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('purchase_price')}>
+                    <div className="flex items-center gap-1">
+                      Price (DKK) <ArrowUpDown className="h-3 w-3" />
+                    </div>
+                  </TableHead>
                   <TableHead>Location</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -501,9 +530,16 @@ export default function Cellar() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Button size="sm" onClick={() => addToCellar(consumption.wines?.id, consumption.wines?.name)}>
-                            Add to Cellar
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => addToCellar(consumption.wines?.id, consumption.wines?.name)}>
+                              Add to Cellar
+                            </Button>
+                            <DeleteConsumptionDialog
+                              consumptionId={consumption.id}
+                              wineName={consumption.wines?.name || 'Unknown Wine'}
+                              onDeleted={() => { fetchConsumedWines(); fetchCellarWines(); }}
+                            />
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
