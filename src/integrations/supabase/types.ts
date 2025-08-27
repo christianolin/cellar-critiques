@@ -382,28 +382,28 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_wine_database_appellation"
+            foreignKeyName: "wine_database_appellation_id_fkey"
             columns: ["appellation_id"]
             isOneToOne: false
             referencedRelation: "appellations"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_wine_database_country"
+            foreignKeyName: "wine_database_country_id_fkey"
             columns: ["country_id"]
             isOneToOne: false
             referencedRelation: "countries"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_wine_database_producer"
+            foreignKeyName: "wine_database_producer_id_fkey"
             columns: ["producer_id"]
             isOneToOne: false
             referencedRelation: "producers"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_wine_database_region"
+            foreignKeyName: "wine_database_region_id_fkey"
             columns: ["region_id"]
             isOneToOne: false
             referencedRelation: "regions"
