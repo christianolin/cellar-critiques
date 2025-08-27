@@ -7,8 +7,10 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
-import { Star, Search, ArrowLeft, Wine, Calendar } from 'lucide-react';
+import { Star, Search, ArrowLeft, Wine, Calendar, Grid, List, ArrowUpDown, Filter } from 'lucide-react';
 import Layout from '@/components/Layout';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ColumnSelector, type ColumnConfig } from '@/components/ColumnSelector';
 
 interface WineRating {
   id: string;
@@ -17,6 +19,30 @@ interface WineRating {
   food_pairing: string | null;
   tasting_date: string | null;
   created_at: string;
+  updated_at: string;
+  // Detailed rating fields
+  appearance_color: string | null;
+  appearance_intensity: string | null;
+  appearance_clarity: string | null;
+  appearance_viscosity: string | null;
+  appearance_comments: string | null;
+  aroma_condition: string | null;
+  aroma_intensity: string | null;
+  aroma_primary: string | null;
+  aroma_secondary: string | null;
+  aroma_tertiary: string | null;
+  aroma_comments: string | null;
+  palate_sweetness: string | null;
+  palate_acidity: string | null;
+  palate_tannin: string | null;
+  palate_body: string | null;
+  palate_flavor_primary: string | null;
+  palate_flavor_secondary: string | null;
+  palate_flavor_tertiary: string | null;
+  palate_complexity: string | null;
+  palate_finish: string | null;
+  palate_balance: string | null;
+  palate_comments: string | null;
   wines: {
     id: string;
     name: string;
@@ -44,6 +70,72 @@ export default function FriendRatings() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
+  const [filters, setFilters] = useState<{
+    vintage: string;
+    wine_type: string;
+    region: string;
+    appellation: string;
+    country: string;
+    producer: string;
+  }>({
+    vintage: '',
+    wine_type: '',  
+    region: '',
+    appellation: '',
+    country: '',
+    producer: ''
+  });
+  const [sortKey, setSortKey] = useState<'name' | 'producer' | 'vintage' | 'type' | 'rating' | 'tasted'>('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const toggleSort = (key: 'name' | 'producer' | 'vintage' | 'type' | 'rating' | 'tasted') => {
+    if (sortKey === key) setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+  };
+
+  // Column visibility state for ratings table
+  const ratingsColumns: ColumnConfig[] = [
+    { key: 'wine_name', label: 'Wine Name', defaultVisible: true },
+    { key: 'producer', label: 'Producer', defaultVisible: true },
+    { key: 'vintage', label: 'Vintage', defaultVisible: true },
+    { key: 'wine_type', label: 'Type', defaultVisible: true },
+    { key: 'rating', label: 'Rating', defaultVisible: true },
+    { key: 'tasting_date', label: 'Tasting Date', defaultVisible: true },
+    { key: 'tasting_notes', label: 'Tasting Notes', defaultVisible: true },
+    { key: 'country', label: 'Country', defaultVisible: false },
+    { key: 'region', label: 'Region', defaultVisible: false },
+    { key: 'appellation', label: 'Appellation', defaultVisible: false },
+    { key: 'food_pairing', label: 'Food Pairing', defaultVisible: false },
+    { key: 'appearance_color', label: 'Appearance Color', defaultVisible: false },
+    { key: 'aroma_intensity', label: 'Aroma Intensity', defaultVisible: false },
+    { key: 'palate_body', label: 'Body', defaultVisible: false },
+    { key: 'palate_acidity', label: 'Acidity', defaultVisible: false },
+    { key: 'palate_tannin', label: 'Tannin', defaultVisible: false },
+    { key: 'palate_finish', label: 'Finish', defaultVisible: false },
+  ];
+
+  const getDefaultRatingsVisibleColumns = () => 
+    ratingsColumns.filter(col => col.defaultVisible !== false).map(col => col.key);
+
+  const [visibleRatingsColumns, setVisibleRatingsColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem(`friendRatings${friendId}VisibleColumns`);
+    return saved ? JSON.parse(saved) : getDefaultRatingsVisibleColumns();
+  });
+
+  const handleRatingsColumnToggle = (columnKey: string) => {
+    const newVisibleColumns = visibleRatingsColumns.includes(columnKey)
+      ? visibleRatingsColumns.filter(key => key !== columnKey)
+      : [...visibleRatingsColumns, columnKey];
+    
+    setVisibleRatingsColumns(newVisibleColumns);
+    localStorage.setItem(`friendRatings${friendId}VisibleColumns`, JSON.stringify(newVisibleColumns));
+  };
+
+  const resetRatingsColumns = () => {
+    const defaultColumns = getDefaultRatingsVisibleColumns();
+    setVisibleRatingsColumns(defaultColumns);
+    localStorage.setItem(`friendRatings${friendId}VisibleColumns`, JSON.stringify(defaultColumns));
+  };
 
   useEffect(() => {
     if (friendId && user) {
@@ -78,11 +170,36 @@ export default function FriendRatings() {
         .from('wine_ratings')
         .select(`
           id,
+          user_id,
+          wine_id,
           rating,
           tasting_date,
           tasting_notes,
           food_pairing,
           created_at,
+          updated_at,
+          appearance_color,
+          appearance_intensity,
+          appearance_clarity,
+          appearance_viscosity,
+          appearance_comments,
+          aroma_condition,
+          aroma_intensity,
+          aroma_primary,
+          aroma_secondary,
+          aroma_tertiary,
+          aroma_comments,
+          palate_sweetness,
+          palate_acidity,
+          palate_tannin,
+          palate_body,
+          palate_flavor_primary,
+          palate_flavor_secondary,
+          palate_flavor_tertiary,
+          palate_finish,
+          palate_complexity,
+          palate_balance,
+          palate_comments,
           wines (
             id,
             name,
@@ -111,11 +228,24 @@ export default function FriendRatings() {
   };
 
   const filteredRatings = ratings.filter(rating => {
-    return searchTerm === '' || 
+    // Search term filter
+    const matchesSearch = searchTerm === '' || 
       rating.wines.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       rating.wines.producer.toLowerCase().includes(searchTerm.toLowerCase()) ||
       rating.wines.regions?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       rating.wines.countries?.name.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Column filters
+    const matchesVintage = filters.vintage === '' || rating.wines.vintage?.toString() === filters.vintage;
+    const matchesType = filters.wine_type === '' || rating.wines.wine_type === filters.wine_type;
+    const matchesRegion = filters.region === '' || 
+      rating.wines.regions?.name === filters.region ||
+      rating.wines.countries?.name === filters.region;
+    const matchesCountry = filters.country === '' || rating.wines.countries?.name === filters.country;
+    const matchesAppellation = filters.appellation === '' || rating.wines.appellations?.name === filters.appellation;
+    const matchesProducer = filters.producer === '' || rating.wines.producer === filters.producer;
+    
+    return matchesSearch && matchesVintage && matchesType && matchesRegion && matchesCountry && matchesAppellation && matchesProducer;
   });
 
   const getRatingColor = (rating: number) => {
@@ -148,6 +278,24 @@ export default function FriendRatings() {
     return colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-800';
   };
 
+  const sortedRatings = [...filteredRatings].sort((a, b) => {
+    let aVal: any;
+    let bVal: any;
+    switch (sortKey) {
+      case 'name': aVal = a.wines.name; bVal = b.wines.name; break;
+      case 'producer': aVal = a.wines.producer; bVal = b.wines.producer; break;
+      case 'vintage': aVal = a.wines.vintage ?? 0; bVal = b.wines.vintage ?? 0; break;
+      case 'type': aVal = a.wines.wine_type; bVal = b.wines.wine_type; break;
+      case 'rating': aVal = a.rating; bVal = b.rating; break;
+      case 'tasted': aVal = a.tasting_date ? new Date(a.tasting_date).getTime() : 0; bVal = b.tasting_date ? new Date(b.tasting_date).getTime() : 0; break;
+      default: aVal = 0; bVal = 0;
+    }
+    const cmp = typeof aVal === 'number' && typeof bVal === 'number'
+      ? aVal - bVal
+      : String(aVal).localeCompare(String(bVal));
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
+
   if (loading) {
     return (
       <Layout>
@@ -164,6 +312,68 @@ export default function FriendRatings() {
       </Layout>
     );
   }
+
+  const RatingCard = ({ rating }: { rating: WineRating }) => (
+    <Card className="hover:shadow-lg transition-shadow">
+      <CardHeader>
+        <div className="flex justify-between items-start">
+          <div className="flex-1">
+            <CardTitle className="text-lg">{rating.wines.name}</CardTitle>
+            <CardDescription>
+              {rating.wines.producer} • {rating.wines.vintage}
+            </CardDescription>
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            <Badge className={getRatingColor(rating.rating)}>
+              {rating.rating}/100
+            </Badge>
+            <Badge className={getWineTypeColor(rating.wines.wine_type)}>
+              {rating.wines.wine_type}
+            </Badge>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          <div className="flex items-center gap-1">
+            <Star className="h-4 w-4 text-yellow-500 fill-current" />
+            <span className="text-sm font-medium">{getRatingLabel(rating.rating)}</span>
+          </div>
+          
+          {rating.wines.regions?.name || rating.wines.countries?.name ? (
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Region:</span>
+              <span>{rating.wines.regions?.name || rating.wines.countries?.name}</span>
+            </div>
+          ) : null}
+          
+          {rating.tasting_date && (
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Tasted:</span>
+              <span className="flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                {new Date(rating.tasting_date).toLocaleDateString()}
+              </span>
+            </div>
+          )}
+          
+          {rating.tasting_notes && (
+            <div className="text-sm">
+              <span className="text-muted-foreground">Notes:</span>
+              <p className="mt-1 text-foreground">{rating.tasting_notes}</p>
+            </div>
+          )}
+          
+          {rating.food_pairing && (
+            <div className="text-sm">
+              <span className="text-muted-foreground">Food Pairing:</span>
+              <p className="mt-1 text-foreground">{rating.food_pairing}</p>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <Layout>
@@ -192,15 +402,33 @@ export default function FriendRatings() {
               </p>
             </div>
           </div>
-          <Link to={`/friends/${friendId}/cellar`}>
-            <Button variant="outline" className="flex items-center gap-2">
-              <Wine className="h-4 w-4" />
-              View Cellar
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            <div className="flex border rounded-lg p-1">
+              <Button
+                variant={viewMode === 'cards' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('cards')}
+              >
+                <Grid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'table' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('table')}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
+            <Link to={`/friends/${friendId}/cellar`}>
+              <Button variant="outline" className="flex items-center gap-2">
+                <Wine className="h-4 w-4" />
+                View Cellar
+              </Button>
+            </Link>
+          </div>
         </div>
 
-        <div className="mb-6">
+        <div className="mb-6 space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
@@ -209,6 +437,92 @@ export default function FriendRatings() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
             />
+          </div>
+          
+          {/* Filters */}
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Filters:</span>
+            </div>
+            
+            <select 
+              value={filters.vintage} 
+              onChange={(e) => setFilters({...filters, vintage: e.target.value})}
+              className="px-3 py-1 text-sm border border-input bg-background rounded-md"
+            >
+              <option value="">All Vintages</option>
+              {Array.from(new Set(ratings.map(r => r.wines.vintage).filter(Boolean)))
+                .sort((a, b) => (b as number) - (a as number))
+                .map(vintage => (
+                <option key={vintage} value={vintage?.toString()}>{vintage}</option>
+              ))}
+            </select>
+            
+            <select 
+              value={filters.wine_type} 
+              onChange={(e) => setFilters({...filters, wine_type: e.target.value})}
+              className="px-3 py-1 text-sm border border-input bg-background rounded-md"
+            >
+              <option value="">All Types</option>
+              {Array.from(new Set(ratings.map(r => r.wines.wine_type))).sort().map(type => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+            </select>
+            
+            <select 
+              value={filters.country} 
+              onChange={(e) => setFilters({...filters, country: e.target.value})}
+              className="px-3 py-1 text-sm border border-input bg-background rounded-md"
+            >
+              <option value="">All Countries</option>
+              {Array.from(new Set(ratings.map(r => r.wines.countries?.name).filter(Boolean))).sort().map(country => (
+                <option key={country} value={country}>{country}</option>
+              ))}
+            </select>
+            
+            <select 
+              value={filters.region} 
+              onChange={(e) => setFilters({...filters, region: e.target.value})}
+              className="px-3 py-1 text-sm border border-input bg-background rounded-md"
+            >
+              <option value="">All Regions</option>
+              {Array.from(new Set(ratings.map(r => r.wines.regions?.name || r.wines.countries?.name).filter(Boolean))).sort().map(region => (
+                <option key={region} value={region}>{region}</option>
+              ))}
+            </select>
+            
+            <select 
+              value={filters.appellation} 
+              onChange={(e) => setFilters({...filters, appellation: e.target.value})}
+              className="px-3 py-1 text-sm border border-input bg-background rounded-md"
+            >
+              <option value="">All Appellations</option>
+              {Array.from(new Set(ratings.map(r => r.wines.appellations?.name).filter(Boolean))).sort().map(appellation => (
+                <option key={appellation} value={appellation}>{appellation}</option>
+              ))}
+            </select>
+            
+            <select 
+              value={filters.producer} 
+              onChange={(e) => setFilters({...filters, producer: e.target.value})}
+              className="px-3 py-1 text-sm border border-input bg-background rounded-md"
+            >
+              <option value="">All Producers</option>
+              {Array.from(new Set(ratings.map(r => r.wines.producer))).sort().map(producer => (
+                <option key={producer} value={producer}>{producer}</option>
+              ))}
+            </select>
+            
+            {(filters.vintage || filters.wine_type || filters.region || filters.country || filters.appellation || filters.producer) && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setFilters({vintage: '', wine_type: '', region: '', appellation: '', country: '', producer: ''})}
+              >
+                Clear Filters
+              </Button>
+            )}
           </div>
         </div>
 
@@ -225,68 +539,200 @@ export default function FriendRatings() {
               </p>
             </CardContent>
           </Card>
+        ) : viewMode === 'table' ? (
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <ColumnSelector
+                columns={ratingsColumns}
+                visibleColumns={visibleRatingsColumns}
+                onColumnToggle={handleRatingsColumnToggle}
+                onResetColumns={resetRatingsColumns}
+              />
+            </div>
+            <div className="border rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {visibleRatingsColumns.includes('rating') && (
+                      <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('rating')}>
+                        <div className="flex items-center gap-1">
+                          Rating <ArrowUpDown className="h-3 w-3" />
+                        </div>
+                      </TableHead>
+                    )}
+                    {visibleRatingsColumns.includes('wine_name') && (
+                      <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('name')}>
+                        <div className="flex items-center gap-1">
+                          Wine <ArrowUpDown className="h-3 w-3" />
+                        </div>
+                      </TableHead>
+                    )}
+                    {visibleRatingsColumns.includes('producer') && (
+                      <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('producer')}>
+                        <div className="flex items-center gap-1">
+                          Producer <ArrowUpDown className="h-3 w-3" />
+                        </div>
+                      </TableHead>
+                    )}
+                    {visibleRatingsColumns.includes('vintage') && (
+                      <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('vintage')}>
+                        <div className="flex items-center gap-1">
+                          Vintage <ArrowUpDown className="h-3 w-3" />
+                        </div>
+                      </TableHead>
+                    )}
+                    {visibleRatingsColumns.includes('wine_type') && (
+                      <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('type')}>
+                        <div className="flex items-center gap-1">
+                          Type <ArrowUpDown className="h-3 w-3" />
+                        </div>
+                      </TableHead>
+                    )}
+                    {visibleRatingsColumns.includes('tasting_date') && (
+                      <TableHead className="cursor-pointer select-none hover:bg-muted" onClick={() => toggleSort('tasted')}>
+                        <div className="flex items-center gap-1">
+                          Date <ArrowUpDown className="h-3 w-3" />
+                        </div>
+                      </TableHead>
+                    )}
+                    {visibleRatingsColumns.includes('region') && (
+                      <TableHead>Region</TableHead>
+                    )}
+                    {visibleRatingsColumns.includes('country') && (
+                      <TableHead>Country</TableHead>
+                    )}
+                    {visibleRatingsColumns.includes('appellation') && (
+                      <TableHead>Appellation</TableHead>
+                    )}
+                    {visibleRatingsColumns.includes('food_pairing') && (
+                      <TableHead>Food Pairing</TableHead>
+                    )}
+                    {visibleRatingsColumns.includes('tasting_notes') && (
+                      <TableHead>Tasting Notes</TableHead>
+                    )}
+                    {visibleRatingsColumns.includes('appearance_color') && (
+                      <TableHead>Appearance</TableHead>
+                    )}
+                    {visibleRatingsColumns.includes('aroma_intensity') && (
+                      <TableHead>Aroma</TableHead>
+                    )}
+                    {visibleRatingsColumns.includes('palate_body') && (
+                      <TableHead>Body</TableHead>
+                    )}
+                    {visibleRatingsColumns.includes('palate_acidity') && (
+                      <TableHead>Acidity</TableHead>
+                    )}
+                    {visibleRatingsColumns.includes('palate_tannin') && (
+                      <TableHead>Tannin</TableHead>
+                    )}
+                    {visibleRatingsColumns.includes('palate_finish') && (
+                      <TableHead>Finish</TableHead>
+                    )}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sortedRatings.map((rating) => (
+                    <TableRow key={rating.id}>
+                      {visibleRatingsColumns.includes('rating') && (
+                        <TableCell>
+                          <Badge className={getRatingColor(rating.rating)}>
+                            {rating.rating}/100
+                          </Badge>
+                        </TableCell>
+                      )}
+                      {visibleRatingsColumns.includes('wine_name') && (
+                        <TableCell className="font-medium">{rating.wines.name}</TableCell>
+                      )}
+                      {visibleRatingsColumns.includes('producer') && (
+                        <TableCell>{rating.wines.producer}</TableCell>
+                      )}
+                      {visibleRatingsColumns.includes('vintage') && (
+                        <TableCell>{rating.wines.vintage || 'NV'}</TableCell>
+                      )}
+                      {visibleRatingsColumns.includes('wine_type') && (
+                        <TableCell>
+                          <Badge className={getWineTypeColor(rating.wines.wine_type)}>
+                            {rating.wines.wine_type}
+                          </Badge>
+                        </TableCell>
+                      )}
+                      {visibleRatingsColumns.includes('tasting_date') && (
+                        <TableCell>
+                          {rating.tasting_date 
+                            ? new Date(rating.tasting_date).toLocaleDateString()
+                            : 'N/A'
+                          }
+                        </TableCell>
+                      )}
+                      {visibleRatingsColumns.includes('region') && (
+                        <TableCell>
+                          {rating.wines.regions?.name || 'N/A'}
+                        </TableCell>
+                      )}
+                      {visibleRatingsColumns.includes('country') && (
+                        <TableCell>
+                          {rating.wines.countries?.name || 'N/A'}
+                        </TableCell>
+                      )}
+                      {visibleRatingsColumns.includes('appellation') && (
+                        <TableCell>
+                          {rating.wines.appellations?.name || 'N/A'}
+                        </TableCell>
+                      )}
+                      {visibleRatingsColumns.includes('food_pairing') && (
+                        <TableCell>
+                          <div className="max-w-32 truncate" title={rating.food_pairing || ''}>
+                            {rating.food_pairing || 'N/A'}
+                          </div>
+                        </TableCell>
+                      )}
+                      {visibleRatingsColumns.includes('tasting_notes') && (
+                        <TableCell>
+                          <div className="max-w-48 truncate" title={rating.tasting_notes || ''}>
+                            {rating.tasting_notes || 'No notes'}
+                          </div>
+                        </TableCell>
+                      )}
+                      {visibleRatingsColumns.includes('appearance_color') && (
+                        <TableCell>
+                          {rating.appearance_color || 'N/A'}
+                        </TableCell>
+                      )}
+                      {visibleRatingsColumns.includes('aroma_intensity') && (
+                        <TableCell>
+                          {rating.aroma_intensity || 'N/A'}
+                        </TableCell>
+                      )}
+                      {visibleRatingsColumns.includes('palate_body') && (
+                        <TableCell>
+                          {rating.palate_body || 'N/A'}
+                        </TableCell>
+                      )}
+                      {visibleRatingsColumns.includes('palate_acidity') && (
+                        <TableCell>
+                          {rating.palate_acidity || 'N/A'}
+                        </TableCell>
+                      )}
+                      {visibleRatingsColumns.includes('palate_tannin') && (
+                        <TableCell>
+                          {rating.palate_tannin || 'N/A'}
+                        </TableCell>
+                      )}
+                      {visibleRatingsColumns.includes('palate_finish') && (
+                        <TableCell>
+                          {rating.palate_finish || 'N/A'}
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredRatings.map((rating) => (
-              <Card key={rating.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg">{rating.wines.name}</CardTitle>
-                      <CardDescription>
-                        {rating.wines.producer} • {rating.wines.vintage || 'NV'}
-                      </CardDescription>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <Badge className={getRatingColor(rating.rating)}>
-                        {rating.rating}/100
-                      </Badge>
-                      <Badge className={getWineTypeColor(rating.wines.wine_type)}>
-                        {rating.wines.wine_type}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                      <span className="text-sm font-medium">{getRatingLabel(rating.rating)}</span>
-                    </div>
-                    
-                    {rating.wines.regions?.name || rating.wines.countries?.name ? (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Region:</span>
-                        <span>{rating.wines.regions?.name || rating.wines.countries?.name}</span>
-                      </div>
-                    ) : null}
-                    
-                    {rating.tasting_date && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Tasted:</span>
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {new Date(rating.tasting_date).toLocaleDateString()}
-                        </span>
-                      </div>
-                    )}
-                    
-                    {rating.tasting_notes && (
-                      <div className="text-sm">
-                        <span className="text-muted-foreground">Notes:</span>
-                        <p className="mt-1 text-foreground">{rating.tasting_notes}</p>
-                      </div>
-                    )}
-                    
-                    {rating.food_pairing && (
-                      <div className="text-sm">
-                        <span className="text-muted-foreground">Food Pairing:</span>
-                        <p className="mt-1 text-foreground">{rating.food_pairing}</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+              <RatingCard key={rating.id} rating={rating} />
             ))}
           </div>
         )}
