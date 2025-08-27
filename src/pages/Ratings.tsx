@@ -43,6 +43,12 @@ export default function Ratings() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
+  const [sortKey, setSortKey] = useState<'name' | 'producer' | 'vintage' | 'type' | 'rating' | 'tasted'>('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const toggleSort = (key: 'name' | 'producer' | 'vintage' | 'type' | 'rating' | 'tasted') => {
+    if (sortKey === key) setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+  };
 
   useEffect(() => {
     if (user) {
@@ -153,6 +159,24 @@ export default function Ratings() {
     };
     return colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-800';
   };
+
+  const sortedRatings = [...filteredRatings].sort((a, b) => {
+    let aVal: any;
+    let bVal: any;
+    switch (sortKey) {
+      case 'name': aVal = a.wines.name; bVal = b.wines.name; break;
+      case 'producer': aVal = a.wines.producer; bVal = b.wines.producer; break;
+      case 'vintage': aVal = a.wines.vintage ?? 0; bVal = b.wines.vintage ?? 0; break;
+      case 'type': aVal = a.wines.wine_type; bVal = b.wines.wine_type; break;
+      case 'rating': aVal = a.rating; bVal = b.rating; break;
+      case 'tasted': aVal = a.tasting_date ? new Date(a.tasting_date).getTime() : 0; bVal = b.tasting_date ? new Date(b.tasting_date).getTime() : 0; break;
+      default: aVal = 0; bVal = 0;
+    }
+    const cmp = typeof aVal === 'number' && typeof bVal === 'number'
+      ? aVal - bVal
+      : String(aVal).localeCompare(String(bVal));
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
 
   if (loading) {
     return (
@@ -311,12 +335,12 @@ export default function Ratings() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Wine</TableHead>
-                      <TableHead>Producer</TableHead>
-                      <TableHead>Vintage</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Rating</TableHead>
-                      <TableHead>Tasted</TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('name')}>Wine</TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('producer')}>Producer</TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('vintage')}>Vintage</TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('type')}>Type</TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('rating')}>Rating</TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('tasted')}>Tasted</TableHead>
                       <TableHead>Color</TableHead>
                       <TableHead>Body</TableHead>
                       <TableHead>Sweetness</TableHead>
@@ -326,7 +350,7 @@ export default function Ratings() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredRatings.map((rating) => (
+                    {sortedRatings.map((rating) => (
                       <TableRow key={rating.id}>
                         <TableCell className="font-medium">{rating.wines.name}</TableCell>
                         <TableCell>{rating.wines.producer}</TableCell>

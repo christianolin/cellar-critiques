@@ -79,16 +79,19 @@ export default function Profile() {
     try {
       const { error } = await supabase
         .from('profiles')
-        .upsert({
-          user_id: user.id,
-          username: profileData.username || user.email || '',
-          display_name: profileData.display_name,
-          bio: profileData.bio,
-          location: profileData.location,
-          avatar_url: profileData.avatar_url,
-          birth_year: profileData.birth_year,
-          updated_at: new Date().toISOString(),
-        });
+        .upsert(
+          {
+            user_id: user.id,
+            username: profileData.username || user.email || '',
+            display_name: profileData.display_name,
+            bio: profileData.bio,
+            location: profileData.location,
+            avatar_url: profileData.avatar_url,
+            birth_year: profileData.birth_year,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id' }
+        );
 
       if (error) throw error;
 

@@ -104,12 +104,70 @@ export default function Cellar() {
     }
   };
 
+  const addToCellar = async (wineId: string, wineName: string) => {
+    if (!user) return;
+    try {
+      const { data: existing, error: existingError } = await supabase
+        .from('wine_cellar')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('wine_id', wineId)
+        .maybeSingle();
+
+      if (existingError && existingError.code !== 'PGRST116') throw existingError;
+
+      if (existing) {
+        const { error } = await supabase
+          .from('wine_cellar')
+          .update({ quantity: existing.quantity + 1 })
+          .eq('id', existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('wine_cellar')
+          .insert({ user_id: user.id, wine_id: wineId, quantity: 1 });
+        if (error) throw error;
+      }
+
+      toast({ title: 'Success', description: `${wineName} added to your cellar` });
+      fetchCellarWines();
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to add wine to cellar', variant: 'destructive' });
+    }
+  };
+
   const filteredWines = wines.filter(wine =>
     wine.wines.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     wine.wines.producer.toLowerCase().includes(searchTerm.toLowerCase()) ||
     wine.wines.regions?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     wine.wines.countries?.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const [sortKey, setSortKey] = useState<'name' | 'producer' | 'vintage' | 'wine_type' | 'region' | 'quantity' | 'purchase_price'>('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const toggleSort = (key: 'name' | 'producer' | 'vintage' | 'wine_type' | 'region' | 'quantity' | 'purchase_price') => {
+    if (sortKey === key) setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+  };
+
+  const sortedWines = [...filteredWines].sort((a, b) => {
+    let aVal: any;
+    let bVal: any;
+    switch (sortKey) {
+      case 'name': aVal = a.wines.name; bVal = b.wines.name; break;
+      case 'producer': aVal = a.wines.producer; bVal = b.wines.producer; break;
+      case 'vintage': aVal = a.wines.vintage ?? 0; bVal = b.wines.vintage ?? 0; break;
+      case 'wine_type': aVal = a.wines.wine_type; bVal = b.wines.wine_type; break;
+      case 'region': aVal = a.wines.regions?.name || a.wines.countries?.name || ''; bVal = b.wines.regions?.name || b.wines.countries?.name || ''; break;
+      case 'quantity': aVal = a.quantity; bVal = b.quantity; break;
+      case 'purchase_price': aVal = a.purchase_price || 0; bVal = b.purchase_price || 0; break;
+      default: aVal = 0; bVal = 0;
+    }
+    const cmp = typeof aVal === 'number' && typeof bVal === 'number'
+      ? aVal - bVal
+      : String(aVal).localeCompare(String(bVal));
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
 
   const getWineTypeColor = (type: string) => {
     const colors = {
@@ -292,19 +350,19 @@ export default function Cellar() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Wine</TableHead>
-                  <TableHead>Producer</TableHead>
-                  <TableHead>Vintage</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Region</TableHead>
-                  <TableHead>Quantity</TableHead>
-                  <TableHead>Price (DKK)</TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('name')}>Wine</TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('producer')}>Producer</TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('vintage')}>Vintage</TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('wine_type')}>Type</TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('region')}>Region</TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('quantity')}>Quantity</TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('purchase_price')}>Price (DKK)</TableHead>
                   <TableHead>Location</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredWines.map((cellarEntry) => {
+                {sortedWines.map((cellarEntry) => {
                   const wine = cellarEntry.wines;
                   return (
                     <TableRow key={cellarEntry.id}>
@@ -415,6 +473,7 @@ export default function Cellar() {
                       <TableHead>Consumed Date</TableHead>
                       <TableHead>Quantity</TableHead>
                       <TableHead>Rating</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -440,6 +499,11 @@ export default function Cellar() {
                           ) : (
                             <Badge variant="outline">Not Rated</Badge>
                           )}
+                        </TableCell>
+                        <TableCell>
+                          <Button size="sm" onClick={() => addToCellar(consumption.wines?.id, consumption.wines?.name)}>
+                            Add to Cellar
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
