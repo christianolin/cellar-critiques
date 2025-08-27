@@ -9,7 +9,7 @@ import Cellar from "@/pages/Cellar";
 import Friends from "@/pages/Friends";
 import Ratings from "@/pages/Ratings";
 import Admin from "@/pages/Admin";
-import NotFound from "@/pages/NotFound";
+import Profile from "@/pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -20,13 +20,14 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/cellar" element={<Cellar />} />
-          <Route path="/friends" element={<Friends />} />
-          <Route path="/ratings" element={<Ratings />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="*" element={<NotFound />} />
+        <Route path="/" element={<Index />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/cellar" element={<Cellar />} />
+        <Route path="/friends" element={<Friends />} />
+        <Route path="/ratings" element={<Ratings />} />
+        <Route path="/admin" element={<Admin />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

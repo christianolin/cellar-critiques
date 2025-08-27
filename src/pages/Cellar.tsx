@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
@@ -11,6 +11,7 @@ import { Plus, Wine, Search, Grid, List, BarChart3, TrendingUp, DollarSign } fro
 import Layout from '@/components/Layout';
 import AddWineDialog from '@/components/AddWineDialog';
 import EditWineDialog from '@/components/EditWineDialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import QuantityControl from '@/components/QuantityControl';
 
 interface WineInCellar {
@@ -239,21 +240,28 @@ export default function Cellar() {
           </div>
         </div>
 
-        {filteredWines.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Wine className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No wines found</h3>
-              <p className="text-muted-foreground text-center mb-4">
-                {wines.length === 0 
-                  ? "Your cellar is empty. Start building your collection!" 
-                  : "No wines match your search criteria."
-                }
-              </p>
-              <AddWineDialog addToCellar onWineAdded={fetchCellarWines} />
-            </CardContent>
-          </Card>
-        ) : viewMode === 'table' ? (
+        <Tabs defaultValue="cellar" className="w-full">
+          <TabsList className="mb-6">
+            <TabsTrigger value="cellar">Wine Cellar ({stats.totalBottles})</TabsTrigger>
+            <TabsTrigger value="consumed">Consumed Archive</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="cellar">
+            {filteredWines.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <Wine className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No wines found</h3>
+                  <p className="text-muted-foreground text-center mb-4">
+                    {wines.length === 0 
+                      ? "Your cellar is empty. Start building your collection!" 
+                      : "No wines match your search criteria."
+                    }
+                  </p>
+                  <AddWineDialog addToCellar onWineAdded={fetchCellarWines} />
+                </CardContent>
+              </Card>
+            ) : viewMode === 'table' ? (
           <div className="border rounded-lg">
             <Table>
               <TableHeader>
@@ -352,6 +360,12 @@ export default function Cellar() {
             })}
           </div>
         )}
+          </TabsContent>
+          
+          <TabsContent value="consumed">
+            <ConsumedWines />
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );

@@ -104,10 +104,14 @@ export default function QuantityControl({ cellarEntry, onUpdate }: QuantityContr
       onUpdate();
 
       if (askForRating) {
-        toast({
-          title: "Rate this wine",
-          description: "Don't forget to rate the wine you just enjoyed!",
-        });
+        // Show rating dialog
+        const shouldRate = window.confirm(
+          `Would you like to rate ${cellarEntry.wines.name} now?`
+        );
+        if (shouldRate) {
+          // Navigate to ratings page - you can implement this
+          window.location.href = '/ratings';
+        }
       }
     } catch (error) {
       toast({

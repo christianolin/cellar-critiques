@@ -6,10 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Search, Star, Calendar } from 'lucide-react';
+import { Plus, Search, Star, Calendar, Grid, List } from 'lucide-react';
 import Layout from '@/components/Layout';
 import AddRatingDialog from '@/components/AddRatingDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface WineRating {
   id: string;
@@ -40,6 +41,7 @@ export default function Ratings() {
   const [friendsRatings, setFriendsRatings] = useState<WineRating[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
 
   useEffect(() => {
     if (user) {
@@ -243,10 +245,28 @@ export default function Ratings() {
               Robert Parker 100-point system
             </p>
           </div>
-          <AddRatingDialog onRatingAdded={() => {
-            fetchRatings();
-            fetchFriendsRatings();
-          }} />
+          <div className="flex gap-2">
+            <div className="flex border rounded-lg p-1">
+              <Button
+                variant={viewMode === 'cards' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('cards')}
+              >
+                <Grid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'table' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('table')}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
+            <AddRatingDialog onRatingAdded={() => {
+              fetchRatings();
+              fetchFriendsRatings();
+            }} />
+          </div>
         </div>
 
         <div className="mb-6">
@@ -285,6 +305,62 @@ export default function Ratings() {
                   }} />
                 </CardContent>
               </Card>
+            ) : viewMode === 'table' ? (
+              <div className="border rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Wine</TableHead>
+                      <TableHead>Producer</TableHead>
+                      <TableHead>Vintage</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Rating</TableHead>
+                      <TableHead>Tasted</TableHead>
+                      <TableHead>Color</TableHead>
+                      <TableHead>Body</TableHead>
+                      <TableHead>Sweetness</TableHead>
+                      <TableHead>Serving Temp</TableHead>
+                      <TableHead>Notes</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredRatings.map((rating) => (
+                      <TableRow key={rating.id}>
+                        <TableCell className="font-medium">{rating.wines.name}</TableCell>
+                        <TableCell>{rating.wines.producer}</TableCell>
+                        <TableCell>{rating.wines.vintage || 'N/A'}</TableCell>
+                        <TableCell>
+                          <Badge className={getWineTypeColor(rating.wines.wine_type)}>
+                            {rating.wines.wine_type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getRatingColor(rating.rating)}>
+                            {rating.rating}/100
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {rating.tasting_date ? new Date(rating.tasting_date).toLocaleDateString() : 'N/A'}
+                        </TableCell>
+                        <TableCell>{rating.color || 'N/A'}</TableCell>
+                        <TableCell>{rating.body || 'N/A'}</TableCell>
+                        <TableCell>{rating.sweetness || 'N/A'}</TableCell>
+                        <TableCell>
+                          {rating.serving_temp_min && rating.serving_temp_max 
+                            ? `${rating.serving_temp_min}-${rating.serving_temp_max}°C`
+                            : 'N/A'
+                          }
+                        </TableCell>
+                        <TableCell>
+                          <span className="truncate max-w-[200px]" title={rating.tasting_notes || undefined}>
+                            {rating.tasting_notes || 'No notes'}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredRatings.map((rating) => (
