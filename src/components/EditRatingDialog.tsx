@@ -87,8 +87,6 @@ export default function EditRatingDialog({ rating, onUpdated }: EditRatingDialog
     vintage: rating.wines?.vintage || null,
     wine_type: rating.wines?.wine_type || '',
     bottle_size: rating.wines?.bottle_size || '750ml',
-    alcohol_content: rating.wines?.alcohol_content || null,
-    cellar_tracker_id: rating.wines?.cellar_tracker_id || '',
     image_url: rating.wines?.image_url || null,
     country_id: rating.wines?.country_id || '',
     region_id: rating.wines?.region_id || '',
@@ -136,13 +134,12 @@ export default function EditRatingDialog({ rating, onUpdated }: EditRatingDialog
         vintage: rating.wines?.vintage || null,
         wine_type: rating.wines?.wine_type || '',
         bottle_size: rating.wines?.bottle_size || '750ml',
-        alcohol_content: rating.wines?.alcohol_content || null,
-        cellar_tracker_id: rating.wines?.cellar_tracker_id || '',
-        image_url: rating.wines?.image_url || null,
-        country_id: rating.wines?.country_id || '',
-        region_id: rating.wines?.region_id || '',
-        appellation_id: rating.wines?.appellation_id || '',
-        grape_varieties: [],
+         alcohol_content: rating.wines?.alcohol_content || null,
+         image_url: rating.wines?.image_url || null,
+         country_id: rating.wines?.country_id || '',
+         region_id: rating.wines?.region_id || '',
+         appellation_id: rating.wines?.appellation_id || '',
+         grape_varieties: [],
       });
     }
   }, [open, rating]);
@@ -343,7 +340,6 @@ export default function EditRatingDialog({ rating, onUpdated }: EditRatingDialog
           wine_type: wineData.wine_type as "red" | "white" | "rose" | "sparkling" | "dessert" | "fortified",
           bottle_size: wineData.bottle_size,
           alcohol_content: wineData.alcohol_content,
-          cellar_tracker_id: wineData.cellar_tracker_id,
           image_url: wineData.image_url,
           country_id: wineData.country_id || null,
           region_id: wineData.region_id || null,
@@ -651,13 +647,6 @@ export default function EditRatingDialog({ rating, onUpdated }: EditRatingDialog
                   />
                 </div>
                 <div>
-                  <Label htmlFor="cellar_tracker_id">CellarTracker ID</Label>
-                  <Input
-                    id="cellar_tracker_id"
-                    value={wineData.cellar_tracker_id}
-                    onChange={(e) => setWineData({ ...wineData, cellar_tracker_id: e.target.value })}
-                    placeholder="e.g. 12345"
-                  />
                 </div>
               </div>
             </TabsContent>

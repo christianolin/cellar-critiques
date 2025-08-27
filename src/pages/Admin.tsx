@@ -43,13 +43,17 @@ interface GrapeVariety {
 interface WineDatabase {
   id: string;
   name: string;
-  producer: string;
   wine_type: string;
-  country: string;
-  region: string | null;
-  appellation: string | null;
   alcohol_content: number | null;
   description: string | null;
+  producer_id: string;
+  country_id: string;
+  region_id: string | null;
+  appellation_id: string | null;
+  producers?: { name: string } | null;
+  countries?: { name: string } | null;
+  regions?: { name: string } | null;
+  appellations?: { name: string } | null;
 }
 
 interface User {
@@ -140,7 +144,13 @@ export default function Admin() {
         case 'wine_database':
           const { data: wineDbData, error: wineDbError } = await supabase
             .from('wine_database')
-            .select('*')
+            .select(`
+              *,
+              producers(name),
+              countries(name),
+              regions(name),
+              appellations(name)
+            `)
             .order('name');
           if (wineDbError) throw wineDbError;
           setWineDatabase(wineDbData || []);
@@ -760,10 +770,10 @@ export default function Admin() {
               {activeTab === 'wine_database' && (
                 <>
                   <TableCell>{item.name}</TableCell>
-                  <TableCell>{item.producer}</TableCell>
+                  <TableCell>{item.producers?.name || ''}</TableCell>
                   <TableCell className="capitalize">{item.wine_type}</TableCell>
-                  <TableCell>{item.country}</TableCell>
-                  <TableCell>{item.region || 'N/A'}</TableCell>
+                  <TableCell>{item.countries?.name || ''}</TableCell>
+                  <TableCell>{item.regions?.name || 'N/A'}</TableCell>
                 </>
               )}
               {activeTab === 'users' && (
@@ -891,10 +901,10 @@ export default function Admin() {
                   {activeTab === 'users' ? 'Manage user roles and permissions' : `Manage ${activeTab} master data`}
                 </CardDescription>
               </div>
-              {activeTab !== 'users' && (
+              {activeTab !== 'users' && activeTab !== 'wine_database' && (
                 <Button onClick={handleAdd}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Add {activeTab === 'countries' ? 'Country' : activeTab === 'regions' ? 'Region' : activeTab === 'appellations' ? 'Appellation' : activeTab === 'wine_database' ? 'Wine' : 'Grape Variety'}
+                  Add {activeTab === 'countries' ? 'Country' : activeTab === 'regions' ? 'Region' : activeTab === 'appellations' ? 'Appellation' : 'Grape Variety'}
                 </Button>
               )}
             </div>

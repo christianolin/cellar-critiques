@@ -94,6 +94,38 @@ export type Database = {
         }
         Relationships: []
       }
+      producers: {
+        Row: {
+          country_id: string | null
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          country_id?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          country_id?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "producers_country_id_fkey"
+            columns: ["country_id"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -311,44 +343,73 @@ export type Database = {
       wine_database: {
         Row: {
           alcohol_content: number | null
-          appellation: string | null
-          country: string
+          appellation_id: string | null
+          country_id: string
           created_at: string
           description: string | null
           id: string
           name: string
-          producer: string
-          region: string | null
+          producer_id: string
+          region_id: string | null
           updated_at: string
           wine_type: string
         }
         Insert: {
           alcohol_content?: number | null
-          appellation?: string | null
-          country: string
+          appellation_id?: string | null
+          country_id: string
           created_at?: string
           description?: string | null
           id?: string
           name: string
-          producer: string
-          region?: string | null
+          producer_id: string
+          region_id?: string | null
           updated_at?: string
           wine_type: string
         }
         Update: {
           alcohol_content?: number | null
-          appellation?: string | null
-          country?: string
+          appellation_id?: string | null
+          country_id?: string
           created_at?: string
           description?: string | null
           id?: string
           name?: string
-          producer?: string
-          region?: string | null
+          producer_id?: string
+          region_id?: string | null
           updated_at?: string
           wine_type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_wine_database_appellation"
+            columns: ["appellation_id"]
+            isOneToOne: false
+            referencedRelation: "appellations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_wine_database_country"
+            columns: ["country_id"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_wine_database_producer"
+            columns: ["producer_id"]
+            isOneToOne: false
+            referencedRelation: "producers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_wine_database_region"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "regions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wine_grape_composition: {
         Row: {
@@ -507,7 +568,6 @@ export type Database = {
           alcohol_content: number | null
           appellation_id: string | null
           bottle_size: string | null
-          cellar_tracker_id: string | null
           country_id: string | null
           created_at: string
           grape_variety_ids: string[] | null
@@ -524,7 +584,6 @@ export type Database = {
           alcohol_content?: number | null
           appellation_id?: string | null
           bottle_size?: string | null
-          cellar_tracker_id?: string | null
           country_id?: string | null
           created_at?: string
           grape_variety_ids?: string[] | null
@@ -541,7 +600,6 @@ export type Database = {
           alcohol_content?: number | null
           appellation_id?: string | null
           bottle_size?: string | null
-          cellar_tracker_id?: string | null
           country_id?: string | null
           created_at?: string
           grape_variety_ids?: string[] | null

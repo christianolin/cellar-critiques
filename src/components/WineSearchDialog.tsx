@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, ExternalLink } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,13 +13,17 @@ import { supabase } from '@/integrations/supabase/client';
 interface WineSearchResult {
   id: string;
   name: string;
-  producer: string;
   wine_type: string;
-  country: string;
-  region?: string | null;
-  appellation?: string | null;
   alcohol_content?: number | null;
   description?: string | null;
+  producer_id: string;
+  country_id: string;
+  region_id?: string | null;
+  appellation_id?: string | null;
+  producers?: { name: string } | null;
+  countries?: { name: string } | null;
+  regions?: { name: string } | null;
+  appellations?: { name: string } | null;
 }
 
 interface WineSearchDialogProps {
@@ -51,18 +55,21 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
       setSearching(true);
       const { data, error } = await supabase
         .from('wine_database')
-        .select('*')
+        .select(`
+          id, name, wine_type, alcohol_content, description,
+          producer_id, country_id, region_id, appellation_id,
+          producers ( name ),
+          countries ( name ),
+          regions ( name ),
+          appellations ( name )
+        `)
         .order('name');
       
       if (error) throw error;
-      setResults(data || []);
+      setResults((data as any) || []);
     } catch (error) {
       console.error('Error loading wines:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load wine database",
-        variant: "destructive",
-      });
+      toast({ title: 'Error', description: 'Failed to load wine database', variant: 'destructive' });
     } finally {
       setSearching(false);
     }
@@ -71,16 +78,16 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
   const filteredResults = results.filter(wine => {
     const matchesSearch = searchTerm === '' || 
       wine.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      wine.producer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      wine.region?.toLowerCase().includes(searchTerm.toLowerCase());
+      (wine.producers?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (wine.regions?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesType = selectedType === 'all' || wine.wine_type === selectedType;
-    const matchesCountry = selectedCountry === 'all' || wine.country === selectedCountry;
+    const matchesCountry = selectedCountry === 'all' || (wine.countries?.name === selectedCountry);
     
     return matchesSearch && matchesType && matchesCountry;
   });
 
-  const uniqueCountries = [...new Set(results.map(wine => wine.country))].sort();
+  const uniqueCountries = [...new Set(results.map(wine => wine.countries?.name).filter(Boolean) as string[])].sort();
 
   const handleWineSelect = (wine: WineSearchResult) => {
     onWineSelect(wine);
@@ -109,9 +116,7 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Wine Database Search</DialogTitle>
-          <DialogDescription>
-            Search our curated wine database to auto-fill wine information
-          </DialogDescription>
+          <DialogDescription>Search our curated wine database to auto-fill wine information</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -131,7 +136,7 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
                 <SelectTrigger>
                   <SelectValue placeholder="All types" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[60]">
                   <SelectItem value="all">All types</SelectItem>
                   <SelectItem value="red">Red</SelectItem>
                   <SelectItem value="white">White</SelectItem>
@@ -148,7 +153,7 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
                 <SelectTrigger>
                   <SelectValue placeholder="All countries" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[60]">
                   <SelectItem value="all">All countries</SelectItem>
                   {uniqueCountries.map((country) => (
                     <SelectItem key={country} value={country}>
@@ -160,67 +165,54 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
             </div>
           </div>
 
-              <Button 
-                onClick={loadWines}
-                disabled={searching}
-                className="w-full"
-              >
-                <Search className="h-4 w-4 mr-2" />
-                {searching ? "Loading..." : "Search Database"}
-              </Button>
+          <Button onClick={loadWines} disabled={searching} className="w-full">
+            <Search className="h-4 w-4 mr-2" />
+            {searching ? 'Loading...' : 'Search Database'}
+          </Button>
 
-            {searching ? (
-              <div className="text-center py-8">
-                <div className="text-sm text-muted-foreground">Loading wines from database...</div>
-              </div>
-            ) : filteredResults.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="text-sm text-muted-foreground">No wines found matching your criteria</div>
-              </div>
-            ) : (
-              <div className="grid gap-3 max-h-96 overflow-y-auto">
-                {filteredResults.map((wine, index) => (
-                  <Card 
-                    key={index} 
-                    className="cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => handleWineSelect(wine)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-sm">{wine.name}</h4>
-                          <p className="text-sm text-muted-foreground">{wine.producer}</p>
-                          <div className="flex items-center gap-2 mt-2">
-                            <Badge variant="outline" className="text-xs">
-                              {wine.wine_type}
-                            </Badge>
-                            <Badge variant="secondary" className="text-xs">
-                              {wine.country}
-                            </Badge>
-                            {wine.region && (
-                              <Badge variant="secondary" className="text-xs">
-                                {wine.region}
-                              </Badge>
-                            )}
-                          </div>
-                          {wine.alcohol_content && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {wine.alcohol_content}% ABV
-                            </p>
+          {searching ? (
+            <div className="text-center py-8">
+              <div className="text-sm text-muted-foreground">Loading wines from database...</div>
+            </div>
+          ) : filteredResults.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="text-sm text-muted-foreground">No wines found matching your criteria</div>
+            </div>
+          ) : (
+            <div className="grid gap-3 max-h-96 overflow-y-auto">
+              {filteredResults.map((wine) => (
+                <Card key={wine.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleWineSelect(wine)}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-sm">{wine.name}</h4>
+                        <p className="text-sm text-muted-foreground">{wine.producers?.name || ''}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <Badge variant="outline" className="text-xs">{wine.wine_type}</Badge>
+                          {wine.countries?.name && (
+                            <Badge variant="secondary" className="text-xs">{wine.countries.name}</Badge>
                           )}
-                          {wine.description && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {wine.description}
-                            </p>
+                          {wine.regions?.name && (
+                            <Badge variant="secondary" className="text-xs">{wine.regions.name}</Badge>
+                          )}
+                          {wine.appellations?.name && (
+                            <Badge variant="secondary" className="text-xs">{wine.appellations.name}</Badge>
                           )}
                         </div>
-                        <ExternalLink className="h-4 w-4 text-muted-foreground flex-shrink-0 ml-2" />
+                        {wine.alcohol_content && (
+                          <p className="text-xs text-muted-foreground mt-1">{wine.alcohol_content}% ABV</p>
+                        )}
+                        {wine.description && (
+                          <p className="text-xs text-muted-foreground mt-1">{wine.description}</p>
+                        )}
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
+                      <ExternalLink className="h-4 w-4 text-muted-foreground flex-shrink-0 ml-2" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

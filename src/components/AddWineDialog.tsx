@@ -8,8 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
-import { Plus, X, Search } from 'lucide-react';
-import { CellarTrackerService } from '@/utils/CellarTrackerService';
 import WineSearchDialog from '@/components/WineSearchDialog';
 
 interface AddWineDialogProps {
@@ -59,7 +57,6 @@ interface WineFormData {
   appellation_id: string;
   grape_varieties: GrapeWithPercentage[];
   alcohol_content: number | null;
-  cellar_tracker_id: string;
   image_url: string | null;
   // Cellar specific fields
   quantity?: number;
@@ -80,45 +77,26 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
   const [grapeVarieties, setGrapeVarieties] = useState<GrapeVariety[]>([]);
   const [filteredRegions, setFilteredRegions] = useState<Region[]>([]);
   const [filteredAppellations, setFilteredAppellations] = useState<Appellation[]>([]);
-  const [cellarTrackerLoading, setCellarTrackerLoading] = useState(false);
-
-  const fetchCellarTrackerData = async () => {
-    setCellarTrackerLoading(true);
-    const data = await CellarTrackerService.fetchWineData(formData.cellar_tracker_id);
-    setCellarTrackerLoading(false);
-    if (data) {
-      setFormData({
-        ...formData,
-        name: data.name || formData.name,
-        producer: data.producer || formData.producer,
-        vintage: data.vintage || formData.vintage,
-        wine_type: (data.wine_type as any) || formData.wine_type,
-        alcohol_content: data.alcohol_content || formData.alcohol_content,
-      });
-    }
-  };
-
-  const [formData, setFormData] = useState<WineFormData>({
-    name: '',
-    producer: '',
-    vintage: null,
-    wine_type: '',
-    bottle_size: '750ml',
-    country_id: '',
-    region_id: '',
-    appellation_id: '',
-    grape_varieties: [],
-    alcohol_content: null,
-    cellar_tracker_id: '',
-    image_url: null,
-    ...(addToCellar ? {
-      quantity: 1,
-      purchase_date: '',
-      purchase_price: null,
-      storage_location: '',
-      notes: ''
-    } : {})
-  });
+const [formData, setFormData] = useState<WineFormData>({
+  name: '',
+  producer: '',
+  vintage: null,
+  wine_type: '',
+  bottle_size: '750ml',
+  country_id: '',
+  region_id: '',
+  appellation_id: '',
+  grape_varieties: [],
+  alcohol_content: null,
+  image_url: null,
+  ...(addToCellar ? {
+    quantity: 1,
+    purchase_date: '',
+    purchase_price: null,
+    storage_location: '',
+    notes: ''
+  } : {})
+});
 
   // Load master data
   useEffect(() => {
@@ -278,7 +256,6 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
         appellation_id: formData.appellation_id || null,
         grape_variety_ids: formData.grape_varieties.map(g => g.id),
         alcohol_content: formData.alcohol_content,
-        cellar_tracker_id: formData.cellar_tracker_id,
         image_url: formData.image_url
       };
 
@@ -326,7 +303,6 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
         appellation_id: '',
         grape_varieties: [],
         alcohol_content: null,
-        cellar_tracker_id: '',
         image_url: null,
         ...(addToCellar ? {
           quantity: 1,
@@ -375,9 +351,12 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
                  setFormData({
                    ...formData,
                    name: wine.name,
-                   producer: wine.producer,
+                   producer: wine.producers?.name || '',
                    wine_type: wine.wine_type as any,
                    alcohol_content: wine.alcohol_content || null,
+                   country_id: wine.country_id || '',
+                   region_id: wine.region_id || '',
+                   appellation_id: wine.appellation_id || '',
                  });
                 }}
                 trigger={

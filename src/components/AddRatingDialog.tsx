@@ -10,7 +10,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { Plus, PlusCircle, X, Wine, Search } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CellarTrackerService } from '@/utils/CellarTrackerService';
 import WineSearchDialog from '@/components/WineSearchDialog';
 
 interface Wine {
@@ -24,7 +23,6 @@ interface Wine {
   country_id?: string | null;
   region_id?: string | null;
   appellation_id?: string | null;
-  cellar_tracker_id?: string | null;
   image_url?: string | null;
 }
 
@@ -116,12 +114,8 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
     region_id: '',
     appellation_id: '',
     grape_varieties: [] as { id: string; name: string; type: string; percentage: number }[],
-    cellar_tracker_id: '',
     image_url: null as string | null,
   });
-  
-  const [cellarTrackerLoading, setCellarTrackerLoading] = useState(false);
-
   useEffect(() => {
     if (open) {
       fetchCellarWines();
@@ -141,7 +135,6 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
           region_id: prefilledWine.region_id || '',
           appellation_id: prefilledWine.appellation_id || '',
           grape_varieties: [],
-          cellar_tracker_id: prefilledWine.cellar_tracker_id || '',
           image_url: prefilledWine.image_url || null,
         });
       }
@@ -166,7 +159,6 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
         region_id: selectedWineData.region_id || '',
         appellation_id: selectedWineData.appellation_id || '',
         grape_varieties: [],
-        cellar_tracker_id: selectedWineData.cellar_tracker_id || '',
         image_url: selectedWineData.image_url || null,
       });
     }
@@ -188,7 +180,6 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
             country_id,
             region_id,
             appellation_id,
-            cellar_tracker_id,
             image_url
           )
         `)
@@ -477,22 +468,6 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
     }
   };
 
-  const fetchCellarTrackerData = async () => {
-    setCellarTrackerLoading(true);
-    const data = await CellarTrackerService.fetchWineData(newWineData.cellar_tracker_id);
-    setCellarTrackerLoading(false);
-    if (data) {
-      setNewWineData({
-        ...newWineData,
-        name: data.name || newWineData.name,
-        producer: data.producer || newWineData.producer,
-        vintage: data.vintage || newWineData.vintage,
-        wine_type: (data.wine_type as any) || newWineData.wine_type,
-        alcohol_content: data.alcohol_content || newWineData.alcohol_content,
-      });
-    }
-  };
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {trigger && (
@@ -591,9 +566,12 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
                           setNewWineData({
                             ...newWineData,
                             name: wine.name,
-                            producer: wine.producer,
+                            producer: wine.producers?.name || '',
                             wine_type: wine.wine_type as any,
                             alcohol_content: wine.alcohol_content || null,
+                            country_id: wine.country_id || '',
+                            region_id: wine.region_id || '',
+                            appellation_id: wine.appellation_id || '',
                           });
                         }}
                        trigger={
@@ -833,26 +811,6 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
                       />
                     </div>
                     <div>
-                      <Label htmlFor="cellar_tracker_id">CellarTracker ID</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="cellar_tracker_id"
-                          value={newWineData.cellar_tracker_id}
-                          onChange={(e) => setNewWineData({ ...newWineData, cellar_tracker_id: e.target.value })}
-                          placeholder="e.g. 175293"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={fetchCellarTrackerData}
-                          disabled={cellarTrackerLoading || !newWineData.cellar_tracker_id}
-                        >
-                          {cellarTrackerLoading ? 'Fetching...' : 'Import'}
-                        </Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Enter a CellarTracker ID and click Import to auto-fill wine details
-                      </p>
                     </div>
                   </div>
                 </div>

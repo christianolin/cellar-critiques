@@ -63,7 +63,6 @@ interface WineFormData {
   purchase_price: number | null;
   storage_location: string;
   notes: string;
-  cellar_tracker_id: string;
 }
 
 export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineDialogProps) {
@@ -94,8 +93,6 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
     purchase_date: cellarEntry.purchase_date || '',
     purchase_price: cellarEntry.purchase_price,
     storage_location: cellarEntry.storage_location || '',
-    notes: cellarEntry.notes || '',
-    cellar_tracker_id: cellarEntry.wines.cellar_tracker_id || '',
   });
 
   // Load master data
@@ -265,8 +262,6 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
         region_id: formData.region_id || null,
         appellation_id: formData.appellation_id || null,
         grape_variety_ids: formData.grape_varieties.map(g => g.id),
-        alcohol_content: formData.alcohol_content,
-        cellar_tracker_id: formData.cellar_tracker_id,
         image_url: formData.image_url
       };
 
@@ -557,13 +552,6 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
               />
             </div>
             <div>
-              <Label htmlFor="cellar_tracker_id">CellarTracker ID</Label>
-              <Input
-                id="cellar_tracker_id"
-                value={formData.cellar_tracker_id}
-                onChange={(e) => setFormData({ ...formData, cellar_tracker_id: e.target.value })}
-                placeholder="e.g. 12345"
-              />
             </div>
           </div>
 
