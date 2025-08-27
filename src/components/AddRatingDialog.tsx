@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
-import { Plus, PlusCircle, X } from 'lucide-react';
+import { Plus, PlusCircle, X, Wine } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Wine {
@@ -17,6 +17,13 @@ interface Wine {
   producer: string;
   vintage: number | null;
   wine_type: string;
+  bottle_size?: string | null;
+  alcohol_content?: number | null;
+  country_id?: string | null;
+  region_id?: string | null;
+  appellation_id?: string | null;
+  cellar_tracker_id?: string | null;
+  image_url?: string | null;
 }
 
 interface Country {
@@ -49,7 +56,7 @@ interface AddRatingDialogProps {
 export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
-  const [wines, setWines] = useState<Wine[]>([]);
+  const [cellarWines, setCellarWines] = useState<Wine[]>([]);
   const [countries, setCountries] = useState<Country[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
   const [appellations, setAppellations] = useState<Appellation[]>([]);
@@ -57,7 +64,7 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
   const [loading, setLoading] = useState(false);
   const [selectedWine, setSelectedWine] = useState<string>('');
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [mode, setMode] = useState<'existing' | 'new'>('existing');
+  const [mode, setMode] = useState<'cellar' | 'new'>('cellar');
   
   const [formData, setFormData] = useState({
     rating: 85,
@@ -109,26 +116,38 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
 
   useEffect(() => {
     if (open) {
-      fetchWines();
+      fetchCellarWines();
       fetchMasterData();
     }
   }, [open]);
 
-  const fetchWines = async () => {
+  const fetchCellarWines = async () => {
     try {
       const { data, error } = await supabase
-        .from('wines')
-        .select('id, name, producer, vintage, wine_type')
-        .order('name');
+        .from('wine_cellar')
+        .select(`
+          wines (
+            id,
+            name,
+            producer,
+            vintage,
+            wine_type,
+            bottle_size,
+            alcohol_content,
+            country_id,
+            region_id,
+            appellation_id,
+            cellar_tracker_id,
+            image_url
+          )
+        `)
+        .eq('user_id', user?.id);
 
       if (error) throw error;
-      setWines(data || []);
+      const unique = Array.from(new Map((data || []).map((row: any) => [row.wines.id, row.wines])).values());
+      setCellarWines(unique as Wine[]);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load wines",
-        variant: "destructive",
-      });
+      toast({ title: 'Error', description: 'Failed to load your cellar wines', variant: 'destructive' });
     }
   };
 
@@ -287,7 +306,7 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
 
   const resetForm = () => {
     setSelectedWine('');
-    setMode('existing');
+    setMode('cellar');
     setFormData({
       rating: 85,
       tasting_date: new Date().toISOString().split('T')[0],
