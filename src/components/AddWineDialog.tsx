@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
+import { Plus, X, Search } from 'lucide-react';
 import WineSearchDialog from '@/components/WineSearchDialog';
 
 interface AddWineDialogProps {
@@ -77,26 +78,27 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
   const [grapeVarieties, setGrapeVarieties] = useState<GrapeVariety[]>([]);
   const [filteredRegions, setFilteredRegions] = useState<Region[]>([]);
   const [filteredAppellations, setFilteredAppellations] = useState<Appellation[]>([]);
-const [formData, setFormData] = useState<WineFormData>({
-  name: '',
-  producer: '',
-  vintage: null,
-  wine_type: '',
-  bottle_size: '750ml',
-  country_id: '',
-  region_id: '',
-  appellation_id: '',
-  grape_varieties: [],
-  alcohol_content: null,
-  image_url: null,
-  ...(addToCellar ? {
-    quantity: 1,
-    purchase_date: '',
-    purchase_price: null,
-    storage_location: '',
-    notes: ''
-  } : {})
-});
+
+  const [formData, setFormData] = useState<WineFormData>({
+    name: '',
+    producer: '',
+    vintage: null,
+    wine_type: '',
+    bottle_size: '750ml',
+    country_id: '',
+    region_id: '',
+    appellation_id: '',
+    grape_varieties: [],
+    alcohol_content: null,
+    image_url: null,
+    ...(addToCellar ? {
+      quantity: 1,
+      purchase_date: '',
+      purchase_price: null,
+      storage_location: '',
+      notes: ''
+    } : {})
+  });
 
   // Load master data
   useEffect(() => {
@@ -443,34 +445,20 @@ const [formData, setFormData] = useState<WineFormData>({
               />
             </div>
             <div>
-              <Label htmlFor="wine_image">Wine Image</Label>
-              <div className="space-y-2">
-                <Input
-                  id="wine_image"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  disabled={uploadingImage}
-                />
-                {uploadingImage && <p className="text-sm text-muted-foreground">Uploading...</p>}
-                {formData.image_url && (
-                  <div className="flex items-center gap-2">
-                    <img src={formData.image_url} alt="Wine preview" className="w-16 h-16 object-cover rounded" />
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setFormData({ ...formData, image_url: null })}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                )}
-              </div>
+              <Label htmlFor="alcohol_content">Alcohol Content (%)</Label>
+              <Input
+                id="alcohol_content"
+                type="number"
+                step="0.1"
+                min="0"
+                max="50"
+                value={formData.alcohol_content || ''}
+                onChange={(e) => setFormData({ ...formData, alcohol_content: e.target.value ? parseFloat(e.target.value) : null })}
+              />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <Label htmlFor="country">Country *</Label>
               <Select 
@@ -508,105 +496,51 @@ const [formData, setFormData] = useState<WineFormData>({
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div>
-            <Label htmlFor="appellation">Appellation/Classification</Label>
-            <Select 
-              value={formData.appellation_id} 
-              onValueChange={(value) => setFormData({ ...formData, appellation_id: value })}
-              disabled={!formData.region_id}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select appellation" />
-              </SelectTrigger>
-              <SelectContent>
-                {filteredAppellations.map((appellation) => (
-                  <SelectItem key={appellation.id} value={appellation.id}>
-                    {appellation.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label htmlFor="grape_varieties">Grape Varieties with Percentages</Label>
-            <Select value="" onValueChange={addGrapeVariety}>
-              <SelectTrigger>
-                <SelectValue placeholder="Add grape varieties" />
-              </SelectTrigger>
-              <SelectContent>
-                {grapeVarieties.map((grape) => (
-                  <SelectItem key={grape.id} value={grape.id}>
-                    {grape.name} ({grape.type})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            {formData.grape_varieties.length > 0 && (
-              <div className="space-y-2 mt-2">
-                {formData.grape_varieties.map((grape) => (
-                  <div key={grape.id} className="flex items-center gap-2 p-2 bg-secondary rounded-md">
-                    <span className="flex-1 text-sm">{grape.name}</span>
-                    <Input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={grape.percentage}
-                      onChange={(e) => updateGrapePercentage(grape.id, parseInt(e.target.value) || 0)}
-                      className="w-20"
-                      placeholder="%"
-                    />
-                    <span className="text-sm">%</span>
-                    <X
-                      className="h-4 w-4 cursor-pointer"
-                      onClick={() => removeGrapeVariety(grape.id)}
-                    />
-                  </div>
-                ))}
-                <div className="text-xs text-muted-foreground">
-                  Total: {formData.grape_varieties.reduce((sum, g) => sum + g.percentage, 0)}%
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="alcohol_content">Alcohol Content (%)</Label>
-              <Input
-                id="alcohol_content"
-                type="number"
-                step="0.1"
-                min="0"
-                max="50"
-                value={formData.alcohol_content || ''}
-                onChange={(e) => setFormData({ ...formData, alcohol_content: e.target.value ? parseFloat(e.target.value) : null })}
-              />
+              <Label htmlFor="appellation">Appellation</Label>
+              <Select 
+                value={formData.appellation_id} 
+                onValueChange={(value) => setFormData({ ...formData, appellation_id: value })}
+                disabled={!formData.region_id}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select appellation" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredAppellations.map((appellation) => (
+                    <SelectItem key={appellation.id} value={appellation.id}>
+                      {appellation.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div>
-              <Label htmlFor="cellar_tracker_id">CellarTracker ID</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="cellar_tracker_id"
-                  value={formData.cellar_tracker_id}
-                  onChange={(e) => setFormData({ ...formData, cellar_tracker_id: e.target.value })}
-                  placeholder="e.g. 175293"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={fetchCellarTrackerData}
-                  disabled={cellarTrackerLoading || !formData.cellar_tracker_id}
-                >
-                  {cellarTrackerLoading ? 'Fetching...' : 'Import'}
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Enter a CellarTracker ID and click Import to auto-fill wine details
-              </p>
+          </div>
+
+          <div>
+            <Label htmlFor="wine_image">Wine Image</Label>
+            <div className="space-y-2">
+              <Input
+                id="wine_image"
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                disabled={uploadingImage}
+              />
+              {uploadingImage && <p className="text-sm text-muted-foreground">Uploading...</p>}
+              {formData.image_url && (
+                <div className="flex items-center gap-2">
+                  <img src={formData.image_url} alt="Wine preview" className="w-16 h-16 object-cover rounded" />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setFormData({ ...formData, image_url: null })}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 

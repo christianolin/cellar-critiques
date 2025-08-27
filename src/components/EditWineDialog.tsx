@@ -92,6 +92,7 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
     quantity: cellarEntry.quantity,
     purchase_date: cellarEntry.purchase_date || '',
     purchase_price: cellarEntry.purchase_price,
+    notes: cellarEntry.notes || '',
     storage_location: cellarEntry.storage_location || '',
   });
 

@@ -87,11 +87,12 @@ export default function EditRatingDialog({ rating, onUpdated }: EditRatingDialog
     vintage: rating.wines?.vintage || null,
     wine_type: rating.wines?.wine_type || '',
     bottle_size: rating.wines?.bottle_size || '750ml',
+    alcohol_content: rating.wines?.alcohol_content || null,
     image_url: rating.wines?.image_url || null,
     country_id: rating.wines?.country_id || '',
     region_id: rating.wines?.region_id || '',
     appellation_id: rating.wines?.appellation_id || '',
-    grape_varieties: [] as Array<{ id: string; name: string; type: string; percentage: number }>,
+    grape_varieties: [] as { id: string; name: string; type: string; percentage: number }[],
   });
 
   useEffect(() => {
@@ -134,12 +135,12 @@ export default function EditRatingDialog({ rating, onUpdated }: EditRatingDialog
         vintage: rating.wines?.vintage || null,
         wine_type: rating.wines?.wine_type || '',
         bottle_size: rating.wines?.bottle_size || '750ml',
-         alcohol_content: rating.wines?.alcohol_content || null,
-         image_url: rating.wines?.image_url || null,
-         country_id: rating.wines?.country_id || '',
-         region_id: rating.wines?.region_id || '',
-         appellation_id: rating.wines?.appellation_id || '',
-         grape_varieties: [],
+        alcohol_content: rating.wines?.alcohol_content || null,
+        image_url: rating.wines?.image_url || null,
+        country_id: rating.wines?.country_id || '',
+        region_id: rating.wines?.region_id || '',
+        appellation_id: rating.wines?.appellation_id || '',
+        grape_varieties: [],
       });
     }
   }, [open, rating]);

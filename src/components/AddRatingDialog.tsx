@@ -226,7 +226,6 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
           region_id: newWineData.region_id || null,
           appellation_id: newWineData.appellation_id || null,
           grape_variety_ids: newWineData.grape_varieties.map(g => g.id),
-          cellar_tracker_id: newWineData.cellar_tracker_id,
           image_url: newWineData.image_url,
         })
         .select()
@@ -369,7 +368,6 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
       region_id: '',
       appellation_id: '',
       grape_varieties: [],
-      cellar_tracker_id: '',
       image_url: null,
     });
   };
