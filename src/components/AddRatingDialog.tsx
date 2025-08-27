@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
-import { Plus } from 'lucide-react';
+import { Plus, PlusCircle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Wine {
@@ -19,6 +19,29 @@ interface Wine {
   wine_type: string;
 }
 
+interface Country {
+  id: string;
+  name: string;
+}
+
+interface Region {
+  id: string;
+  name: string;
+  country_id: string;
+}
+
+interface Appellation {
+  id: string;
+  name: string;
+  region_id: string;
+}
+
+interface GrapeVariety {
+  id: string;
+  name: string;
+  type: string;
+}
+
 interface AddRatingDialogProps {
   onRatingAdded?: () => void;
 }
@@ -27,16 +50,19 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [wines, setWines] = useState<Wine[]>([]);
+  const [countries, setCountries] = useState<Country[]>([]);
+  const [regions, setRegions] = useState<Region[]>([]);
+  const [appellations, setAppellations] = useState<Appellation[]>([]);
+  const [grapeVarieties, setGrapeVarieties] = useState<GrapeVariety[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedWine, setSelectedWine] = useState<string>('');
+  const [mode, setMode] = useState<'existing' | 'new'>('existing');
+  
   const [formData, setFormData] = useState({
     rating: 85,
     tasting_date: new Date().toISOString().split('T')[0],
     tasting_notes: '',
     food_pairing: '',
-    color: '',
-    body: '',
-    sweetness: '',
     serving_temp_min: null as number | null,
     serving_temp_max: null as number | null,
     // Detailed rating fields
@@ -64,9 +90,24 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
     palate_comments: '',
   });
 
+  // New wine form data
+  const [newWineData, setNewWineData] = useState({
+    name: '',
+    producer: '',
+    vintage: null as number | null,
+    wine_type: 'red' as 'red' | 'white' | 'rose' | 'sparkling' | 'dessert' | 'fortified',
+    alcohol_content: null as number | null,
+    bottle_size: 'Bottle (750ml)',
+    country_id: '',
+    region_id: '',
+    appellation_id: '',
+    grape_variety_ids: [] as string[],
+  });
+
   useEffect(() => {
     if (open) {
       fetchWines();
+      fetchMasterData();
     }
   }, [open]);
 
@@ -88,37 +129,108 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
     }
   };
 
+  const fetchMasterData = async () => {
+    try {
+      const [countriesRes, regionsRes, appellationsRes, grapeVarietiesRes] = await Promise.all([
+        supabase.from('countries').select('id, name').order('name'),
+        supabase.from('regions').select('id, name, country_id').order('name'),
+        supabase.from('appellations').select('id, name, region_id').order('name'),
+        supabase.from('grape_varieties').select('id, name, type').order('name')
+      ]);
+
+      if (countriesRes.error) throw countriesRes.error;
+      if (regionsRes.error) throw regionsRes.error;
+      if (appellationsRes.error) throw appellationsRes.error;
+      if (grapeVarietiesRes.error) throw grapeVarietiesRes.error;
+
+      setCountries(countriesRes.data || []);
+      setRegions(regionsRes.data || []);
+      setAppellations(appellationsRes.data || []);
+      setGrapeVarieties(grapeVarietiesRes.data || []);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load master data",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const createNewWine = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('wines')
+        .insert({
+          name: newWineData.name,
+          producer: newWineData.producer,
+          vintage: newWineData.vintage,
+          wine_type: newWineData.wine_type,
+          alcohol_content: newWineData.alcohol_content,
+          bottle_size: newWineData.bottle_size,
+          country_id: newWineData.country_id || null,
+          region_id: newWineData.region_id || null,
+          appellation_id: newWineData.appellation_id || null,
+          grape_variety_ids: newWineData.grape_variety_ids,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data.id;
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !selectedWine) return;
+    if (!user) return;
 
-    console.log('Submitting rating:', {
-      wine_id: selectedWine,
-      rating: formData.rating,
-      tasting_notes: formData.tasting_notes,
-      food_pairing: formData.food_pairing,
-      tasting_date: formData.tasting_date,
-      color: formData.color,
-      body: formData.body,
-      sweetness: formData.sweetness,
-      serving_temp_min: formData.serving_temp_min,
-      serving_temp_max: formData.serving_temp_max,
-    });
+    let wineId = selectedWine;
+
+    // If adding new wine, create it first
+    if (mode === 'new') {
+      if (!newWineData.name || !newWineData.producer) {
+        toast({
+          title: "Error",
+          description: "Wine name and producer are required",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setLoading(true);
+      try {
+        wineId = await createNewWine();
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to create wine",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+    } else if (!selectedWine) {
+      toast({
+        title: "Error",
+        description: "Please select a wine",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('wine_ratings')
         .insert({
           user_id: user.id,
-          wine_id: selectedWine,
+          wine_id: wineId,
           rating: formData.rating,
           tasting_date: formData.tasting_date,
           tasting_notes: formData.tasting_notes || null,
           food_pairing: formData.food_pairing || null,
-          color: formData.color || null,
-          body: formData.body || null,
-          sweetness: formData.sweetness || null,
           serving_temp_min: formData.serving_temp_min,
           serving_temp_max: formData.serving_temp_max,
           // Detailed rating fields
@@ -144,13 +256,9 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
           palate_finish: formData.palate_finish || null,
           palate_balance: formData.palate_balance || null,
           palate_comments: formData.palate_comments || null,
-        })
-        .select()
-        .single();
+        });
 
       if (error) throw error;
-
-      console.log('Rating created successfully:', data);
 
       toast({
         title: "Success",
@@ -158,40 +266,7 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
       });
 
       setOpen(false);
-      setSelectedWine('');
-      setFormData({
-        rating: 85,
-        tasting_date: new Date().toISOString().split('T')[0],
-        tasting_notes: '',
-        food_pairing: '',
-        color: '',
-        body: '',
-        sweetness: '',
-        serving_temp_min: null,
-        serving_temp_max: null,
-        appearance_color: '',
-        appearance_intensity: '',
-        appearance_clarity: '',
-        appearance_viscosity: '',
-        appearance_comments: '',
-        aroma_condition: '',
-        aroma_intensity: '',
-        aroma_primary: '',
-        aroma_secondary: '',
-        aroma_tertiary: '',
-        aroma_comments: '',
-        palate_sweetness: '',
-        palate_acidity: '',
-        palate_tannin: '',
-        palate_body: '',
-        palate_flavor_primary: '',
-        palate_flavor_secondary: '',
-        palate_flavor_tertiary: '',
-        palate_complexity: '',
-        palate_finish: '',
-        palate_balance: '',
-        palate_comments: '',
-      });
+      resetForm();
       onRatingAdded?.();
     } catch (error) {
       console.error('Error creating rating:', error);
@@ -204,6 +279,61 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
       setLoading(false);
     }
   };
+
+  const resetForm = () => {
+    setSelectedWine('');
+    setMode('existing');
+    setFormData({
+      rating: 85,
+      tasting_date: new Date().toISOString().split('T')[0],
+      tasting_notes: '',
+      food_pairing: '',
+      serving_temp_min: null,
+      serving_temp_max: null,
+      appearance_color: '',
+      appearance_intensity: '',
+      appearance_clarity: '',
+      appearance_viscosity: '',
+      appearance_comments: '',
+      aroma_condition: '',
+      aroma_intensity: '',
+      aroma_primary: '',
+      aroma_secondary: '',
+      aroma_tertiary: '',
+      aroma_comments: '',
+      palate_sweetness: '',
+      palate_acidity: '',
+      palate_tannin: '',
+      palate_body: '',
+      palate_flavor_primary: '',
+      palate_flavor_secondary: '',
+      palate_flavor_tertiary: '',
+      palate_complexity: '',
+      palate_finish: '',
+      palate_balance: '',
+      palate_comments: '',
+    });
+    setNewWineData({
+      name: '',
+      producer: '',
+      vintage: null,
+      wine_type: 'red',
+      alcohol_content: null,
+      bottle_size: 'Bottle (750ml)',
+      country_id: '',
+      region_id: '',
+      appellation_id: '',
+      grape_variety_ids: [],
+    });
+  };
+
+  const filteredRegions = regions.filter(region => 
+    !newWineData.country_id || region.country_id === newWineData.country_id
+  );
+
+  const filteredAppellations = appellations.filter(appellation => 
+    !newWineData.region_id || appellation.region_id === newWineData.region_id
+  );
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -222,8 +352,27 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Wine Selection Mode */}
+          <div className="flex gap-2 mb-4">
+            <Button
+              type="button"
+              variant={mode === 'existing' ? 'default' : 'outline'}
+              onClick={() => setMode('existing')}
+            >
+              Select Existing Wine
+            </Button>
+            <Button
+              type="button"
+              variant={mode === 'new' ? 'default' : 'outline'}
+              onClick={() => setMode('new')}
+            >
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Add New Wine
+            </Button>
+          </div>
+
           {/* Wine Selection */}
-          <div className="space-y-4">
+          {mode === 'existing' ? (
             <div>
               <Label htmlFor="wine">Select Wine *</Label>
               <Select value={selectedWine} onValueChange={setSelectedWine}>
@@ -239,35 +388,169 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
-                You can rate any wine, not just wines in your cellar
+                Select from existing wines in the database
               </p>
             </div>
+          ) : (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Add New Wine</h3>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="name">Wine Name *</Label>
+                  <Input
+                    id="name"
+                    value={newWineData.name}
+                    onChange={(e) => setNewWineData({ ...newWineData, name: e.target.value })}
+                    placeholder="e.g., Château Margaux"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="producer">Producer *</Label>
+                  <Input
+                    id="producer"
+                    value={newWineData.producer}
+                    onChange={(e) => setNewWineData({ ...newWineData, producer: e.target.value })}
+                    placeholder="e.g., Château Margaux"
+                    required
+                  />
+                </div>
+              </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="rating">Rating (50-100) *</Label>
-                <Input
-                  id="rating"
-                  type="number"
-                  min="50"
-                  max="100"
-                  value={formData.rating}
-                  onChange={(e) => setFormData({ ...formData, rating: parseInt(e.target.value) || 85 })}
-                  required
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  60-69: Major flaws, poor | 70-79: Small flaws, average | 80-84: Above average | 85-89: Good/very good | 90-94: Superior & exceptional | 95-100: Benchmark wines, classics
-                </p>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="vintage">Vintage</Label>
+                  <Input
+                    id="vintage"
+                    type="number"
+                    min="1800"
+                    max={new Date().getFullYear()}
+                    value={newWineData.vintage ?? ''}
+                    onChange={(e) => setNewWineData({ ...newWineData, vintage: e.target.value ? parseInt(e.target.value) : null })}
+                    placeholder="e.g., 2020"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="wine_type">Wine Type *</Label>
+                  <Select
+                    value={newWineData.wine_type}
+                    onValueChange={(value: any) => setNewWineData({ ...newWineData, wine_type: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="red">Red</SelectItem>
+                      <SelectItem value="white">White</SelectItem>
+                      <SelectItem value="rose">Rosé</SelectItem>
+                      <SelectItem value="sparkling">Sparkling</SelectItem>
+                      <SelectItem value="dessert">Dessert</SelectItem>
+                      <SelectItem value="fortified">Fortified</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="alcohol_content">Alcohol %</Label>
+                  <Input
+                    id="alcohol_content"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="50"
+                    value={newWineData.alcohol_content ?? ''}
+                    onChange={(e) => setNewWineData({ ...newWineData, alcohol_content: e.target.value ? parseFloat(e.target.value) : null })}
+                    placeholder="e.g., 13.5"
+                  />
+                </div>
               </div>
-              <div>
-                <Label htmlFor="tasting_date">Tasting Date</Label>
-                <Input
-                  id="tasting_date"
-                  type="date"
-                  value={formData.tasting_date}
-                  onChange={(e) => setFormData({ ...formData, tasting_date: e.target.value })}
-                />
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="country">Country</Label>
+                  <Select
+                    value={newWineData.country_id}
+                    onValueChange={(value) => setNewWineData({ ...newWineData, country_id: value, region_id: '', appellation_id: '' })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select country" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {countries.map((country) => (
+                        <SelectItem key={country.id} value={country.id}>
+                          {country.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="region">Region</Label>
+                  <Select
+                    value={newWineData.region_id}
+                    onValueChange={(value) => setNewWineData({ ...newWineData, region_id: value, appellation_id: '' })}
+                    disabled={!newWineData.country_id}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select region" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredRegions.map((region) => (
+                        <SelectItem key={region.id} value={region.id}>
+                          {region.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="appellation">Appellation</Label>
+                  <Select
+                    value={newWineData.appellation_id}
+                    onValueChange={(value) => setNewWineData({ ...newWineData, appellation_id: value })}
+                    disabled={!newWineData.region_id}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select appellation" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredAppellations.map((appellation) => (
+                        <SelectItem key={appellation.id} value={appellation.id}>
+                          {appellation.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+            </div>
+          )}
+
+          {/* Rating Fields */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="rating">Rating (50-100) *</Label>
+              <Input
+                id="rating"
+                type="number"
+                min="50"
+                max="100"
+                value={formData.rating}
+                onChange={(e) => setFormData({ ...formData, rating: parseInt(e.target.value) || 85 })}
+                required
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                60-69: Major flaws, poor | 70-79: Small flaws, average | 80-84: Above average | 85-89: Good/very good | 90-94: Superior & exceptional | 95-100: Benchmark wines, classics
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="tasting_date">Tasting Date</Label>
+              <Input
+                id="tasting_date"
+                type="date"
+                value={formData.tasting_date}
+                onChange={(e) => setFormData({ ...formData, tasting_date: e.target.value })}
+              />
             </div>
           </div>
 
@@ -512,7 +795,7 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
                   id="palate_flavor_primary"
                   value={formData.palate_flavor_primary}
                   onChange={(e) => setFormData({ ...formData, palate_flavor_primary: e.target.value })}
-                  placeholder="Same categories as primary aromas..."
+                  placeholder="Fruit (citrus, tree, tropical, red, black, dried), Floral (rose, lavender, elderflower), Green/Herbal (green pepper, grass, black tea, tomato leaf), Spice (pepper, eucalyptus), Noble rot (beeswax, ginger, caramel), Earth (petroleum, gravel, clay, volcanic stone, humus, slate)..."
                 />
               </div>
 
@@ -522,7 +805,7 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
                   id="palate_flavor_secondary"
                   value={formData.palate_flavor_secondary}
                   onChange={(e) => setFormData({ ...formData, palate_flavor_secondary: e.target.value })}
-                  placeholder="Same categories as secondary aromas..."
+                  placeholder="Fermentation (bread, mushroom, truffle, beer, hazelnut, chocolate, butter)..."
                 />
               </div>
 
@@ -532,7 +815,7 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
                   id="palate_flavor_tertiary"
                   value={formData.palate_flavor_tertiary}
                   onChange={(e) => setFormData({ ...formData, palate_flavor_tertiary: e.target.value })}
-                  placeholder="Same categories as tertiary aromas..."
+                  placeholder="General aging (leather, cocoa, coffee, tobacco, nuts), Oak aging (vanilla, smoke, coconut, cigar box, cellar, baking spices, dill, wood, toffee/caramel)..."
                 />
               </div>
 
@@ -596,12 +879,62 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
                 />
               </div>
             </TabsContent>
-
           </Tabs>
 
+          {/* Serving Temperature */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="serving_temp_min">Serving Temp Min (°C)</Label>
+              <Input
+                id="serving_temp_min"
+                type="number"
+                min={0}
+                max={25}
+                value={formData.serving_temp_min ?? ''}
+                onChange={(e) => setFormData({ ...formData, serving_temp_min: e.target.value ? parseInt(e.target.value) : null })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="serving_temp_max">Serving Temp Max (°C)</Label>
+              <Input
+                id="serving_temp_max"
+                type="number"
+                min={0}
+                max={25}
+                value={formData.serving_temp_max ?? ''}
+                onChange={(e) => setFormData({ ...formData, serving_temp_max: e.target.value ? parseInt(e.target.value) : null })}
+              />
+            </div>
+          </div>
+
+          {/* Tasting Notes & Food Pairing */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="tasting_notes">Tasting Notes</Label>
+              <Textarea
+                id="tasting_notes"
+                value={formData.tasting_notes}
+                onChange={(e) => setFormData({ ...formData, tasting_notes: e.target.value })}
+                placeholder="Overall impression and notes..."
+              />
+            </div>
+            <div>
+              <Label htmlFor="food_pairing">Food Pairing</Label>
+              <Textarea
+                id="food_pairing"
+                value={formData.food_pairing}
+                onChange={(e) => setFormData({ ...formData, food_pairing: e.target.value })}
+                placeholder="Suggested pairings..."
+              />
+            </div>
+          </div>
+
           <DialogFooter>
-            <Button type="submit" disabled={loading || !selectedWine}>
-              {loading ? 'Adding Rating...' : 'Add Rating'}
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? 'Adding...' : 'Add Rating'}
             </Button>
           </DialogFooter>
         </form>

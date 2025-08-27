@@ -403,17 +403,6 @@ export default function Ratings() {
             </select>
             
             <select 
-              value={filters.region} 
-              onChange={(e) => setFilters({...filters, region: e.target.value})}
-              className="px-3 py-1 text-sm border border-input bg-background rounded-md"
-            >
-              <option value="">All Regions</option>
-              {Array.from(new Set([...ratings, ...friendsRatings].map(r => r.wines.regions?.name || r.wines.countries?.name).filter(Boolean))).sort().map(region => (
-                <option key={region} value={region}>{region}</option>
-              ))}
-            </select>
-            
-            <select 
               value={filters.country} 
               onChange={(e) => setFilters({...filters, country: e.target.value})}
               className="px-3 py-1 text-sm border border-input bg-background rounded-md"
@@ -421,6 +410,17 @@ export default function Ratings() {
               <option value="">All Countries</option>
               {Array.from(new Set([...ratings, ...friendsRatings].map(r => r.wines.countries?.name).filter(Boolean))).sort().map(country => (
                 <option key={country} value={country}>{country}</option>
+              ))}
+            </select>
+            
+            <select 
+              value={filters.region} 
+              onChange={(e) => setFilters({...filters, region: e.target.value})}
+              className="px-3 py-1 text-sm border border-input bg-background rounded-md"
+            >
+              <option value="">All Regions</option>
+              {Array.from(new Set([...ratings, ...friendsRatings].map(r => r.wines.regions?.name || r.wines.countries?.name).filter(Boolean))).sort().map(region => (
+                <option key={region} value={region}>{region}</option>
               ))}
             </select>
             

@@ -413,17 +413,6 @@ export default function Cellar() {
             </select>
             
             <select 
-              value={filters.region} 
-              onChange={(e) => setFilters({...filters, region: e.target.value})}
-              className="px-3 py-1 text-sm border border-input bg-background rounded-md"
-            >
-              <option value="">All Regions</option>
-              {Array.from(new Set(wines.map(w => w.wines.regions?.name || w.wines.countries?.name).filter(Boolean))).sort().map(region => (
-                <option key={region} value={region}>{region}</option>
-              ))}
-            </select>
-            
-            <select 
               value={filters.country} 
               onChange={(e) => setFilters({...filters, country: e.target.value})}
               className="px-3 py-1 text-sm border border-input bg-background rounded-md"
@@ -431,6 +420,17 @@ export default function Cellar() {
               <option value="">All Countries</option>
               {Array.from(new Set(wines.map(w => w.wines.countries?.name).filter(Boolean))).sort().map(country => (
                 <option key={country} value={country}>{country}</option>
+              ))}
+            </select>
+            
+            <select 
+              value={filters.region} 
+              onChange={(e) => setFilters({...filters, region: e.target.value})}
+              className="px-3 py-1 text-sm border border-input bg-background rounded-md"
+            >
+              <option value="">All Regions</option>
+              {Array.from(new Set(wines.map(w => w.wines.regions?.name || w.wines.countries?.name).filter(Boolean))).sort().map(region => (
+                <option key={region} value={region}>{region}</option>
               ))}
             </select>
             
