@@ -51,8 +51,8 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [countries, setCountries] = useState<{value: string; label: string}[]>([]);
-  const [regions, setRegions] = useState<{value: string; label: string}[]>([]);
-  const [appellations, setAppellations] = useState<{value: string; label: string}[]>([]);
+  const [regions, setRegions] = useState<{value: string; label: string; country_id?: string}[]>([]);
+  const [appellations, setAppellations] = useState<{value: string; label: string; region_id?: string}[]>([]);
   const [producers, setProducers] = useState<{value: string; label: string}[]>([]);
   const itemsPerPage = 20;
 
@@ -101,13 +101,14 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
     try {
       const { data, error } = await supabase
         .from('regions')
-        .select('id, name')
+        .select('id, name, country_id')
         .order('name');
       
       if (error) throw error;
       const regionOptions = (data || []).map(region => ({
         value: region.id,
-        label: region.name
+        label: region.name,
+        country_id: region.country_id
       }));
       setRegions(regionOptions);
     } catch (error) {
@@ -119,13 +120,14 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
     try {
       const { data, error } = await supabase
         .from('appellations')
-        .select('id, name')
+        .select('id, name, region_id')
         .order('name');
       
       if (error) throw error;
       const appellationOptions = (data || []).map(appellation => ({
         value: appellation.id,
-        label: appellation.name
+        label: appellation.name,
+        region_id: appellation.region_id
       }));
       setAppellations(appellationOptions);
     } catch (error) {
@@ -148,6 +150,70 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
       setProducers(producerOptions);
     } catch (error) {
       console.error('Error loading producers:', error);
+    }
+  };
+
+  const handleCountryChange = (countryId: string) => {
+    setSelectedCountry(countryId);
+    // Reset child selections when country changes
+    if (countryId === 'all') {
+      // Keep all selections as they are
+    } else {
+      // Reset region and appellation if they don't belong to this country
+      const validRegions = regions.filter(r => r.country_id === countryId);
+      if (selectedRegion !== 'all' && !validRegions.find(r => r.value === selectedRegion)) {
+        setSelectedRegion('all');
+      }
+      // Reset appellation since region might have changed
+      if (selectedAppellation !== 'all') {
+        const validAppellations = appellations.filter(a => {
+          const region = regions.find(r => r.value === a.region_id);
+          return region?.country_id === countryId;
+        });
+        if (!validAppellations.find(a => a.value === selectedAppellation)) {
+          setSelectedAppellation('all');
+        }
+      }
+    }
+  };
+
+  const handleRegionChange = (regionId: string) => {
+    setSelectedRegion(regionId);
+    
+    if (regionId !== 'all') {
+      // Auto-select the country for this region
+      const region = regions.find(r => r.value === regionId);
+      if (region?.country_id && selectedCountry !== region.country_id) {
+        setSelectedCountry(region.country_id);
+      }
+      
+      // Reset appellation if it doesn't belong to this region
+      if (selectedAppellation !== 'all') {
+        const validAppellations = appellations.filter(a => a.region_id === regionId);
+        if (!validAppellations.find(a => a.value === selectedAppellation)) {
+          setSelectedAppellation('all');
+        }
+      }
+    }
+  };
+
+  const handleAppellationChange = (appellationId: string) => {
+    setSelectedAppellation(appellationId);
+    
+    if (appellationId !== 'all') {
+      // Auto-select the region and country for this appellation
+      const appellation = appellations.find(a => a.value === appellationId);
+      if (appellation?.region_id) {
+        const region = regions.find(r => r.value === appellation.region_id);
+        if (region) {
+          if (selectedRegion !== region.value) {
+            setSelectedRegion(region.value);
+          }
+          if (region.country_id && selectedCountry !== region.country_id) {
+            setSelectedCountry(region.country_id);
+          }
+        }
+      }
     }
   };
 
@@ -280,7 +346,7 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
               <SearchableSelect
                 options={[{value: 'all', label: 'All countries'}, ...countries]}
                 value={selectedCountry}
-                onValueChange={setSelectedCountry}
+                onValueChange={handleCountryChange}
                 placeholder="All countries"
                 searchPlaceholder="Search countries..."
               />
@@ -290,7 +356,7 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
               <SearchableSelect
                 options={[{value: 'all', label: 'All regions'}, ...regions]}
                 value={selectedRegion}
-                onValueChange={setSelectedRegion}
+                onValueChange={handleRegionChange}
                 placeholder="All regions"
                 searchPlaceholder="Search regions..."
               />
@@ -300,7 +366,7 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
               <SearchableSelect
                 options={[{value: 'all', label: 'All appellations'}, ...appellations]}
                 value={selectedAppellation}
-                onValueChange={setSelectedAppellation}
+                onValueChange={handleAppellationChange}
                 placeholder="All appellations"
                 searchPlaceholder="Search appellations..."
               />
