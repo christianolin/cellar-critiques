@@ -36,6 +36,7 @@ interface WineInCellar {
 export default function Cellar() {
   const { user } = useAuth();
   const [wines, setWines] = useState<WineInCellar[]>([]);
+  const [consumedWines, setConsumedWines] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
@@ -43,6 +44,7 @@ export default function Cellar() {
   useEffect(() => {
     if (user) {
       fetchCellarWines();
+      fetchConsumedWines();
     }
   }, [user]);
 
@@ -75,6 +77,30 @@ export default function Cellar() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchConsumedWines = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('wine_consumptions')
+        .select(`
+          *,
+          wines (
+            id,
+            name,
+            producer,
+            vintage,
+            wine_type
+          )
+        `)
+        .eq('user_id', user?.id)
+        .order('consumed_at', { ascending: false });
+
+      if (error) throw error;
+      setConsumedWines(data || []);
+    } catch (error) {
+      console.error('Failed to load consumed wines:', error);
     }
   };
 
@@ -363,7 +389,52 @@ export default function Cellar() {
           </TabsContent>
           
           <TabsContent value="consumed">
-            <ConsumedWines />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Consumed Wines</h3>
+              </div>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Wine</TableHead>
+                      <TableHead>Producer</TableHead>
+                      <TableHead>Vintage</TableHead>
+                      <TableHead>Consumed Date</TableHead>
+                      <TableHead>Quantity</TableHead>
+                      <TableHead>Rating</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {consumedWines.map((consumption) => (
+                      <TableRow key={consumption.id}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{consumption.wines?.name || 'Unknown Wine'}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {consumption.wines?.wine_type || 'Unknown Type'}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{consumption.wines?.producer || 'Unknown Producer'}</TableCell>
+                        <TableCell>{consumption.wines?.vintage || 'NV'}</TableCell>
+                        <TableCell>
+                          {new Date(consumption.consumed_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>{consumption.quantity}</TableCell>
+                        <TableCell>
+                          {consumption.rating_id ? (
+                            <Badge variant="secondary">Rated</Badge>
+                          ) : (
+                            <Badge variant="outline">Not Rated</Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
