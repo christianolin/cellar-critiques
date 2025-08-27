@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from '@/components/ui/badge';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -16,6 +17,7 @@ import { toast } from '@/hooks/use-toast';
 import { Plus, Edit, Trash2, Settings, Users, ChevronUp, ChevronDown, Check, ChevronsUpDown, Search } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { cn } from '@/lib/utils';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 
 interface Country {
   id: string;
@@ -92,6 +94,18 @@ export default function Admin() {
   const [filteredRegions, setFilteredRegions] = useState<Region[]>([]);
   const [filteredAppellations, setFilteredAppellations] = useState<Appellation[]>([]);
   
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const itemsPerPage = 50;
+  
+  // Filter states for wine database
+  const [countryFilter, setCountryFilter] = useState('');
+  const [regionFilter, setRegionFilter] = useState('');
+  const [appellationFilter, setAppellationFilter] = useState('');
+  const [producerFilter, setProducerFilter] = useState('');
+  
   // Form states
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
@@ -109,8 +123,20 @@ export default function Admin() {
   };
 
   useEffect(() => {
+    setCurrentPage(1); // Reset to first page when tab changes
     loadData();
   }, [activeTab, sortField, sortDirection]);
+
+  useEffect(() => {
+    if (activeTab === 'wine_database') {
+      setCurrentPage(1); // Reset to first page when filters change
+      loadData();
+    }
+  }, [searchTerm, countryFilter, regionFilter, appellationFilter, producerFilter]);
+
+  useEffect(() => {
+    loadData();
+  }, [currentPage]);
 
   // Effect for cascading dropdowns - filter regions based on selected country
   useEffect(() => {
@@ -192,7 +218,7 @@ export default function Admin() {
           break;
           
         case 'wine_database':
-          const { data: wineDbData, error: wineDbError } = await supabase
+          let query = supabase
             .from('wine_database')
             .select(`
               *,
@@ -200,10 +226,41 @@ export default function Admin() {
               countries(name),
               regions(name),
               appellations(name)
-            `)
-            .order(sortField, { ascending: sortDirection === 'asc' });
+            `, { count: 'exact' });
+
+          // Apply filters
+          if (searchTerm) {
+            query = query.or(`name.ilike.%${searchTerm}%,producers.name.ilike.%${searchTerm}%`);
+          }
+          
+          if (countryFilter) {
+            query = query.eq('country_id', countryFilter);
+          }
+          
+          if (regionFilter) {
+            query = query.eq('region_id', regionFilter);
+          }
+          
+          if (appellationFilter) {
+            query = query.eq('appellation_id', appellationFilter);
+          }
+          
+          if (producerFilter) {
+            query = query.eq('producer_id', producerFilter);
+          }
+
+          // Apply pagination
+          const from = (currentPage - 1) * itemsPerPage;
+          const to = from + itemsPerPage - 1;
+          
+          query = query.range(from, to).order(sortField, { ascending: sortDirection === 'asc' });
+
+          const { data: wineDbData, error: wineDbError, count } = await query;
           if (wineDbError) throw wineDbError;
+          
           setWineDatabase(wineDbData || []);
+          setTotalCount(count || 0);
+          setTotalPages(Math.ceil((count || 0) / itemsPerPage));
           
           // Also load producers and other data for dropdowns
           const [{ data: allProducers }, { data: allCountriesForWine }, { data: allRegionsForWine }, { data: allAppellations }] = await Promise.all([
@@ -993,7 +1050,7 @@ export default function Admin() {
         headers = ['Name', 'Type', 'Actions'];
         break;
       case 'wine_database':
-        data = wineDatabase;
+        data = wineDatabase; // Already filtered on server side
         headers = ['Name', 'Vintage', 'Producer', 'Type', 'Country', 'Region', 'Appellation', 'Actions'];
         break;
       case 'users':
@@ -1002,143 +1059,173 @@ export default function Admin() {
         break;
     }
 
-    // Filter data based on search term for wine_database
-    if (activeTab === 'wine_database' && searchTerm) {
-      data = data.filter(item =>
-        item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.producers?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.wine_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.countries?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.regions?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.appellations?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.vintage?.toString().includes(searchTerm)
-      );
-    }
-
     return (
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {headers.map((header, index) => (
-              <TableHead 
-                key={header} 
-                className={index < headers.length - 1 ? "cursor-pointer hover:bg-muted/50" : ""}
-                onClick={() => {
-                  if (index < headers.length - 1) { // Don't make Actions column sortable
-                    const field = getSortField(header);
-                    handleSort(field);
-                  }
-                }}
-              >
-                <div className="flex items-center gap-1">
-                  {header}
-                  {index < headers.length - 1 && getSortField(header) === sortField && (
-                    sortDirection === 'asc' ? 
-                      <ChevronUp className="h-4 w-4" /> : 
-                      <ChevronDown className="h-4 w-4" />
-                  )}
-                </div>
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.map((item) => (
-            <TableRow key={item.id}>
-              {activeTab === 'countries' && (
-                <>
-                  <TableCell>{item.name}</TableCell>
-                  <TableCell>{item.code}</TableCell>
-                </>
-              )}
-              {activeTab === 'regions' && (
-                <>
-                  <TableCell>{item.name}</TableCell>
-                  <TableCell>{item.countries?.name}</TableCell>
-                </>
-              )}
-              {activeTab === 'appellations' && (
-                <>
-                  <TableCell>{item.name}</TableCell>
-                  <TableCell>{item.regions?.name}</TableCell>
-                  <TableCell>{item.regions?.countries?.name}</TableCell>
-                </>
-              )}
-              {activeTab === 'grapes' && (
-                <>
-                  <TableCell>{item.name}</TableCell>
-                  <TableCell className="capitalize">{item.type}</TableCell>
-                </>
-              )}
-              {activeTab === 'wine_database' && (
-                <>
-                  <TableCell>{item.name}</TableCell>
-                  <TableCell>{item.vintage || 'N/A'}</TableCell>
-                  <TableCell>{item.producers?.name || ''}</TableCell>
-                  <TableCell className="capitalize">{item.wine_type}</TableCell>
-                  <TableCell>{item.countries?.name || ''}</TableCell>
-                  <TableCell>{item.regions?.name || 'N/A'}</TableCell>
-                  <TableCell>{item.appellations?.name || 'N/A'}</TableCell>
-                </>
-              )}
-              {activeTab === 'users' && (
-                <>
-                  <TableCell>{item.profiles?.username || 'No username'}</TableCell>
-                  <TableCell>{item.profiles?.display_name || 'No display name'}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-1 flex-wrap">
-                      {item.user_roles?.map((ur: any) => (
-                        <Badge key={ur.role} variant="secondary" className="capitalize">
-                          {ur.role}
-                        </Badge>
-                      ))}
-                    </div>
-                  </TableCell>
-                </>
-              )}
-              <TableCell>
-                <div className="flex gap-2">
-                  {activeTab === 'users' ? (
-                    isOwner && (
-                      <Select
-                        value={item.user_roles?.[0]?.role || 'user'}
-                        onValueChange={(value) => updateUserRole(item.id, value)}
-                        disabled={item.user_roles?.some((ur: any) => ur.role === 'owner')}
-                      >
-                        <SelectTrigger className="w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="user">User</SelectItem>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="owner">Owner</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )
-                  ) : (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(item)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(item.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </TableCell>
+      <>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {headers.map((header, index) => (
+                <TableHead 
+                  key={header} 
+                  className={index < headers.length - 1 ? "cursor-pointer hover:bg-muted/50" : ""}
+                  onClick={() => {
+                    if (index < headers.length - 1) { // Don't make Actions column sortable
+                      const field = getSortField(header);
+                      handleSort(field);
+                    }
+                  }}
+                >
+                  <div className="flex items-center gap-1">
+                    {header}
+                    {index < headers.length - 1 && getSortField(header) === sortField && (
+                      sortDirection === 'asc' ? 
+                        <ChevronUp className="h-4 w-4" /> : 
+                        <ChevronDown className="h-4 w-4" />
+                    )}
+                  </div>
+                </TableHead>
+              ))}
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {data.map((item) => (
+              <TableRow key={item.id}>
+                {activeTab === 'countries' && (
+                  <>
+                    <TableCell>{item.name}</TableCell>
+                    <TableCell>{item.code}</TableCell>
+                  </>
+                )}
+                {activeTab === 'regions' && (
+                  <>
+                    <TableCell>{item.name}</TableCell>
+                    <TableCell>{item.countries?.name}</TableCell>
+                  </>
+                )}
+                {activeTab === 'appellations' && (
+                  <>
+                    <TableCell>{item.name}</TableCell>
+                    <TableCell>{item.regions?.name}</TableCell>
+                    <TableCell>{item.regions?.countries?.name}</TableCell>
+                  </>
+                )}
+                {activeTab === 'grapes' && (
+                  <>
+                    <TableCell>{item.name}</TableCell>
+                    <TableCell className="capitalize">{item.type}</TableCell>
+                  </>
+                )}
+                {activeTab === 'wine_database' && (
+                  <>
+                    <TableCell>{item.name}</TableCell>
+                    <TableCell>{item.vintage || 'N/A'}</TableCell>
+                    <TableCell>{item.producers?.name || ''}</TableCell>
+                    <TableCell className="capitalize">{item.wine_type}</TableCell>
+                    <TableCell>{item.countries?.name || ''}</TableCell>
+                    <TableCell>{item.regions?.name || 'N/A'}</TableCell>
+                    <TableCell>{item.appellations?.name || 'N/A'}</TableCell>
+                  </>
+                )}
+                {activeTab === 'users' && (
+                  <>
+                    <TableCell>{item.profiles?.username || 'No username'}</TableCell>
+                    <TableCell>{item.profiles?.display_name || 'No display name'}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1 flex-wrap">
+                        {item.user_roles?.map((ur: any) => (
+                          <Badge key={ur.role} variant="secondary" className="capitalize">
+                            {ur.role}
+                          </Badge>
+                        ))}
+                      </div>
+                    </TableCell>
+                  </>
+                )}
+                <TableCell>
+                  <div className="flex gap-2">
+                    {activeTab === 'users' ? (
+                      isOwner && (
+                        <Select
+                          value={item.user_roles?.[0]?.role || 'user'}
+                          onValueChange={(value) => updateUserRole(item.id, value)}
+                          disabled={item.user_roles?.some((ur: any) => ur.role === 'owner')}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="user">User</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="owner">Owner</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )
+                    ) : (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(item)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(item.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        
+        {/* Pagination for wine_database */}
+        {activeTab === 'wine_database' && totalPages > 1 && (
+          <div className="mt-4 flex justify-between items-center">
+            <div className="text-sm text-muted-foreground">
+              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalCount)} of {totalCount} entries
+            </div>
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => currentPage > 1 && setCurrentPage(currentPage - 1)}
+                    className={currentPage <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+                
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
+                  return (
+                    <PaginationItem key={pageNum}>
+                      <PaginationLink
+                        onClick={() => setCurrentPage(pageNum)}
+                        isActive={currentPage === pageNum}
+                        className="cursor-pointer"
+                      >
+                        {pageNum}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                })}
+                
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => currentPage < totalPages && setCurrentPage(currentPage + 1)}
+                    className={currentPage >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
+      </>
     );
   };
 
@@ -1216,15 +1303,65 @@ export default function Admin() {
           </CardHeader>
           <CardContent>
             {activeTab === 'wine_database' && (
-              <div className="mb-4">
-                <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search wines..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-8"
+              <div className="space-y-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search wines..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-8"
+                    />
+                  </div>
+                  <SearchableSelect
+                    options={[{value: '', label: 'All countries'}, ...countries.map(c => ({value: c.id, label: c.name}))]}
+                    value={countryFilter}
+                    onValueChange={setCountryFilter}
+                    placeholder="Filter by country"
+                    searchPlaceholder="Search countries..."
                   />
+                  <SearchableSelect
+                    options={[{value: '', label: 'All regions'}, ...regions.filter(r => !countryFilter || r.country_id === countryFilter).map(r => ({value: r.id, label: r.name}))]}
+                    value={regionFilter}
+                    onValueChange={setRegionFilter}
+                    placeholder="Filter by region"
+                    searchPlaceholder="Search regions..."
+                    disabled={!countryFilter}
+                  />
+                  <SearchableSelect
+                    options={[{value: '', label: 'All appellations'}, ...appellations.filter(a => !regionFilter || a.region_id === regionFilter).map(a => ({value: a.id, label: a.name}))]}
+                    value={appellationFilter}
+                    onValueChange={setAppellationFilter}
+                    placeholder="Filter by appellation"
+                    searchPlaceholder="Search appellations..."
+                    disabled={!regionFilter}
+                  />
+                  <SearchableSelect
+                    options={[{value: '', label: 'All producers'}, ...wineProducers.map(p => ({value: p.id, label: p.name}))]}
+                    value={producerFilter}
+                    onValueChange={setProducerFilter}
+                    placeholder="Filter by producer"
+                    searchPlaceholder="Search producers..."
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSearchTerm('');
+                      setCountryFilter('');
+                      setRegionFilter('');
+                      setAppellationFilter('');
+                      setProducerFilter('');
+                    }}
+                  >
+                    Clear Filters
+                  </Button>
+                  <div className="text-sm text-muted-foreground flex items-center">
+                    {totalCount} total entries
+                  </div>
                 </div>
               </div>
             )}

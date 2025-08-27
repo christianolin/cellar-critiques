@@ -11,6 +11,7 @@ import { toast } from '@/hooks/use-toast';
 import { Plus, PlusCircle, X, Wine, Search } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import WineSearchDialog from '@/components/WineSearchDialog';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 
 interface Wine {
   id: string;
@@ -527,18 +528,16 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
               {mode === 'cellar' ? (
                 <div>
                   <Label htmlFor="wine">Select Wine *</Label>
-                  <Select value={selectedWine} onValueChange={setSelectedWine}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose wine from your cellar" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {cellarWines.map((wine) => (
-                        <SelectItem key={wine.id} value={wine.id}>
-                          {wine.name} - {wine.producer} {wine.vintage ? `(${wine.vintage})` : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                      <SearchableSelect
+                        options={[{value: 'cellar', label: 'Select from Cellar'}, ...cellarWines.map(wine => ({
+                          value: wine.id, 
+                          label: `${wine.name} - ${wine.producer} ${wine.vintage ? `(${wine.vintage})` : ''}`
+                        }))]}
+                        value={selectedWine}
+                        onValueChange={setSelectedWine}
+                        placeholder="Choose wine from your cellar"
+                        searchPlaceholder="Search cellar wines..."
+                      />
                   <p className="text-xs text-muted-foreground mt-1">
                     Select from wines in your cellar
                   </p>
@@ -560,18 +559,19 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
                    <div className="flex justify-between items-center">
                      <h4 className="font-medium">Wine Information</h4>
                      <WineSearchDialog 
-                        onWineSelect={(wine) => {
-                          setNewWineData({
-                            ...newWineData,
-                            name: wine.name,
-                            producer: wine.producers?.name || '',
-                            wine_type: wine.wine_type as any,
-                            alcohol_content: wine.alcohol_content || null,
-                            country_id: wine.country_id || '',
-                            region_id: wine.region_id || '',
-                            appellation_id: wine.appellation_id || '',
-                          });
-                        }}
+                         onWineSelect={(wine) => {
+                           setNewWineData({
+                             ...newWineData,
+                             name: wine.name,
+                             producer: wine.producers?.name || '',
+                             vintage: wine.vintage || null,
+                             wine_type: wine.wine_type as any,
+                             alcohol_content: wine.alcohol_content || null,
+                             country_id: wine.country_id || '',
+                             region_id: wine.region_id || '',
+                             appellation_id: wine.appellation_id || '',
+                           });
+                         }}
                        trigger={
                          <Button type="button" variant="outline" size="sm">
                            <Search className="h-4 w-4 mr-2" />
@@ -694,62 +694,40 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
                   </div>
 
                   <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <Label htmlFor="country">Country *</Label>
-                      <Select
-                        value={newWineData.country_id}
-                        onValueChange={(value) => setNewWineData({ ...newWineData, country_id: value, region_id: '', appellation_id: '' })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select country" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {countries.map((country) => (
-                            <SelectItem key={country.id} value={country.id}>
-                              {country.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="region">Region</Label>
-                      <Select
-                        value={newWineData.region_id}
-                        onValueChange={(value) => setNewWineData({ ...newWineData, region_id: value, appellation_id: '' })}
-                        disabled={!newWineData.country_id}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select region" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {filteredRegions.map((region) => (
-                            <SelectItem key={region.id} value={region.id}>
-                              {region.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="appellation">Appellation</Label>
-                      <Select
-                        value={newWineData.appellation_id}
-                        onValueChange={(value) => setNewWineData({ ...newWineData, appellation_id: value })}
-                        disabled={!newWineData.region_id}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select appellation" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {filteredAppellations.map((appellation) => (
-                            <SelectItem key={appellation.id} value={appellation.id}>
-                              {appellation.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                     <div>
+                       <Label htmlFor="country">Country *</Label>
+                       <SearchableSelect
+                         options={countries.map(country => ({value: country.id, label: country.name}))}
+                         value={newWineData.country_id}
+                         onValueChange={(value) => setNewWineData({ ...newWineData, country_id: value, region_id: '', appellation_id: '' })}
+                         placeholder="Select country"
+                         searchPlaceholder="Search countries..."
+                       />
+                     </div>
+                     <div>
+                       <Label htmlFor="region">Region</Label>
+                       <SearchableSelect
+                         options={filteredRegions.map(region => ({value: region.id, label: region.name}))}
+                         value={newWineData.region_id}
+                         onValueChange={(value) => setNewWineData({ ...newWineData, region_id: value, appellation_id: '' })}
+                         placeholder={newWineData.country_id ? "Select region" : "Select country first"}
+                         searchPlaceholder="Search regions..."
+                         disabled={!newWineData.country_id}
+                         allowNone={true}
+                       />
+                     </div>
+                     <div>
+                       <Label htmlFor="appellation">Appellation</Label>
+                       <SearchableSelect
+                         options={filteredAppellations.map(appellation => ({value: appellation.id, label: appellation.name}))}
+                         value={newWineData.appellation_id}
+                         onValueChange={(value) => setNewWineData({ ...newWineData, appellation_id: value })}
+                         placeholder={newWineData.region_id ? "Select appellation" : "Select region first"}
+                         searchPlaceholder="Search appellations..."
+                         disabled={!newWineData.region_id}
+                         allowNone={true}
+                       />
+                     </div>
                   </div>
 
                   <div>
