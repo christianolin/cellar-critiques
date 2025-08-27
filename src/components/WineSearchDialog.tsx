@@ -234,32 +234,28 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
 
       // Apply filters
       if (searchTerm) {
-        // Intelligent multi-word search
+        // Intelligent multi-word search - search in wine name, producer name, and description
         const searchWords = searchTerm.trim().toLowerCase().split(/\s+/).filter(word => word.length >= 2);
         
         if (searchWords.length === 1) {
-          // Single word - search across all relevant fields
+          // Single word search
           const word = searchWords[0];
-          query = query.or(`name.ilike.%${word}%,producers.name.ilike.%${word}%,description.ilike.%${word}%`);
+          query = query.or(`name.ilike.*${word}*,producers.name.ilike.*${word}*,description.ilike.*${word}*`);
         } else {
-          // Multi-word search - create conditions for each word
-          let searchConditions: string[] = [];
+          // Multi-word search - create OR conditions for all combinations
+          const conditions: string[] = [];
           
-          // Add full phrase search (exact order)
-          searchConditions.push(`name.ilike.%${searchTerm}%`);
-          searchConditions.push(`producers.name.ilike.%${searchTerm}%`);
-          
-          // Add individual word searches for order-independent matching
+          // Add conditions for each word in wine name and producer name
           searchWords.forEach(word => {
-            searchConditions.push(`name.ilike.%${word}%`);
-            searchConditions.push(`producers.name.ilike.%${word}%`);
-            if (searchTerm.includes(' ')) { // Only add description for multi-word
-              searchConditions.push(`description.ilike.%${word}%`);
-            }
+            conditions.push(`name.ilike.*${word}*`);
+            conditions.push(`producers.name.ilike.*${word}*`);
           });
           
-          // Join all conditions with OR
-          query = query.or(searchConditions.join(','));
+          // Add full phrase searches
+          conditions.push(`name.ilike.*${searchTerm}*`);
+          conditions.push(`producers.name.ilike.*${searchTerm}*`);
+          
+          query = query.or(conditions.join(','));
         }
       }
       
