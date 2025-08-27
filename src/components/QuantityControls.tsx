@@ -107,6 +107,50 @@ export default function QuantityControls({ cellarEntry, onUpdate }: QuantityCont
     }
   };
 
+  const handleRemoveOnly = async () => {
+    if (!user || consumeQuantity > cellarEntry.quantity) return;
+
+    setLoading(true);
+    try {
+      // Just update cellar quantity without recording consumption
+      const newQuantity = cellarEntry.quantity - consumeQuantity;
+      if (newQuantity > 0) {
+        const { error: updateError } = await supabase
+          .from('wine_cellar')
+          .update({ quantity: newQuantity })
+          .eq('id', cellarEntry.id);
+
+        if (updateError) throw updateError;
+      } else {
+        // Remove from cellar if quantity becomes 0
+        const { error: deleteError } = await supabase
+          .from('wine_cellar')
+          .delete()
+          .eq('id', cellarEntry.id);
+
+        if (deleteError) throw deleteError;
+      }
+
+      toast({
+        title: "Success",
+        description: `${consumeQuantity} bottle(s) removed from cellar`,
+      });
+
+      setShowConsumeDialog(false);
+      setConsumeQuantity(1);
+      setConsumeNotes('');
+      onUpdate();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to remove wine from cellar",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <div className="flex items-center gap-1">
@@ -161,9 +205,12 @@ export default function QuantityControls({ cellarEntry, onUpdate }: QuantityCont
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex gap-2">
             <Button variant="outline" onClick={() => setShowConsumeDialog(false)}>
               Cancel
+            </Button>
+            <Button variant="outline" onClick={handleRemoveOnly} disabled={loading}>
+              {loading ? 'Removing...' : 'Just Remove'}
             </Button>
             <Button onClick={handleConsume} disabled={loading}>
               {loading ? 'Recording...' : 'Record Consumption'}

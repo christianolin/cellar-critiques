@@ -28,6 +28,8 @@ interface WineInCellar {
     producer: string;
     vintage: number | null;
     wine_type: string;
+    bottle_size: string | null;
+    image_url: string | null;
     countries?: { name: string; };
     regions?: { name: string; };
     appellations?: { name: string; };
@@ -45,11 +47,13 @@ export default function Cellar() {
     vintage: string;
     wine_type: string;
     region: string;
+    appellation: string;
     producer: string;
   }>({
     vintage: '',
     wine_type: '',  
     region: '',
+    appellation: '',
     producer: ''
   });
 
@@ -72,6 +76,8 @@ export default function Cellar() {
             producer,
             vintage,
             wine_type,
+            bottle_size,
+            image_url,
             countries:country_id ( name ),
             regions:region_id ( name ),
             appellations:appellation_id ( name )
@@ -162,9 +168,10 @@ export default function Cellar() {
     const matchesRegion = filters.region === '' || 
       wine.wines.regions?.name === filters.region ||
       wine.wines.countries?.name === filters.region;
+    const matchesAppellation = filters.appellation === '' || wine.wines.appellations?.name === filters.appellation;
     const matchesProducer = filters.producer === '' || wine.wines.producer === filters.producer;
     
-    return matchesSearch && matchesVintage && matchesType && matchesRegion && matchesProducer;
+    return matchesSearch && matchesVintage && matchesType && matchesRegion && matchesAppellation && matchesProducer;
   });
 
   const [sortKey, setSortKey] = useState<'name' | 'producer' | 'vintage' | 'wine_type' | 'region' | 'quantity' | 'purchase_price'>('name');
@@ -208,7 +215,31 @@ export default function Cellar() {
   const calculateStats = () => {
     const totalBottles = wines.reduce((sum, wine) => sum + wine.quantity, 0);
     const totalValue = wines.reduce((sum, wine) => sum + (wine.purchase_price || 0) * wine.quantity, 0);
-    const totalLiters = totalBottles * 0.75; // Assuming 750ml bottles
+    
+    // Convert bottle sizes to liters
+    const getBottleSizeInLiters = (size: string) => {
+      const sizeMap: Record<string, number> = {
+        'Split (187.5ml)': 0.1875,
+        'Half Bottle (375ml)': 0.375,
+        'Bottle (750ml)': 0.75,
+        'Liter (1L)': 1.0,
+        'Magnum (1.5L)': 1.5,
+        'Double Magnum (3L)': 3.0,
+        'Jeroboam (4.5L)': 4.5,
+        'Imperial (6L)': 6.0,
+        'Salmanazar (9L)': 9.0,
+        'Balthazar (12L)': 12.0,
+        'Nebuchadnezzar (15L)': 15.0,
+        'Melchior (18L)': 18.0
+      };
+      return sizeMap[size] || 0.75; // Default to 750ml if size not found
+    };
+    
+    const totalLiters = wines.reduce((sum, wine) => {
+      const bottleSize = wine.wines.bottle_size || 'Bottle (750ml)';
+      const litersPerBottle = getBottleSizeInLiters(bottleSize);
+      return sum + (litersPerBottle * wine.quantity);
+    }, 0);
     
     const typeStats = wines.reduce((acc, wine) => {
       const type = wine.wines.wine_type;
@@ -390,6 +421,17 @@ export default function Cellar() {
             </select>
             
             <select 
+              value={filters.appellation} 
+              onChange={(e) => setFilters({...filters, appellation: e.target.value})}
+              className="px-3 py-1 text-sm border border-input bg-background rounded-md"
+            >
+              <option value="">All Appellations</option>
+              {Array.from(new Set(wines.map(w => w.wines.appellations?.name).filter(Boolean))).sort().map(appellation => (
+                <option key={appellation} value={appellation}>{appellation}</option>
+              ))}
+            </select>
+            
+            <select 
               value={filters.producer} 
               onChange={(e) => setFilters({...filters, producer: e.target.value})}
               className="px-3 py-1 text-sm border border-input bg-background rounded-md"
@@ -400,11 +442,11 @@ export default function Cellar() {
               ))}
             </select>
             
-            {(filters.vintage || filters.wine_type || filters.region || filters.producer) && (
+            {(filters.vintage || filters.wine_type || filters.region || filters.appellation || filters.producer) && (
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={() => setFilters({vintage: '', wine_type: '', region: '', producer: ''})}
+                onClick={() => setFilters({vintage: '', wine_type: '', region: '', appellation: '', producer: ''})}
               >
                 Clear Filters
               </Button>
@@ -521,6 +563,15 @@ export default function Cellar() {
               const wine = cellarEntry.wines;
               return (
                 <Card key={cellarEntry.id} className="hover:shadow-lg transition-shadow">
+                  {wine.image_url && (
+                    <div className="w-full h-48 overflow-hidden rounded-t-lg">
+                      <img 
+                        src={wine.image_url} 
+                        alt={wine.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div className="flex-1">

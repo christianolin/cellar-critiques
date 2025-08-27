@@ -58,7 +58,6 @@ interface WineFormData {
   grape_varieties: GrapeWithPercentage[];
   alcohol_content: number | null;
   image_url: string | null;
-  // Cellar specific fields
   quantity: number;
   purchase_date: string;
   purchase_price: number | null;
@@ -84,7 +83,7 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
     producer: cellarEntry.wines.producer,
     vintage: cellarEntry.wines.vintage,
     wine_type: cellarEntry.wines.wine_type,
-    bottle_size: cellarEntry.wines.bottle_size || '750ml',
+    bottle_size: cellarEntry.wines.bottle_size || 'Bottle (750ml)',
     country_id: cellarEntry.wines.country_id || '',
     region_id: cellarEntry.wines.region_id || '',
     appellation_id: cellarEntry.wines.appellation_id || '',
@@ -193,8 +192,8 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
     });
   };
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file) return;
 
     // Validate file type
@@ -316,8 +315,8 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm">
-          <Edit className="h-4 w-4" />
+        <Button variant="outline" size="sm">
+          <Edit className="h-4 w-4 mr-2" /> Edit
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -364,30 +363,6 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
               />
             </div>
             <div>
-              <Label htmlFor="bottle_size">Bottle Size</Label>
-              <Select value={formData.bottle_size} onValueChange={(value) => setFormData({ ...formData, bottle_size: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select bottle size" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="187.5ml">Split/Piccolo (187.5ml)</SelectItem>
-                  <SelectItem value="375ml">Half Bottle/Demi (375ml)</SelectItem>
-                  <SelectItem value="750ml">Standard Bottle (750ml)</SelectItem>
-                  <SelectItem value="1000ml">Liter (1000ml)</SelectItem>
-                  <SelectItem value="1500ml">Magnum (1500ml)</SelectItem>
-                  <SelectItem value="3000ml">Double Magnum/Jeroboam (3L)</SelectItem>
-                  <SelectItem value="4500ml">Rehoboam (4.5L)</SelectItem>
-                  <SelectItem value="6000ml">Imperial/Methuselah (6L)</SelectItem>
-                  <SelectItem value="9000ml">Salmanazar (9L)</SelectItem>
-                  <SelectItem value="12000ml">Balthazar (12L)</SelectItem>
-                  <SelectItem value="15000ml">Nebuchadnezzar (15L)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
               <Label htmlFor="wine_type">Wine Type *</Label>
               <Select value={formData.wine_type} onValueChange={(value) => setFormData({ ...formData, wine_type: value })}>
                 <SelectTrigger>
@@ -403,30 +378,64 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="wine_image">Wine Image</Label>
+              <Label htmlFor="bottle_size">Bottle Size</Label>
+              <Select 
+                value={formData.bottle_size} 
+                onValueChange={(value) => setFormData({ ...formData, bottle_size: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select bottle size" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Split (187.5ml)">Split (187.5ml)</SelectItem>
+                  <SelectItem value="Half Bottle (375ml)">Half Bottle (375ml)</SelectItem>
+                  <SelectItem value="Bottle (750ml)">Bottle (750ml)</SelectItem>
+                  <SelectItem value="Liter (1L)">Liter (1L)</SelectItem>
+                  <SelectItem value="Magnum (1.5L)">Magnum (1.5L)</SelectItem>
+                  <SelectItem value="Double Magnum (3L)">Double Magnum (3L)</SelectItem>
+                  <SelectItem value="Jeroboam (4.5L)">Jeroboam (4.5L)</SelectItem>
+                  <SelectItem value="Imperial (6L)">Imperial (6L)</SelectItem>
+                  <SelectItem value="Salmanazar (9L)">Salmanazar (9L)</SelectItem>
+                  <SelectItem value="Balthazar (12L)">Balthazar (12L)</SelectItem>
+                  <SelectItem value="Nebuchadnezzar (15L)">Nebuchadnezzar (15L)</SelectItem>
+                  <SelectItem value="Melchior (18L)">Melchior (18L)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="image">Wine Image</Label>
               <div className="space-y-2">
+                {formData.image_url && (
+                  <div className="relative w-32 h-32 border rounded-lg overflow-hidden">
+                    <img 
+                      src={formData.image_url} 
+                      alt="Wine" 
+                      className="w-full h-full object-cover"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="absolute top-1 right-1"
+                      onClick={() => setFormData({ ...formData, image_url: null })}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
                 <Input
-                  id="wine_image"
+                  id="image"
                   type="file"
                   accept="image/*"
                   onChange={handleImageUpload}
                   disabled={uploadingImage}
                 />
                 {uploadingImage && <p className="text-sm text-muted-foreground">Uploading...</p>}
-                {formData.image_url && (
-                  <div className="flex items-center gap-2">
-                    <img src={formData.image_url} alt="Wine preview" className="w-16 h-16 object-cover rounded" />
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setFormData({ ...formData, image_url: null })}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                )}
               </div>
             </div>
           </div>

@@ -33,6 +33,7 @@ interface WineRating {
     wine_type: string;
     countries?: { name: string };
     regions?: { name: string };
+    appellations?: { name: string };
   };
 }
 
@@ -47,11 +48,13 @@ export default function Ratings() {
     vintage: string;
     wine_type: string;
     region: string;
+    appellation: string;
     producer: string;
   }>({
     vintage: '',
     wine_type: '',  
     region: '',
+    appellation: '',
     producer: ''
   });
   const [sortKey, setSortKey] = useState<'name' | 'producer' | 'vintage' | 'type' | 'rating' | 'tasted'>('name');
@@ -81,7 +84,8 @@ export default function Ratings() {
             vintage,
             wine_type,
             countries:country_id ( name ),
-            regions:region_id ( name )
+            regions:region_id ( name ),
+            appellations:appellation_id ( name )
           )
         `)
         .eq('user_id', user?.id)
@@ -111,7 +115,8 @@ export default function Ratings() {
             vintage,
             wine_type,
             countries:country_id ( name ),
-            regions:region_id ( name )
+            regions:region_id ( name ),
+            appellations:appellation_id ( name )
           )
         `)
         .neq('user_id', user?.id)
@@ -141,9 +146,10 @@ export default function Ratings() {
     const matchesRegion = filters.region === '' || 
       rating.wines.regions?.name === filters.region ||
       rating.wines.countries?.name === filters.region;
+    const matchesAppellation = filters.appellation === '' || rating.wines.appellations?.name === filters.appellation;
     const matchesProducer = filters.producer === '' || rating.wines.producer === filters.producer;
     
-    return matchesSearch && matchesVintage && matchesType && matchesRegion && matchesProducer;
+    return matchesSearch && matchesVintage && matchesType && matchesRegion && matchesAppellation && matchesProducer;
   });
 
   const filteredFriendsRatings = friendsRatings.filter(rating => {
@@ -160,9 +166,10 @@ export default function Ratings() {
     const matchesRegion = filters.region === '' || 
       rating.wines.regions?.name === filters.region ||
       rating.wines.countries?.name === filters.region;
+    const matchesAppellation = filters.appellation === '' || rating.wines.appellations?.name === filters.appellation;
     const matchesProducer = filters.producer === '' || rating.wines.producer === filters.producer;
     
-    return matchesSearch && matchesVintage && matchesType && matchesRegion && matchesProducer;
+    return matchesSearch && matchesVintage && matchesType && matchesRegion && matchesAppellation && matchesProducer;
   });
 
   const getRatingColor = (rating: number) => {
@@ -383,6 +390,17 @@ export default function Ratings() {
             </select>
             
             <select 
+              value={filters.appellation} 
+              onChange={(e) => setFilters({...filters, appellation: e.target.value})}
+              className="px-3 py-1 text-sm border border-input bg-background rounded-md"
+            >
+              <option value="">All Appellations</option>
+              {Array.from(new Set([...ratings, ...friendsRatings].map(r => r.wines.appellations?.name).filter(Boolean))).sort().map(appellation => (
+                <option key={appellation} value={appellation}>{appellation}</option>
+              ))}
+            </select>
+            
+            <select 
               value={filters.producer} 
               onChange={(e) => setFilters({...filters, producer: e.target.value})}
               className="px-3 py-1 text-sm border border-input bg-background rounded-md"
@@ -393,11 +411,11 @@ export default function Ratings() {
               ))}
             </select>
             
-            {(filters.vintage || filters.wine_type || filters.region || filters.producer) && (
+            {(filters.vintage || filters.wine_type || filters.region || filters.appellation || filters.producer) && (
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={() => setFilters({vintage: '', wine_type: '', region: '', producer: ''})}
+                onClick={() => setFilters({vintage: '', wine_type: '', region: '', appellation: '', producer: ''})}
               >
                 Clear Filters
               </Button>
