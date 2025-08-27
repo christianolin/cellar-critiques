@@ -193,6 +193,17 @@ export default function Admin() {
           .eq('role', editingItem.role);
         if (error) throw error;
       } else {
+        // Check for dependencies before deleting
+        const dependencyCheck = await checkDependencies(id);
+        if (!dependencyCheck.canDelete) {
+          toast({
+            title: "Cannot Delete",
+            description: dependencyCheck.message,
+            variant: "destructive",
+          });
+          return;
+        }
+
         const { error } = await supabase
           .from(getTableName())
           .delete()
@@ -209,9 +220,104 @@ export default function Admin() {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to delete item",
+        description: "Failed to delete item. Please check for related records.",
         variant: "destructive",
       });
+    }
+  };
+
+  const checkDependencies = async (id: string): Promise<{ canDelete: boolean; message: string }> => {
+    try {
+      switch (activeTab) {
+        case 'countries':
+          // Check for regions and wines
+          const { data: regionsInCountry } = await supabase
+            .from('regions')
+            .select('id, name')
+            .eq('country_id', id);
+          
+          const { data: winesInCountry } = await supabase
+            .from('wines')
+            .select('id, name')
+            .eq('country_id', id);
+
+          if (regionsInCountry && regionsInCountry.length > 0) {
+            const regionNames = regionsInCountry.slice(0, 3).map(r => r.name).join(', ');
+            const extra = regionsInCountry.length > 3 ? ` and ${regionsInCountry.length - 3} more` : '';
+            return {
+              canDelete: false,
+              message: `This country cannot be deleted because it has ${regionsInCountry.length} region(s): ${regionNames}${extra}. Delete the regions first.`
+            };
+          }
+
+          if (winesInCountry && winesInCountry.length > 0) {
+            return {
+              canDelete: false,
+              message: `This country cannot be deleted because it has ${winesInCountry.length} wine(s) associated with it. Remove or reassign the wines first.`
+            };
+          }
+
+          return { canDelete: true, message: '' };
+
+        case 'regions':
+          // Check for appellations and wines
+          const { data: appellationsInRegion } = await supabase
+            .from('appellations')
+            .select('id, name')
+            .eq('region_id', id);
+          
+          const { data: winesInRegion } = await supabase
+            .from('wines')
+            .select('id, name')
+            .eq('region_id', id);
+
+          if (appellationsInRegion && appellationsInRegion.length > 0) {
+            const appellationNames = appellationsInRegion.slice(0, 3).map(a => a.name).join(', ');
+            const extra = appellationsInRegion.length > 3 ? ` and ${appellationsInRegion.length - 3} more` : '';
+            return {
+              canDelete: false,
+              message: `This region cannot be deleted because it has ${appellationsInRegion.length} appellation(s): ${appellationNames}${extra}. Delete the appellations first.`
+            };
+          }
+
+          if (winesInRegion && winesInRegion.length > 0) {
+            return {
+              canDelete: false,
+              message: `This region cannot be deleted because it has ${winesInRegion.length} wine(s) associated with it. Remove or reassign the wines first.`
+            };
+          }
+
+          return { canDelete: true, message: '' };
+
+        case 'appellations':
+          // Appellations can always be deleted as per user requirement
+          return { canDelete: true, message: '' };
+
+        case 'grapes':
+          // Check for wine grape compositions
+          const { data: wineGrapes } = await supabase
+            .from('wine_grape_composition')
+            .select('id')
+            .eq('grape_variety_id', id);
+
+          if (wineGrapes && wineGrapes.length > 0) {
+            return {
+              canDelete: false,
+              message: `This grape variety cannot be deleted because it is used in ${wineGrapes.length} wine composition(s). Remove it from wines first.`
+            };
+          }
+
+          return { canDelete: true, message: '' };
+
+        default:
+          return { canDelete: true, message: '' };
+      }
+    } catch (error) {
+      console.error('Error checking dependencies:', error);
+      return {
+        canDelete: false,
+        message: 'Unable to verify dependencies. Please try again.'
+      };
     }
   };
 
