@@ -8,9 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
-import { Plus, PlusCircle, X, Wine } from 'lucide-react';
+import { Plus, PlusCircle, X, Wine, Search } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CellarTrackerService } from '@/utils/CellarTrackerService';
+import WineSearchDialog from '@/components/WineSearchDialog';
 
 interface Wine {
   id: string;
@@ -308,7 +309,23 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
 
       if (error) throw error;
 
-      toast({ title: "Success", description: "Rating added successfully!" });
+      // Auto-create consumed archive entry
+      const { error: consumptionError } = await supabase
+        .from('wine_consumptions')
+        .insert({
+          user_id: user.id,
+          wine_id: wineId,
+          quantity: 1,
+          consumed_at: formData.tasting_date,
+          notes: formData.tasting_notes || null,
+        });
+
+      if (consumptionError) {
+        console.warn('Failed to create consumption entry:', consumptionError);
+        // Don't fail the rating creation if consumption fails
+      }
+
+      toast({ title: "Success", description: "Rating added successfully and wine added to consumed archive!" });
       setOpen(false);
       resetForm();
       onRatingAdded?.();
@@ -512,24 +529,27 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
             <TabsContent value="wine" className="space-y-4">
               <h3 className="text-lg font-semibold">Wine Selection</h3>
               
-              <div className="flex gap-2 mb-4">
-                <Button
-                  type="button"
-                  variant={mode === 'cellar' ? 'default' : 'outline'}
-                  onClick={() => setMode('cellar')}
-                >
-                  <Wine className="h-4 w-4 mr-2" />
-                  Select from Cellar
-                </Button>
-                <Button
-                  type="button"
-                  variant={mode === 'new' ? 'default' : 'outline'}
-                  onClick={() => setMode('new')}
-                >
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  Add New Wine
-                </Button>
-              </div>
+              {/* Hide toggle buttons when wine data is pre-filled */}
+              {!prefilledWine && !selectedWineData && (
+                <div className="flex gap-2 mb-4">
+                  <Button
+                    type="button"
+                    variant={mode === 'cellar' ? 'default' : 'outline'}
+                    onClick={() => setMode('cellar')}
+                  >
+                    <Wine className="h-4 w-4 mr-2" />
+                    Select from Cellar
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={mode === 'new' ? 'default' : 'outline'}
+                    onClick={() => setMode('new')}
+                  >
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Add New Wine
+                  </Button>
+                </div>
+              )}
 
               {mode === 'cellar' ? (
                 <div>
@@ -563,11 +583,31 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
                   )}
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <h4 className="font-medium">Wine Information</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Fill in the wine details or use CellarTracker import to auto-fill
-                  </p>
+                  <div className="space-y-4">
+                   <div className="flex justify-between items-center">
+                     <h4 className="font-medium">Wine Information</h4>
+                     <WineSearchDialog 
+                       onWineSelect={(wine) => {
+                         setNewWineData({
+                           ...newWineData,
+                           name: wine.name,
+                           producer: wine.producer,
+                           vintage: wine.vintage || null,
+                           wine_type: wine.wine_type as any,
+                           alcohol_content: wine.alcohol_content || null,
+                         });
+                       }}
+                       trigger={
+                         <Button type="button" variant="outline" size="sm">
+                           <Search className="h-4 w-4 mr-2" />
+                           Search Wine Database
+                         </Button>
+                       }
+                     />
+                   </div>
+                   <p className="text-sm text-muted-foreground">
+                     Fill in the wine details or use the search above to auto-fill from our wine database
+                   </p>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="name">Wine Name *</Label>

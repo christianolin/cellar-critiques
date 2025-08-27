@@ -8,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Search } from 'lucide-react';
 import { CellarTrackerService } from '@/utils/CellarTrackerService';
+import WineSearchDialog from '@/components/WineSearchDialog';
 
 interface AddWineDialogProps {
   addToCellar?: boolean;
@@ -366,8 +367,31 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Basic Information */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h4 className="font-medium">Wine Information</h4>
+              <WineSearchDialog 
+                onWineSelect={(wine) => {
+                  setFormData({
+                    ...formData,
+                    name: wine.name,
+                    producer: wine.producer,
+                    vintage: wine.vintage || null,
+                    wine_type: wine.wine_type as any,
+                    alcohol_content: wine.alcohol_content || null,
+                  });
+                }}
+                trigger={
+                  <Button type="button" variant="outline" size="sm">
+                    <Search className="h-4 w-4 mr-2" />
+                    Search Wine Database
+                  </Button>
+                }
+              />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Fill in the wine details or use the search above to auto-fill from our wine database
+            </p>
             <div>
               <Label htmlFor="name">Wine Name *</Label>
               <Input

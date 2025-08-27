@@ -129,6 +129,52 @@ export default function Ratings() {
     localStorage.setItem('ratingsVisibleColumns', JSON.stringify(defaultColumns));
   };
 
+  const addToCellar = async (wineId: string, wineName: string) => {
+    if (!user) return;
+
+    try {
+      // Check if wine already exists in cellar
+      const { data: existingEntry } = await supabase
+        .from('wine_cellar')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('wine_id', wineId)
+        .single();
+
+      if (existingEntry) {
+        // Update quantity
+        const { error } = await supabase
+          .from('wine_cellar')
+          .update({ quantity: existingEntry.quantity + 1 })
+          .eq('id', existingEntry.id);
+
+        if (error) throw error;
+      } else {
+        // Create new entry
+        const { error } = await supabase
+          .from('wine_cellar')
+          .insert({
+            user_id: user.id,
+            wine_id: wineId,
+            quantity: 1,
+          });
+
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Success",
+        description: `${wineName} added to your cellar`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add wine to cellar",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchRatings();
@@ -342,6 +388,18 @@ export default function Ratings() {
               <p className="mt-1 text-foreground">{rating.food_pairing}</p>
             </div>
           )}
+
+          <div className="flex gap-2 pt-2">
+            <EditRatingDialog rating={rating} onUpdated={fetchRatings} />
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => addToCellar(rating.wines.id, rating.wines.name)}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add to Cellar
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -678,8 +736,18 @@ export default function Ratings() {
                               {rating.palate_finish || 'N/A'}
                             </TableCell>
                           )}
-                          <TableCell>
-                            <EditRatingDialog rating={rating} onUpdated={fetchRatings} />
+                           <TableCell>
+                            <div className="flex gap-2">
+                              <EditRatingDialog rating={rating} onUpdated={fetchRatings} />
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => addToCellar(rating.wines.id, rating.wines.name)}
+                              >
+                                <Plus className="h-4 w-4 mr-1" />
+                                Add to Cellar
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -690,12 +758,7 @@ export default function Ratings() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredRatings.map((rating) => (
-                  <div key={rating.id} className="space-y-2">
-                    <RatingCard rating={rating} />
-                    <div>
-                      <EditRatingDialog rating={rating} onUpdated={fetchRatings} />
-                    </div>
-                  </div>
+                  <RatingCard key={rating.id} rating={rating} />
                 ))}
               </div>
             )}
