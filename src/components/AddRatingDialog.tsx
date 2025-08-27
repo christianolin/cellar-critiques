@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { Plus, PlusCircle, X, Wine } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CellarTrackerService } from '@/utils/CellarTrackerService';
 
 interface Wine {
   id: string;
@@ -148,6 +149,27 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
 
   // Get selected wine data for prefilling
   const selectedWineData = cellarWines.find(wine => wine.id === selectedWine);
+
+  // Handle cellar wine selection - pre-fill the new wine form
+  useEffect(() => {
+    if (selectedWineData && mode === 'cellar') {
+      setMode('new');
+      setNewWineData({
+        name: selectedWineData.name || '',
+        producer: selectedWineData.producer || '',
+        vintage: selectedWineData.vintage || null,
+        wine_type: (selectedWineData.wine_type as 'red' | 'white' | 'rose' | 'sparkling' | 'dessert' | 'fortified') || 'red',
+        alcohol_content: selectedWineData.alcohol_content || null,
+        bottle_size: selectedWineData.bottle_size || '750ml',
+        country_id: selectedWineData.country_id || '',
+        region_id: selectedWineData.region_id || '',
+        appellation_id: selectedWineData.appellation_id || '',
+        grape_varieties: [],
+        cellar_tracker_id: selectedWineData.cellar_tracker_id || '',
+        image_url: selectedWineData.image_url || null,
+      });
+    }
+  }, [selectedWineData, mode]);
 
   const fetchCellarWines = async () => {
     try {
@@ -439,93 +461,18 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
   };
 
   const fetchCellarTrackerData = async () => {
-    if (!newWineData.cellar_tracker_id) {
-      toast({
-        title: "Error",
-        description: "Please enter a CellarTracker ID",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setCellarTrackerLoading(true);
-    try {
-      const response = await fetch(`https://www.cellartracker.com/wine.asp?iWine=${newWineData.cellar_tracker_id}`);
-      const html = await response.text();
-      
-      // Parse the HTML to extract wine information
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html');
-      
-      // Extract wine name (from the title or wine name element)
-      const titleElement = doc.querySelector('title');
-      let name = '';
-      if (titleElement?.textContent) {
-        const titleText = titleElement.textContent;
-        // Extract wine name from title (usually after "CellarTracker! - ")
-        const match = titleText.match(/CellarTracker! - (.+?) \(/);
-        if (match) {
-          name = match[1].trim();
-        }
-      }
-      
-      // Extract producer (look for producer information)
-      let producer = '';
-      const producerElements = doc.querySelectorAll('td, span, div');
-      for (const element of producerElements) {
-        const text = element.textContent?.toLowerCase() || '';
-        if (text.includes('producer') || text.includes('winery')) {
-          const nextElement = element.nextElementSibling;
-          if (nextElement?.textContent) {
-            producer = nextElement.textContent.trim();
-            break;
-          }
-        }
-      }
-      
-      // Extract vintage (look for 4-digit year)
-      let vintage = null;
-      const vintageMatch = html.match(/\b(19|20)\d{2}\b/);
-      if (vintageMatch) {
-        vintage = parseInt(vintageMatch[0]);
-      }
-      
-      // Extract wine type (red, white, etc.)
-      let wine_type = 'red';
-      const typeText = html.toLowerCase();
-      if (typeText.includes('white wine') || typeText.includes('white')) {
-        wine_type = 'white';
-      } else if (typeText.includes('sparkling') || typeText.includes('champagne')) {
-        wine_type = 'sparkling';
-      } else if (typeText.includes('rosé') || typeText.includes('rose')) {
-        wine_type = 'rose';
-      } else if (typeText.includes('dessert') || typeText.includes('sweet')) {
-        wine_type = 'dessert';
-      } else if (typeText.includes('fortified') || typeText.includes('port') || typeText.includes('sherry')) {
-        wine_type = 'fortified';
-      }
-      
-      // Update the form with extracted data
+    const data = await CellarTrackerService.fetchWineData(newWineData.cellar_tracker_id);
+    setCellarTrackerLoading(false);
+    if (data) {
       setNewWineData({
         ...newWineData,
-        name: name || newWineData.name,
-        producer: producer || newWineData.producer,
-        vintage: vintage || newWineData.vintage,
-        wine_type: wine_type as any,
+        name: data.name || newWineData.name,
+        producer: data.producer || newWineData.producer,
+        vintage: data.vintage || newWineData.vintage,
+        wine_type: (data.wine_type as any) || newWineData.wine_type,
+        alcohol_content: data.alcohol_content || newWineData.alcohol_content,
       });
-      
-      toast({
-        title: "Success",
-        description: "Wine data imported from CellarTracker",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch data from CellarTracker. Please fill in manually.",
-        variant: "destructive",
-      });
-    } finally {
-      setCellarTrackerLoading(false);
     }
   };
 

@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { Plus, X } from 'lucide-react';
+import { CellarTrackerService } from '@/utils/CellarTrackerService';
 
 interface AddWineDialogProps {
   addToCellar?: boolean;
@@ -78,6 +79,23 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
   const [grapeVarieties, setGrapeVarieties] = useState<GrapeVariety[]>([]);
   const [filteredRegions, setFilteredRegions] = useState<Region[]>([]);
   const [filteredAppellations, setFilteredAppellations] = useState<Appellation[]>([]);
+  const [cellarTrackerLoading, setCellarTrackerLoading] = useState(false);
+
+  const fetchCellarTrackerData = async () => {
+    setCellarTrackerLoading(true);
+    const data = await CellarTrackerService.fetchWineData(formData.cellar_tracker_id);
+    setCellarTrackerLoading(false);
+    if (data) {
+      setFormData({
+        ...formData,
+        name: data.name || formData.name,
+        producer: data.producer || formData.producer,
+        vintage: data.vintage || formData.vintage,
+        wine_type: (data.wine_type as any) || formData.wine_type,
+        alcohol_content: data.alcohol_content || formData.alcohol_content,
+      });
+    }
+  };
 
   const [formData, setFormData] = useState<WineFormData>({
     name: '',
@@ -568,12 +586,25 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
             </div>
             <div>
               <Label htmlFor="cellar_tracker_id">CellarTracker ID</Label>
-              <Input
-                id="cellar_tracker_id"
-                value={formData.cellar_tracker_id}
-                onChange={(e) => setFormData({ ...formData, cellar_tracker_id: e.target.value })}
-                placeholder="e.g. 12345"
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="cellar_tracker_id"
+                  value={formData.cellar_tracker_id}
+                  onChange={(e) => setFormData({ ...formData, cellar_tracker_id: e.target.value })}
+                  placeholder="e.g. 175293"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={fetchCellarTrackerData}
+                  disabled={cellarTrackerLoading || !formData.cellar_tracker_id}
+                >
+                  {cellarTrackerLoading ? 'Fetching...' : 'Import'}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Enter a CellarTracker ID and click Import to auto-fill wine details
+              </p>
             </div>
           </div>
 
