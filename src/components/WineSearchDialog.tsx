@@ -51,8 +51,8 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
   const setOpen = externalOnOpenChange || setInternalOpen;
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedType, setSelectedType] = useState('');
-  const [selectedCountry, setSelectedCountry] = useState('');
+  const [selectedType, setSelectedType] = useState('all');
+  const [selectedCountry, setSelectedCountry] = useState('all');
   const [results, setResults] = useState<WineSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
 
@@ -66,8 +66,8 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
         wine.producer.toLowerCase().includes(searchTerm.toLowerCase()) ||
         wine.region?.toLowerCase().includes(searchTerm.toLowerCase());
       
-      const matchesType = selectedType === '' || wine.wine_type === selectedType;
-      const matchesCountry = selectedCountry === '' || wine.country === selectedCountry;
+      const matchesType = selectedType === 'all' || wine.wine_type === selectedType;
+      const matchesCountry = selectedCountry === 'all' || wine.country === selectedCountry;
       
       return matchesSearch && matchesType && matchesCountry;
     });
@@ -88,8 +88,8 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
     onWineSelect(wine);
     setOpen(false);
     setSearchTerm('');
-    setSelectedType('');
-    setSelectedCountry('');
+    setSelectedType('all');
+    setSelectedCountry('all');
     setResults([]);
   };
 
@@ -147,7 +147,7 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
                   <SelectValue placeholder="All types" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All types</SelectItem>
+                  <SelectItem value="all">All types</SelectItem>
                   <SelectItem value="red">Red</SelectItem>
                   <SelectItem value="white">White</SelectItem>
                   <SelectItem value="rose">Rosé</SelectItem>
@@ -164,7 +164,7 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
                   <SelectValue placeholder="All countries" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All countries</SelectItem>
+                  <SelectItem value="all">All countries</SelectItem>
                   <SelectItem value="France">France</SelectItem>
                   <SelectItem value="Italy">Italy</SelectItem>
                   <SelectItem value="Spain">Spain</SelectItem>
