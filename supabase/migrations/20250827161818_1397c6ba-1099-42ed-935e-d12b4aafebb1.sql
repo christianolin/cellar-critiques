@@ -1,0 +1,39 @@
+-- Insert wine database entries using existing French producers
+INSERT INTO public.wine_database (name, producer_id, wine_type, country_id, region_id, appellation_id, alcohol_content, description) VALUES
+
+-- First Growth Bordeaux wines
+('Château Margaux 2010', (SELECT id FROM producers WHERE name = 'Château Margaux'), 'red', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Bordeaux'), (SELECT id FROM appellations WHERE name = 'Margaux'), 13.0, 'First Growth Bordeaux with unparalleled elegance and finesse'),
+('Château Lafite Rothschild 2009', (SELECT id FROM producers WHERE name = 'Château Lafite Rothschild'), 'red', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Bordeaux'), (SELECT id FROM appellations WHERE name = 'Pauillac'), 13.5, 'The most elegant of the First Growths with legendary aging potential'),
+('Château Latour 2005', (SELECT id FROM producers WHERE name = 'Château Latour'), 'red', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Bordeaux'), (SELECT id FROM appellations WHERE name = 'Pauillac'), 13.8, 'Power and structure define this legendary Left Bank estate'),
+('Château Mouton Rothschild 2000', (SELECT id FROM producers WHERE name = 'Château Mouton Rothschild'), 'red', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Bordeaux'), (SELECT id FROM appellations WHERE name = 'Pauillac'), 14.0, 'Art meets wine in this iconic First Growth with distinctive labels'),
+('Château Haut-Brion 2016', (SELECT id FROM producers WHERE name = 'Château Haut-Brion'), 'red', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Bordeaux'), (SELECT id FROM appellations WHERE name = 'Pessac-Léognan'), 14.2, 'The only First Growth from Graves with earthy complexity'),
+
+-- Premium Champagnes
+('Dom Pérignon 2012', (SELECT id FROM producers WHERE name = 'Dom Pérignon'), 'sparkling', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Champagne'), (SELECT id FROM appellations WHERE name = 'Champagne'), 12.5, 'The prestige cuvée that defines luxury champagne'),
+('Krug Grande Cuvée', (SELECT id FROM producers WHERE name = 'Krug'), 'sparkling', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Champagne'), (SELECT id FROM appellations WHERE name = 'Champagne'), 12.0, 'Multi-vintage blend showcasing Krug house style'),
+('Pol Roger Sir Winston Churchill', (SELECT id FROM producers WHERE name = 'Pol Roger'), 'sparkling', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Champagne'), (SELECT id FROM appellations WHERE name = 'Champagne'), 12.5, 'A tribute to the great statesman who loved this house'),
+('Bollinger Special Cuvée', (SELECT id FROM producers WHERE name = 'Bollinger'), 'sparkling', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Champagne'), (SELECT id FROM appellations WHERE name = 'Champagne'), 12.0, 'James Bond''s champagne of choice with rich texture'),
+('Louis Roederer Cristal 2013', (SELECT id FROM producers WHERE name = 'Louis Roederer'), 'sparkling', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Champagne'), (SELECT id FROM appellations WHERE name = 'Champagne'), 12.0, 'The original prestige cuvée in its iconic clear bottle'),
+
+-- Burgundy wines
+('Chablis Premier Cru Montmains', (SELECT id FROM producers WHERE name = 'Louis Michel & Fils'), 'white', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Burgundy'), (SELECT id FROM appellations WHERE name = 'Chablis Premier Cru'), 12.5, 'Pure Chablis expression with steely minerality'),
+('Puligny-Montrachet', (SELECT id FROM producers WHERE name = 'Olivier Leflaive'), 'white', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Burgundy'), (SELECT id FROM appellations WHERE name = 'Puligny-Montrachet'), 13.0, 'White Burgundy at its finest with perfect balance'),
+('Domaine de la Romanée-Conti Montrachet', (SELECT id FROM producers WHERE name = 'Domaine de la Romanée-Conti'), 'white', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Burgundy'), (SELECT id FROM appellations WHERE name = 'Montrachet'), 13.5, 'The holy grail of white Burgundy'),
+('Gevrey-Chambertin', (SELECT id FROM producers WHERE name = 'Armand Rousseau'), 'red', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Burgundy'), (SELECT id FROM appellations WHERE name = 'Gevrey-Chambertin'), 13.0, 'Classic Côte de Nuits Pinot Noir with earthiness'),
+
+-- Rhône Valley wines
+('Côte-Rôtie La Mouline', (SELECT id FROM producers WHERE name = 'E. Guigal'), 'red', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Rhône Valley'), (SELECT id FROM appellations WHERE name = 'Côte-Rôtie'), 13.5, 'Single vineyard Syrah with violet aromatics and silky texture'),
+('Châteauneuf-du-Pape Vieux Télégraphe', (SELECT id FROM producers WHERE name = 'Domaine du Vieux Télégraphe'), 'red', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Rhône Valley'), (SELECT id FROM appellations WHERE name = 'Châteauneuf-du-Pape'), 14.5, 'Traditional Southern Rhône blend with power and spice'),
+('Hermitage Rouge', (SELECT id FROM producers WHERE name = 'Jean-Louis Chave'), 'red', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Rhône Valley'), (SELECT id FROM appellations WHERE name = 'Hermitage'), 13.5, 'Northern Rhône Syrah from legendary producer'),
+
+-- Loire Valley wines
+('Sancerre Les Baronnes', (SELECT id FROM producers WHERE name = 'Henri Bourgeois'), 'white', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Loire Valley'), (SELECT id FROM appellations WHERE name = 'Sancerre'), 13.0, 'Pure Loire Sauvignon Blanc with mineral precision and citrus notes'),
+('Muscadet Sèvre-et-Maine sur Lie', (SELECT id FROM producers WHERE name = 'Domaine de l''Ecu'), 'white', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Loire Valley'), (SELECT id FROM appellations WHERE name = 'Muscadet'), 12.0, 'Crisp Loire white wine perfect with shellfish'),
+('Pouilly-Fumé Silex', (SELECT id FROM producers WHERE name = 'Didier Dagueneau'), 'white', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Loire Valley'), (SELECT id FROM appellations WHERE name = 'Pouilly-Fumé'), 13.5, 'Smoky Sauvignon Blanc from flint soils'),
+
+-- Dessert wine
+('Château d''Yquem 2001', (SELECT id FROM producers WHERE name = 'Château d''Yquem'), 'dessert', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Bordeaux'), (SELECT id FROM appellations WHERE name = 'Sauternes'), 14.0, 'The king of dessert wines with liquid gold complexity'),
+
+-- Alsace wines
+('Gewürztraminer Grand Cru', (SELECT id FROM producers WHERE name = 'Trimbach'), 'white', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Alsace'), (SELECT id FROM appellations WHERE name = 'Alsace Grand Cru'), 13.5, 'Aromatic Alsatian white with spice and floral notes'),
+('Riesling Clos Sainte Hune', (SELECT id FROM producers WHERE name = 'Trimbach'), 'white', (SELECT id FROM countries WHERE name = 'France'), (SELECT id FROM regions WHERE name = 'Alsace'), (SELECT id FROM appellations WHERE name = 'Alsace Grand Cru'), 12.5, 'Legendary Alsatian Riesling from single vineyard');
