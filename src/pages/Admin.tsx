@@ -142,18 +142,10 @@ export default function Admin() {
 
   useEffect(() => {
     if (activeTab === 'appellations') {
-      // Ensure region filter remains valid for selected country
-      if (countryFilter && regionFilter) {
-        const valid = regions.some(r => r.id === regionFilter && r.country_id === countryFilter);
-        if (!valid) {
-          setRegionFilter('');
-          return; // will trigger this effect again with cleared regionFilter
-        }
-      }
       setCurrentPage(1); // Reset to first page when filters change
       loadData();
     }
-  }, [countryFilter, regionFilter, regions]);
+  }, [countryFilter, regionFilter]);
 
   useEffect(() => {
     loadData();
@@ -280,7 +272,7 @@ export default function Admin() {
 
           // Apply filters
           if (searchTerm) {
-            query = query.or(`name.ilike.%${searchTerm}%,producers.name.ilike.%${searchTerm}%`);
+            query = query.ilike('name', `%${searchTerm}%`);
           }
           
           if (countryFilter) {
