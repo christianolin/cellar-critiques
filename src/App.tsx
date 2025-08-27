@@ -10,6 +10,7 @@ import Friends from "@/pages/Friends";
 import Ratings from "@/pages/Ratings";
 import Admin from "@/pages/Admin";
 import Profile from "@/pages/Profile";
+import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
 
