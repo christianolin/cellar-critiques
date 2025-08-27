@@ -236,6 +236,99 @@ export type Database = {
           },
         ]
       }
+      wine_consumptions: {
+        Row: {
+          consumed_at: string
+          created_at: string
+          id: string
+          notes: string | null
+          quantity: number
+          rating_id: string | null
+          updated_at: string
+          user_id: string
+          wine_id: string
+        }
+        Insert: {
+          consumed_at?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          quantity?: number
+          rating_id?: string | null
+          updated_at?: string
+          user_id: string
+          wine_id: string
+        }
+        Update: {
+          consumed_at?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          quantity?: number
+          rating_id?: string | null
+          updated_at?: string
+          user_id?: string
+          wine_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wine_consumptions_rating_id_fkey"
+            columns: ["rating_id"]
+            isOneToOne: false
+            referencedRelation: "wine_ratings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wine_consumptions_wine_id_fkey"
+            columns: ["wine_id"]
+            isOneToOne: false
+            referencedRelation: "wines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wine_grape_composition: {
+        Row: {
+          created_at: string
+          grape_variety_id: string
+          id: string
+          percentage: number
+          updated_at: string
+          wine_id: string
+        }
+        Insert: {
+          created_at?: string
+          grape_variety_id: string
+          id?: string
+          percentage: number
+          updated_at?: string
+          wine_id: string
+        }
+        Update: {
+          created_at?: string
+          grape_variety_id?: string
+          id?: string
+          percentage?: number
+          updated_at?: string
+          wine_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wine_grape_composition_grape_variety_id_fkey"
+            columns: ["grape_variety_id"]
+            isOneToOne: false
+            referencedRelation: "grape_varieties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wine_grape_composition_wine_id_fkey"
+            columns: ["wine_id"]
+            isOneToOne: false
+            referencedRelation: "wines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wine_ratings: {
         Row: {
           body: string | null

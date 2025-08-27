@@ -11,6 +11,7 @@ import { Plus, Wine, Search, Grid, List, BarChart3, TrendingUp, DollarSign } fro
 import Layout from '@/components/Layout';
 import AddWineDialog from '@/components/AddWineDialog';
 import EditWineDialog from '@/components/EditWineDialog';
+import QuantityControls from '@/components/QuantityControls';
 
 interface WineInCellar {
   id: string;
@@ -204,7 +205,7 @@ export default function Cellar() {
               <div className="flex items-center space-x-2">
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <div className="text-2xl font-bold">${stats.totalValue.toFixed(0)}</div>
+                  <div className="text-2xl font-bold">{stats.totalValue.toFixed(0)} DKK</div>
                   <p className="text-xs text-muted-foreground">Total Value</p>
                 </div>
               </div>
@@ -263,7 +264,7 @@ export default function Cellar() {
                   <TableHead>Type</TableHead>
                   <TableHead>Region</TableHead>
                   <TableHead>Quantity</TableHead>
-                  <TableHead>Price</TableHead>
+                  <TableHead>Price (DKK)</TableHead>
                   <TableHead>Location</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -284,9 +285,11 @@ export default function Cellar() {
                       <TableCell>
                         {wine.regions?.name || wine.countries?.name || 'N/A'}
                       </TableCell>
-                      <TableCell>{cellarEntry.quantity}</TableCell>
                       <TableCell>
-                        {cellarEntry.purchase_price ? `$${cellarEntry.purchase_price}` : 'N/A'}
+                        <QuantityControls cellarEntry={cellarEntry} onUpdate={fetchCellarWines} />
+                      </TableCell>
+                      <TableCell>
+                        {cellarEntry.purchase_price ? `${cellarEntry.purchase_price} DKK` : 'N/A'}
                       </TableCell>
                       <TableCell>{cellarEntry.storage_location || 'N/A'}</TableCell>
                       <TableCell>
@@ -325,12 +328,12 @@ export default function Cellar() {
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Quantity:</span>
-                        <span>{cellarEntry.quantity} bottles</span>
+                        <QuantityControls cellarEntry={cellarEntry} onUpdate={fetchCellarWines} />
                       </div>
                       {cellarEntry.purchase_price && (
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Purchase:</span>
-                          <span>${cellarEntry.purchase_price}</span>
+                          <span>{cellarEntry.purchase_price} DKK</span>
                         </div>
                       )}
                       {cellarEntry.storage_location && (

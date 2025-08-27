@@ -39,6 +39,13 @@ interface GrapeVariety {
   type: string;
 }
 
+interface GrapeWithPercentage {
+  id: string;
+  name: string;
+  type: string;
+  percentage: number;
+}
+
 interface WineFormData {
   name: string;
   producer: string;
@@ -47,7 +54,7 @@ interface WineFormData {
   country_id: string;
   region_id: string;
   appellation_id: string;
-  grape_variety_ids: string[];
+  grape_varieties: GrapeWithPercentage[];
   alcohol_content: number | null;
   // Cellar specific fields
   quantity?: number;
@@ -79,7 +86,7 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
     country_id: '',
     region_id: '',
     appellation_id: '',
-    grape_variety_ids: [],
+    grape_varieties: [],
     alcohol_content: null,
     ...(addToCellar ? {
       quantity: 1,
@@ -146,6 +153,40 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
     }
   }, [formData.region_id, appellations]);
 
+  const addGrapeVariety = (grapeId: string) => {
+    const grape = grapeVarieties.find(g => g.id === grapeId);
+    if (grape && !formData.grape_varieties.find(g => g.id === grapeId)) {
+      const currentGrapes = [...formData.grape_varieties];
+      const newPercentage = currentGrapes.length === 0 ? 100 : Math.floor(100 / (currentGrapes.length + 1));
+      
+      // Redistribute percentages equally
+      const redistributedGrapes = currentGrapes.map(g => ({ ...g, percentage: newPercentage }));
+      const newGrapes = [...redistributedGrapes, { ...grape, percentage: newPercentage }];
+      
+      setFormData({ ...formData, grape_varieties: newGrapes });
+    }
+  };
+
+  const removeGrapeVariety = (grapeId: string) => {
+    const remainingGrapes = formData.grape_varieties.filter(g => g.id !== grapeId);
+    if (remainingGrapes.length > 0) {
+      const newPercentage = Math.floor(100 / remainingGrapes.length);
+      const redistributedGrapes = remainingGrapes.map(g => ({ ...g, percentage: newPercentage }));
+      setFormData({ ...formData, grape_varieties: redistributedGrapes });
+    } else {
+      setFormData({ ...formData, grape_varieties: [] });
+    }
+  };
+
+  const updateGrapePercentage = (grapeId: string, percentage: number) => {
+    setFormData({
+      ...formData,
+      grape_varieties: formData.grape_varieties.map(g => 
+        g.id === grapeId ? { ...g, percentage } : g
+      )
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -161,7 +202,7 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
         country_id: formData.country_id || null,
         region_id: formData.region_id || null,
         appellation_id: formData.appellation_id || null,
-        grape_variety_ids: formData.grape_variety_ids,
+        grape_variety_ids: formData.grape_varieties.map(g => g.id),
         alcohol_content: formData.alcohol_content,
         cellar_tracker_id: formData.cellar_tracker_id
       };
@@ -207,7 +248,7 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
         country_id: '',
         region_id: '',
         appellation_id: '',
-        grape_variety_ids: [],
+        grape_varieties: [],
         alcohol_content: null,
         ...(addToCellar ? {
           quantity: 1,
@@ -367,14 +408,7 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
             <Label htmlFor="grape_varieties">Grape Varieties with Percentages</Label>
             <Select 
               value="" 
-              onValueChange={(value) => {
-                if (!formData.grape_variety_ids.includes(value)) {
-                  setFormData({ 
-                    ...formData, 
-                    grape_variety_ids: [...formData.grape_variety_ids, value] 
-                  });
-                }
-              }}
+              onValueChange={addGrapeVariety}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Add grape varieties" />
@@ -387,32 +421,30 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
                 ))}
               </SelectContent>
             </Select>
-            {formData.grape_variety_ids.length > 0 && (
+            {formData.grape_varieties.length > 0 && (
               <div className="space-y-2 mt-2">
-                {formData.grape_variety_ids.map((grapeId) => {
-                  const grape = grapeVarieties.find(g => g.id === grapeId);
-                  return grape ? (
-                    <div key={grapeId} className="flex items-center gap-2 p-2 bg-secondary rounded-md">
-                      <span className="flex-1 text-sm">{grape.name}</span>
-                      <Input
-                        type="number"
-                        min="0"
-                        max="100"
-                        defaultValue={0}
-                        className="w-20"
-                        placeholder="%"
-                      />
-                      <span className="text-sm">%</span>
-                      <X
-                        className="h-4 w-4 cursor-pointer"
-                        onClick={() => setFormData({
-                          ...formData,
-                          grape_variety_ids: formData.grape_variety_ids.filter(id => id !== grapeId)
-                        })}
-                      />
-                    </div>
-                  ) : null;
-                })}
+                {formData.grape_varieties.map((grape) => (
+                  <div key={grape.id} className="flex items-center gap-2 p-2 bg-secondary rounded-md">
+                    <span className="flex-1 text-sm">{grape.name}</span>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={grape.percentage}
+                      onChange={(e) => updateGrapePercentage(grape.id, parseInt(e.target.value) || 0)}
+                      className="w-20"
+                      placeholder="%"
+                    />
+                    <span className="text-sm">%</span>
+                    <X
+                      className="h-4 w-4 cursor-pointer"
+                      onClick={() => removeGrapeVariety(grape.id)}
+                    />
+                  </div>
+                ))}
+                <div className="text-xs text-muted-foreground">
+                  Total: {formData.grape_varieties.reduce((sum, g) => sum + g.percentage, 0)}%
+                </div>
               </div>
             )}
           </div>
@@ -459,14 +491,14 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
                     />
                   </div>
                   <div>
-                    <Label htmlFor="purchase_price">Purchase Price</Label>
-                    <Input
-                      id="purchase_price"
-                      type="number"
-                      step="0.01"
-                      value={formData.purchase_price || ''}
-                      onChange={(e) => setFormData({ ...formData, purchase_price: e.target.value ? parseFloat(e.target.value) : null })}
-                    />
+              <Label htmlFor="purchase_price">Purchase Price (DKK)</Label>
+              <Input
+                id="purchase_price"
+                type="number"
+                step="0.01"
+                value={formData.purchase_price || ''}
+                onChange={(e) => setFormData({ ...formData, purchase_price: e.target.value ? parseFloat(e.target.value) : null })}
+              />
                   </div>
                 </div>
 

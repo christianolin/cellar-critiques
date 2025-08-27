@@ -194,16 +194,21 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
                 <>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="rating">Rating (1-100) *</Label>
-                      <Input
-                        id="rating"
-                        type="number"
-                        min="1"
-                        max="100"
-                        value={formData.rating || ''}
-                        onChange={(e) => setFormData({ ...formData, rating: e.target.value ? parseInt(e.target.value) : null })}
-                        required
-                      />
+                      <div>
+                        <Label htmlFor="rating">Rating (50-100) *</Label>
+                        <Input
+                          id="rating"
+                          type="number"
+                          min="50"
+                          max="100"
+                          value={formData.rating || ''}
+                          onChange={(e) => setFormData({ ...formData, rating: e.target.value ? parseInt(e.target.value) : null })}
+                          required
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Robert Parker 100-point scale: 50-59 Unacceptable, 60-69 Below Average, 70-79 Average, 80-89 Above Average, 90-95 Outstanding, 96-100 Extraordinary
+                        </p>
+                      </div>
                     </div>
                     <div>
                       <Label htmlFor="tasting_date">Tasting Date</Label>
@@ -311,9 +316,60 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
                   </div>
 
                   <DialogFooter>
-                    <Button type="submit" disabled={loading || !formData.wine_id || !formData.rating}>
-                      {loading ? 'Adding Rating...' : 'Add Rating'}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button type="submit" disabled={loading || !formData.wine_id || !formData.rating}>
+                        {loading ? 'Adding Rating...' : 'Add Rating'}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={loading}
+                        onClick={async () => {
+                          if (formData.wine_id && window.confirm('Do you want to decrease the quantity in your cellar?')) {
+                            try {
+                              const { data: cellarEntry } = await supabase
+                                .from('wine_cellar')
+                                .select('*')
+                                .eq('wine_id', formData.wine_id)
+                                .eq('user_id', user?.id)
+                                .single();
+                              
+                              if (cellarEntry && cellarEntry.quantity > 0) {
+                                const newQuantity = cellarEntry.quantity - 1;
+                                if (newQuantity > 0) {
+                                  await supabase
+                                    .from('wine_cellar')
+                                    .update({ quantity: newQuantity })
+                                    .eq('id', cellarEntry.id);
+                                } else {
+                                  await supabase
+                                    .from('wine_cellar')
+                                    .delete()
+                                    .eq('id', cellarEntry.id);
+                                }
+                                
+                                await supabase
+                                  .from('wine_consumptions')
+                                  .insert({
+                                    user_id: user!.id,
+                                    wine_id: formData.wine_id,
+                                    quantity: 1,
+                                  });
+                                
+                                toast({
+                                  title: "Success",
+                                  description: "Cellar inventory updated",
+                                });
+                              }
+                            } catch (error) {
+                              console.error('Error updating inventory:', error);
+                            }
+                          }
+                        }}
+                      >
+                        Rate & Decrease Inventory
+                      </Button>
+                    </div>
                   </DialogFooter>
                 </>
               )}

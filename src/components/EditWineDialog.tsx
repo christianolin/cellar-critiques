@@ -455,7 +455,7 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
                 />
               </div>
               <div>
-                <Label htmlFor="purchase_price">Purchase Price</Label>
+                <Label htmlFor="purchase_price">Purchase Price (DKK)</Label>
                 <Input
                   id="purchase_price"
                   type="number"
