@@ -143,10 +143,18 @@ export default function Admin() {
 
   useEffect(() => {
     if (activeTab === 'appellations') {
+      // Ensure region filter remains valid for selected country
+      if (countryFilter && regionFilter) {
+        const valid = regions.some(r => r.id === regionFilter && r.country_id === countryFilter);
+        if (!valid) {
+          setRegionFilter('');
+          return; // will trigger this effect again with cleared regionFilter
+        }
+      }
       setCurrentPage(1); // Reset to first page when filters change
       loadData();
     }
-  }, [countryFilter, regionFilter]);
+  }, [countryFilter, regionFilter, regions]);
 
   useEffect(() => {
     loadData();
@@ -219,7 +227,13 @@ export default function Admin() {
         case 'appellations':
           let appellationsQuery = supabase
             .from('appellations')
-            .select('*, regions(name, countries(name))');
+            .select(`
+              id, name, region_id,
+              regions!inner(
+                id, name, country_id,
+                countries!inner(name)
+              )
+            `);
           
           // Apply filters for appellations
           if (activeTab === 'appellations' && countryFilter) {
