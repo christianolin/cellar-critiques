@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
-import { Plus, PlusCircle } from 'lucide-react';
+import { Plus, PlusCircle, X } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Wine {
@@ -56,6 +56,7 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
   const [grapeVarieties, setGrapeVarieties] = useState<GrapeVariety[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedWine, setSelectedWine] = useState<string>('');
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [mode, setMode] = useState<'existing' | 'new'>('existing');
   
   const [formData, setFormData] = useState({
@@ -97,11 +98,13 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
     vintage: null as number | null,
     wine_type: 'red' as 'red' | 'white' | 'rose' | 'sparkling' | 'dessert' | 'fortified',
     alcohol_content: null as number | null,
-    bottle_size: 'Bottle (750ml)',
+    bottle_size: '750ml',
     country_id: '',
     region_id: '',
     appellation_id: '',
-    grape_variety_ids: [] as string[],
+    grape_varieties: [] as { id: string; name: string; type: string; percentage: number }[],
+    cellar_tracker_id: '',
+    image_url: null as string | null,
   });
 
   useEffect(() => {
@@ -170,7 +173,9 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
           country_id: newWineData.country_id || null,
           region_id: newWineData.region_id || null,
           appellation_id: newWineData.appellation_id || null,
-          grape_variety_ids: newWineData.grape_variety_ids,
+          grape_variety_ids: newWineData.grape_varieties.map(g => g.id),
+          cellar_tracker_id: newWineData.cellar_tracker_id,
+          image_url: newWineData.image_url,
         })
         .select()
         .single();
@@ -319,11 +324,13 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
       vintage: null,
       wine_type: 'red',
       alcohol_content: null,
-      bottle_size: 'Bottle (750ml)',
+      bottle_size: '750ml',
       country_id: '',
       region_id: '',
       appellation_id: '',
-      grape_variety_ids: [],
+      grape_varieties: [],
+      cellar_tracker_id: '',
+      image_url: null,
     });
   };
 
@@ -334,6 +341,92 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
   const filteredAppellations = appellations.filter(appellation => 
     !newWineData.region_id || appellation.region_id === newWineData.region_id
   );
+
+  const addGrapeVariety = (grapeId: string) => {
+    const grape = grapeVarieties.find(g => g.id === grapeId);
+    if (grape && !newWineData.grape_varieties.find(g => g.id === grapeId)) {
+      const newGrapes = [...newWineData.grape_varieties, { ...grape, percentage: 0 }];
+      const evenPercentage = Math.floor(100 / newGrapes.length);
+      const updatedGrapes = newGrapes.map(g => ({ ...g, percentage: evenPercentage }));
+      setNewWineData({ ...newWineData, grape_varieties: updatedGrapes });
+    }
+  };
+
+  const removeGrapeVariety = (grapeId: string) => {
+    const remainingGrapes = newWineData.grape_varieties.filter(g => g.id !== grapeId);
+    if (remainingGrapes.length > 0) {
+      const evenPercentage = Math.floor(100 / remainingGrapes.length);
+      const updatedGrapes = remainingGrapes.map(g => ({ ...g, percentage: evenPercentage }));
+      setNewWineData({ ...newWineData, grape_varieties: updatedGrapes });
+    } else {
+      setNewWineData({ ...newWineData, grape_varieties: [] });
+    }
+  };
+
+  const updateGrapePercentage = (grapeId: string, percentage: number) => {
+    setNewWineData({
+      ...newWineData,
+      grape_varieties: newWineData.grape_varieties.map(g => 
+        g.id === grapeId ? { ...g, percentage } : g
+      )
+    });
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `wine-${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('wine-images')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('wine-images')
+        .getPublicUrl(fileName);
+
+      setNewWineData({ ...newWineData, image_url: publicUrl });
+      
+      toast({
+        title: "Success",
+        description: "Image uploaded successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload image",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -418,19 +511,7 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="vintage">Vintage</Label>
-                  <Input
-                    id="vintage"
-                    type="number"
-                    min="1800"
-                    max={new Date().getFullYear()}
-                    value={newWineData.vintage ?? ''}
-                    onChange={(e) => setNewWineData({ ...newWineData, vintage: e.target.value ? parseInt(e.target.value) : null })}
-                    placeholder="e.g., 2020"
-                  />
-                </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="wine_type">Wine Type *</Label>
                   <Select
@@ -451,23 +532,75 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="alcohol_content">Alcohol %</Label>
+                  <Label htmlFor="bottle_size">Bottle Size</Label>
+                  <Select
+                    value={newWineData.bottle_size}
+                    onValueChange={(value) => setNewWineData({ ...newWineData, bottle_size: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="187.5ml">Split/Piccolo (187.5ml)</SelectItem>
+                      <SelectItem value="375ml">Half Bottle/Demi (375ml)</SelectItem>
+                      <SelectItem value="750ml">Standard Bottle (750ml)</SelectItem>
+                      <SelectItem value="1000ml">Liter (1000ml)</SelectItem>
+                      <SelectItem value="1500ml">Magnum (1500ml)</SelectItem>
+                      <SelectItem value="3000ml">Double Magnum/Jeroboam (3L)</SelectItem>
+                      <SelectItem value="4500ml">Rehoboam (4.5L)</SelectItem>
+                      <SelectItem value="6000ml">Imperial/Methuselah (6L)</SelectItem>
+                      <SelectItem value="9000ml">Salmanazar (9L)</SelectItem>
+                      <SelectItem value="12000ml">Balthazar (12L)</SelectItem>
+                      <SelectItem value="15000ml">Nebuchadnezzar (15L)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="vintage">Vintage</Label>
                   <Input
-                    id="alcohol_content"
+                    id="vintage"
                     type="number"
-                    step="0.1"
-                    min="0"
-                    max="50"
-                    value={newWineData.alcohol_content ?? ''}
-                    onChange={(e) => setNewWineData({ ...newWineData, alcohol_content: e.target.value ? parseFloat(e.target.value) : null })}
-                    placeholder="e.g., 13.5"
+                    min="1800"
+                    max="2030"
+                    value={newWineData.vintage ?? ''}
+                    onChange={(e) => setNewWineData({ ...newWineData, vintage: e.target.value ? parseInt(e.target.value) : null })}
+                    placeholder="e.g., 2020"
                   />
+                </div>
+                <div>
+                  <Label htmlFor="wine_image">Wine Image</Label>
+                  <div className="space-y-2">
+                    <Input
+                      id="wine_image"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={uploadingImage}
+                    />
+                    {uploadingImage && <p className="text-sm text-muted-foreground">Uploading...</p>}
+                    {newWineData.image_url && (
+                      <div className="flex items-center gap-2">
+                        <img src={newWineData.image_url} alt="Wine preview" className="w-16 h-16 object-cover rounded" />
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setNewWineData({ ...newWineData, image_url: null })}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="country">Country</Label>
+                  <Label htmlFor="country">Country *</Label>
                   <Select
                     value={newWineData.country_id}
                     onValueChange={(value) => setNewWineData({ ...newWineData, country_id: value, region_id: '', appellation_id: '' })}
@@ -521,6 +654,73 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="grape_varieties">Grape Varieties with Percentages</Label>
+                <Select value="" onValueChange={addGrapeVariety}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Add grape varieties" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {grapeVarieties.map((grape) => (
+                      <SelectItem key={grape.id} value={grape.id}>
+                        {grape.name} ({grape.type})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                {newWineData.grape_varieties.length > 0 && (
+                  <div className="space-y-2 mt-2">
+                    {newWineData.grape_varieties.map((grape) => (
+                      <div key={grape.id} className="flex items-center gap-2 p-2 bg-secondary rounded-md">
+                        <span className="flex-1 text-sm">{grape.name}</span>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={grape.percentage}
+                          onChange={(e) => updateGrapePercentage(grape.id, parseInt(e.target.value) || 0)}
+                          className="w-20"
+                          placeholder="%"
+                        />
+                        <span className="text-sm">%</span>
+                        <X
+                          className="h-4 w-4 cursor-pointer"
+                          onClick={() => removeGrapeVariety(grape.id)}
+                        />
+                      </div>
+                    ))}
+                    <div className="text-xs text-muted-foreground">
+                      Total: {newWineData.grape_varieties.reduce((sum, g) => sum + g.percentage, 0)}%
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="alcohol_content">Alcohol Content (%)</Label>
+                  <Input
+                    id="alcohol_content"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="50"
+                    value={newWineData.alcohol_content ?? ''}
+                    onChange={(e) => setNewWineData({ ...newWineData, alcohol_content: e.target.value ? parseFloat(e.target.value) : null })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="cellar_tracker_id">CellarTracker ID</Label>
+                  <Input
+                    id="cellar_tracker_id"
+                    value={newWineData.cellar_tracker_id}
+                    onChange={(e) => setNewWineData({ ...newWineData, cellar_tracker_id: e.target.value })}
+                    placeholder="e.g. 12345"
+                  />
                 </div>
               </div>
             </div>
