@@ -49,12 +49,14 @@ export default function Ratings() {
     wine_type: string;
     region: string;
     appellation: string;
+    country: string;
     producer: string;
   }>({
     vintage: '',
     wine_type: '',  
     region: '',
     appellation: '',
+    country: '',
     producer: ''
   });
   const [sortKey, setSortKey] = useState<'name' | 'producer' | 'vintage' | 'type' | 'rating' | 'tasted'>('name');
@@ -146,10 +148,11 @@ export default function Ratings() {
     const matchesRegion = filters.region === '' || 
       rating.wines.regions?.name === filters.region ||
       rating.wines.countries?.name === filters.region;
+    const matchesCountry = filters.country === '' || rating.wines.countries?.name === filters.country;
     const matchesAppellation = filters.appellation === '' || rating.wines.appellations?.name === filters.appellation;
     const matchesProducer = filters.producer === '' || rating.wines.producer === filters.producer;
     
-    return matchesSearch && matchesVintage && matchesType && matchesRegion && matchesAppellation && matchesProducer;
+    return matchesSearch && matchesVintage && matchesType && matchesRegion && matchesCountry && matchesAppellation && matchesProducer;
   });
 
   const filteredFriendsRatings = friendsRatings.filter(rating => {
@@ -166,10 +169,11 @@ export default function Ratings() {
     const matchesRegion = filters.region === '' || 
       rating.wines.regions?.name === filters.region ||
       rating.wines.countries?.name === filters.region;
+    const matchesCountry = filters.country === '' || rating.wines.countries?.name === filters.country;
     const matchesAppellation = filters.appellation === '' || rating.wines.appellations?.name === filters.appellation;
     const matchesProducer = filters.producer === '' || rating.wines.producer === filters.producer;
     
-    return matchesSearch && matchesVintage && matchesType && matchesRegion && matchesAppellation && matchesProducer;
+    return matchesSearch && matchesVintage && matchesType && matchesRegion && matchesCountry && matchesAppellation && matchesProducer;
   });
 
   const getRatingColor = (rating: number) => {
@@ -390,6 +394,17 @@ export default function Ratings() {
             </select>
             
             <select 
+              value={filters.country} 
+              onChange={(e) => setFilters({...filters, country: e.target.value})}
+              className="px-3 py-1 text-sm border border-input bg-background rounded-md"
+            >
+              <option value="">All Countries</option>
+              {Array.from(new Set([...ratings, ...friendsRatings].map(r => r.wines.countries?.name).filter(Boolean))).sort().map(country => (
+                <option key={country} value={country}>{country}</option>
+              ))}
+            </select>
+            
+            <select 
               value={filters.appellation} 
               onChange={(e) => setFilters({...filters, appellation: e.target.value})}
               className="px-3 py-1 text-sm border border-input bg-background rounded-md"
@@ -411,11 +426,11 @@ export default function Ratings() {
               ))}
             </select>
             
-            {(filters.vintage || filters.wine_type || filters.region || filters.appellation || filters.producer) && (
+            {(filters.vintage || filters.wine_type || filters.region || filters.country || filters.appellation || filters.producer) && (
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={() => setFilters({vintage: '', wine_type: '', region: '', appellation: '', producer: ''})}
+                onClick={() => setFilters({vintage: '', wine_type: '', region: '', appellation: '', country: '', producer: ''})}
               >
                 Clear Filters
               </Button>

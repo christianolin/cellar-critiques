@@ -48,12 +48,14 @@ export default function Cellar() {
     wine_type: string;
     region: string;
     appellation: string;
+    country: string;
     producer: string;
   }>({
     vintage: '',
     wine_type: '',  
     region: '',
     appellation: '',
+    country: '',
     producer: ''
   });
 
@@ -168,10 +170,11 @@ export default function Cellar() {
     const matchesRegion = filters.region === '' || 
       wine.wines.regions?.name === filters.region ||
       wine.wines.countries?.name === filters.region;
+    const matchesCountry = filters.country === '' || wine.wines.countries?.name === filters.country;
     const matchesAppellation = filters.appellation === '' || wine.wines.appellations?.name === filters.appellation;
     const matchesProducer = filters.producer === '' || wine.wines.producer === filters.producer;
     
-    return matchesSearch && matchesVintage && matchesType && matchesRegion && matchesAppellation && matchesProducer;
+    return matchesSearch && matchesVintage && matchesType && matchesRegion && matchesCountry && matchesAppellation && matchesProducer;
   });
 
   const [sortKey, setSortKey] = useState<'name' | 'producer' | 'vintage' | 'wine_type' | 'region' | 'quantity' | 'purchase_price'>('name');
@@ -421,6 +424,17 @@ export default function Cellar() {
             </select>
             
             <select 
+              value={filters.country} 
+              onChange={(e) => setFilters({...filters, country: e.target.value})}
+              className="px-3 py-1 text-sm border border-input bg-background rounded-md"
+            >
+              <option value="">All Countries</option>
+              {Array.from(new Set(wines.map(w => w.wines.countries?.name).filter(Boolean))).sort().map(country => (
+                <option key={country} value={country}>{country}</option>
+              ))}
+            </select>
+            
+            <select 
               value={filters.appellation} 
               onChange={(e) => setFilters({...filters, appellation: e.target.value})}
               className="px-3 py-1 text-sm border border-input bg-background rounded-md"
@@ -442,11 +456,11 @@ export default function Cellar() {
               ))}
             </select>
             
-            {(filters.vintage || filters.wine_type || filters.region || filters.appellation || filters.producer) && (
+            {(filters.vintage || filters.wine_type || filters.region || filters.country || filters.appellation || filters.producer) && (
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={() => setFilters({vintage: '', wine_type: '', region: '', appellation: '', producer: ''})}
+                onClick={() => setFilters({vintage: '', wine_type: '', region: '', appellation: '', country: '', producer: ''})}
               >
                 Clear Filters
               </Button>
