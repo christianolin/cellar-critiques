@@ -1,8 +1,10 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
+import { supabase } from '@/integrations/supabase/client';
 import { Wine, Home, Users, Star, User, LogOut, Settings } from 'lucide-react';
 
 interface LayoutProps {
@@ -14,6 +16,31 @@ export default function Layout({ children }: LayoutProps) {
   const { isAdminOrOwner, loading: rolesLoading } = useUserRole();
   const location = useLocation();
   const navigate = useNavigate();
+  const [userProfile, setUserProfile] = useState<{ avatar_url?: string }>({});
+
+  useEffect(() => {
+    if (user) {
+      fetchUserProfile();
+    }
+  }, [user]);
+
+  const fetchUserProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('avatar_url')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (data) {
+        setUserProfile(data);
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  };
 
   const navigation = [
     { name: 'Home', href: '/', icon: Home },
@@ -59,9 +86,14 @@ export default function Layout({ children }: LayoutProps) {
           <div className="flex items-center space-x-4">
             {user && (
               <div className="flex items-center space-x-2">
-                <Button variant="ghost" size="sm" onClick={() => navigate('/profile')}>
-                  <User className="h-4 w-4 mr-2" />
-                  Profile
+                <Button variant="ghost" size="sm" onClick={() => navigate('/profile')} className="flex items-center gap-2">
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage src={userProfile.avatar_url} />
+                    <AvatarFallback>
+                      <User className="h-3 w-3" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="hidden sm:inline">Profile</span>
                 </Button>
                 <Button variant="ghost" size="sm" onClick={signOut}>
                   <LogOut className="h-4 w-4 mr-2" />

@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
-import { Users, UserPlus, Search } from 'lucide-react';
+import { Users, UserPlus, Search, Check, X, User } from 'lucide-react';
 import Layout from '@/components/Layout';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Link } from 'react-router-dom';
 
 interface Profile {
@@ -28,6 +30,8 @@ interface Friendship {
   status: string;
   created_at: string;
   profile?: Profile;
+  requester_profile?: Profile;
+  addressee_profile?: Profile;
 }
 
 export default function Friends() {
@@ -235,15 +239,25 @@ export default function Friends() {
                   return (
                     <Card key={friendship.id}>
                       <CardHeader>
-                        <CardTitle className="text-lg">{friend?.display_name || friend?.username}</CardTitle>
-                        <CardDescription>@{friend?.username}</CardDescription>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-12 w-12">
+                            <AvatarImage src={friend?.avatar_url || undefined} />
+                            <AvatarFallback>
+                              <User className="h-6 w-6" />
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <CardTitle className="text-lg">{friend?.display_name || friend?.username}</CardTitle>
+                            <CardDescription>@{friend?.username}</CardDescription>
+                          </div>
+                        </div>
                       </CardHeader>
                       <CardContent>
                         {friend?.location && (
                           <p className="text-sm text-muted-foreground mb-2">{friend.location}</p>
                         )}
                         {friend?.bio && (
-                          <p className="text-sm">{friend.bio}</p>
+                          <p className="text-sm mb-4">{friend.bio}</p>
                         )}
                         <div className="flex gap-2">
                           <Link to={`/friends/${friend?.user_id}/cellar`}>
@@ -281,34 +295,52 @@ export default function Friends() {
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {pendingRequests.filter(r => r.addressee_id === user?.id).map((request) => (
-                  <Card key={request.id}>
-                    <CardHeader>
-                      <CardTitle className="text-lg">{request.profile?.display_name || request.profile?.username}</CardTitle>
-                      <CardDescription>@{request.profile?.username}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {request.profile?.bio && (
-                        <p className="text-sm">{request.profile.bio}</p>
-                      )}
-                      <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
-                          onClick={() => respondToRequest(request.id, 'accepted')}
-                        >
-                          Accept
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => respondToRequest(request.id, 'rejected')}
-                        >
-                          Decline
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                {pendingRequests.filter(r => r.addressee_id === user?.id).map((request) => {
+                  const requester = request.profile;
+                  return (
+                    <Card key={request.id}>
+                      <CardHeader>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-12 w-12">
+                            <AvatarImage src={requester?.avatar_url || undefined} />
+                            <AvatarFallback>
+                              <User className="h-6 w-6" />
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <CardTitle className="text-lg">{requester?.display_name || requester?.username}</CardTitle>
+                            <CardDescription>@{requester?.username}</CardDescription>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        {requester?.location && (
+                          <p className="text-sm text-muted-foreground mb-2">{requester.location}</p>
+                        )}
+                        {requester?.bio && (
+                          <p className="text-sm mb-4">{requester.bio}</p>
+                        )}
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            onClick={() => respondToRequest(request.id, 'accepted')}
+                          >
+                            <Check className="h-4 w-4 mr-2" />
+                            Accept
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => respondToRequest(request.id, 'rejected')}
+                          >
+                            <X className="h-4 w-4 mr-2" />
+                            Decline
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </TabsContent>
@@ -331,25 +363,49 @@ export default function Friends() {
             {searchResults.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {searchResults.map((profile) => (
-                  <Card key={profile.id}>
+                  <Card key={profile.user_id}>
                     <CardHeader>
-                      <CardTitle className="text-lg">{profile.display_name || profile.username}</CardTitle>
-                      <CardDescription>@{profile.username}</CardDescription>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-12 w-12">
+                          <AvatarImage src={profile.avatar_url || undefined} />
+                          <AvatarFallback>
+                            <User className="h-6 w-6" />
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <CardTitle className="text-lg">{profile.display_name || profile.username}</CardTitle>
+                          <CardDescription>@{profile.username}</CardDescription>
+                        </div>
+                      </div>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent>
                       {profile.location && (
-                        <p className="text-sm text-muted-foreground">{profile.location}</p>
+                        <p className="text-sm text-muted-foreground mb-2">{profile.location}</p>
                       )}
                       {profile.bio && (
-                        <p className="text-sm">{profile.bio}</p>
+                        <p className="text-sm mb-4">{profile.bio}</p>
                       )}
                       <Button 
-                        size="sm"
+                        size="sm" 
                         onClick={() => sendFriendRequest(profile.user_id)}
-                        className="w-full"
+                        disabled={
+                          friends.some(f => 
+                            f.requester_id === profile.user_id || f.addressee_id === profile.user_id
+                          ) ||
+                          pendingRequests.some(r => 
+                            (r.requester_id === user?.id && r.addressee_id === profile.user_id) ||
+                            (r.addressee_id === user?.id && r.requester_id === profile.user_id)
+                          )
+                        }
                       >
                         <UserPlus className="h-4 w-4 mr-2" />
-                        Send Friend Request
+                        {friends.some(f => 
+                          f.requester_id === profile.user_id || f.addressee_id === profile.user_id
+                        ) ? 'Already Friends' : 
+                        pendingRequests.some(r => 
+                          (r.requester_id === user?.id && r.addressee_id === profile.user_id) ||
+                          (r.addressee_id === user?.id && r.requester_id === profile.user_id)
+                        ) ? 'Request Sent' : 'Send Request'}
                       </Button>
                     </CardContent>
                   </Card>

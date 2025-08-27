@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
-import { User, Camera, Save } from 'lucide-react';
+import { User, Upload, Save } from 'lucide-react';
 import Layout from '@/components/Layout';
 
 interface ProfileData {
@@ -25,6 +25,7 @@ export default function Profile() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [profileData, setProfileData] = useState<ProfileData>({
     username: '',
     display_name: '',
@@ -111,6 +112,66 @@ export default function Profile() {
     }
   };
 
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Error",
+        description: "File size must be less than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Error",
+        description: "Please upload an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/avatar.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('wine-images')
+        .upload(fileName, file, { 
+          upsert: true,
+          contentType: file.type 
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('wine-images')
+        .getPublicUrl(fileName);
+
+      setProfileData({ ...profileData, avatar_url: publicUrl });
+
+      toast({
+        title: "Success",
+        description: "Profile picture uploaded successfully!",
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload profile picture",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -154,20 +215,26 @@ export default function Profile() {
                 </AvatarFallback>
               </Avatar>
               <div>
-                <Label htmlFor="avatar_url">Profile Picture URL</Label>
+                <Label htmlFor="avatar_upload">Profile Picture</Label>
                 <div className="flex gap-2 mt-1">
-                  <Input
-                    id="avatar_url"
-                    placeholder="https://example.com/photo.jpg"
-                    value={profileData.avatar_url}
-                    onChange={(e) => setProfileData({ ...profileData, avatar_url: e.target.value })}
+                  <input
+                    id="avatar_upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
                   />
-                  <Button variant="outline" size="sm">
-                    <Camera className="h-4 w-4" />
+                  <Button 
+                    variant="outline" 
+                    onClick={() => document.getElementById('avatar_upload')?.click()}
+                    disabled={uploading}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    {uploading ? 'Uploading...' : 'Upload Picture'}
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Add a URL to your profile picture
+                  Upload a profile picture (max 5MB)
                 </p>
               </div>
             </div>
