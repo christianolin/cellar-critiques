@@ -66,14 +66,14 @@ export default function Cellar() {
     { key: 'producer', label: 'Producer', defaultVisible: true },
     { key: 'vintage', label: 'Vintage', defaultVisible: true },
     { key: 'type', label: 'Type', defaultVisible: true },
-    { key: 'region', label: 'Region', defaultVisible: true },
     { key: 'quantity', label: 'Quantity', defaultVisible: true },
     { key: 'price', label: 'Price', defaultVisible: true },
     { key: 'location', label: 'Storage Location', defaultVisible: false },
+    { key: 'country', label: 'Country', defaultVisible: false },
+    { key: 'region', label: 'Region', defaultVisible: true },
+    { key: 'appellation', label: 'Appellation', defaultVisible: false },
     { key: 'purchase_date', label: 'Purchase Date', defaultVisible: false },
     { key: 'bottle_size', label: 'Bottle Size', defaultVisible: false },
-    { key: 'country', label: 'Country', defaultVisible: false },
-    { key: 'appellation', label: 'Appellation', defaultVisible: false },
     { key: 'notes', label: 'Notes', defaultVisible: false },
   ];
 
