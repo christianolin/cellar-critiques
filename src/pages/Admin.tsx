@@ -276,29 +276,29 @@ export default function Admin() {
             const uniqueWords = Array.from(new Set(words));
             const isSingle = uniqueWords.length <= 1;
 
-            // For each word, find matching producers (parallel)
-            let producersByWord = new Map<string, string[]>();
-            try {
-              const lookups = uniqueWords.map(async (w) => {
-                const { data } = await supabase
-                  .from('producers')
-                  .select('id')
-                  .ilike('name', `*${w}*`)
-                  .limit(500);
-                return [w, (data || []).map(p => p.id as string)] as const;
-              });
-              const results = await Promise.all(lookups);
-              producersByWord = new Map(results);
-            } catch (_) {}
+        // For each word, find matching producers (parallel)
+        let producersByWord = new Map<string, string[]>();
+        try {
+          const lookups = uniqueWords.map(async (w) => {
+            const { data } = await supabase
+              .from('producers')
+              .select('id')
+              .ilike('name', `%${w}%`)
+              .limit(500);
+            return [w, (data || []).map(p => p.id as string)] as const;
+          });
+          const results = await Promise.all(lookups);
+          producersByWord = new Map(results);
+        } catch (_) {}
 
-            // Require every word to match at least one field (AND of OR-groups)
-            for (const w of uniqueWords) {
-              const conds: string[] = [`name.ilike.*${w}*`];
-              if (isSingle) conds.push(`description.ilike.*${w}*`);
-              const ids = producersByWord.get(w) || [];
-              if (ids.length) conds.push(`producer_id.in.(${ids.join(',')})`);
-              query = query.or(conds.join(',')); // multiple .or calls combine with AND
-            }
+        // Require every word to match at least one field (AND of OR-groups)
+        for (const w of uniqueWords) {
+          const conds: string[] = [`name.ilike.%${w}%`];
+          if (isSingle) conds.push(`description.ilike.%${w}%`);
+          const ids = producersByWord.get(w) || [];
+          if (ids.length) conds.push(`producer_id.in.(${ids.join(',')})`);
+          query = query.or(conds.join(',')); // multiple .or calls combine with AND
+        }
           }
           
           if (countryFilter) {

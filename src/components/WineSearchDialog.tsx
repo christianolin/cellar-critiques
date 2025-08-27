@@ -245,7 +245,7 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
             const { data } = await supabase
               .from('producers')
               .select('id')
-              .ilike('name', `*${w}*`)
+              .ilike('name', `%${w}%`)
               .limit(500);
             return [w, (data || []).map(p => p.id as string)] as const;
           });
@@ -255,8 +255,8 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
 
         // Require every word to match at least one field (AND of OR-groups)
         for (const w of uniqueWords) {
-          const conds: string[] = [`name.ilike.*${w}*`];
-          if (isSingle) conds.push(`description.ilike.*${w}*`);
+          const conds: string[] = [`name.ilike.%${w}%`];
+          if (isSingle) conds.push(`description.ilike.%${w}%`);
           const ids = producersByWord.get(w) || [];
           if (ids.length) conds.push(`producer_id.in.(${ids.join(',')})`);
           query = query.or(conds.join(',')); // multiple .or calls combine with AND
