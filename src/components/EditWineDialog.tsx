@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { Edit, X } from 'lucide-react';
+import ProducerSelect from '@/components/ProducerSelect';
 
 interface EditWineDialogProps {
   cellarEntry: any;
@@ -337,11 +338,9 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
             </div>
             <div>
               <Label htmlFor="producer">Producer *</Label>
-              <Input
-                id="producer"
+              <ProducerSelect
                 value={formData.producer}
-                onChange={(e) => setFormData({ ...formData, producer: e.target.value })}
-                required
+                onChange={(name) => setFormData({ ...formData, producer: name })}
               />
             </div>
           </div>

@@ -12,6 +12,7 @@ import { Plus, PlusCircle, X, Wine, Search } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import WineSearchDialog from '@/components/WineSearchDialog';
 import { SearchableSelect } from '@/components/ui/searchable-select';
+import ProducerSelect from '@/components/ProducerSelect';
 
 interface Wine {
   id: string;
@@ -596,12 +597,9 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
                     </div>
                     <div>
                       <Label htmlFor="producer">Producer *</Label>
-                      <Input
-                        id="producer"
+                      <ProducerSelect
                         value={newWineData.producer}
-                        onChange={(e) => setNewWineData({ ...newWineData, producer: e.target.value })}
-                        placeholder="e.g., Château Margaux"
-                        required
+                        onChange={(name) => setNewWineData({ ...newWineData, producer: name })}
                       />
                     </div>
                   </div>

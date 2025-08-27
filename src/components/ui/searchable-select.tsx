@@ -21,6 +21,8 @@ interface SearchableSelectProps {
   className?: string;
   allowNone?: boolean;
   noneLabel?: string;
+  onSearchChange?: (term: string) => void;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function SearchableSelect({
@@ -33,14 +35,16 @@ export function SearchableSelect({
   disabled = false,
   className,
   allowNone = false,
-  noneLabel = "None"
+  noneLabel = "None",
+  onSearchChange,
+  onOpenChange,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
 
   const selectedOption = options.find((option) => option.value === value);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); onOpenChange?.(o); }}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -54,7 +58,7 @@ export function SearchableSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="z-[60] w-full p-0 bg-popover" align="start" side="bottom" sideOffset={4}>
-        <Command>
+        <Command onValueChange={(val) => onSearchChange?.(val)}>
           <CommandInput placeholder={searchPlaceholder} />
           <CommandEmpty>{emptyText}</CommandEmpty>
           <CommandGroup className="max-h-72 overscroll-contain overflow-y-auto overflow-x-hidden">
