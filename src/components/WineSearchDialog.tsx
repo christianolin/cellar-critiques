@@ -44,16 +44,25 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('all');
   const [selectedCountry, setSelectedCountry] = useState('all');
+  const [selectedRegion, setSelectedRegion] = useState('all');
+  const [selectedAppellation, setSelectedAppellation] = useState('all');
+  const [selectedProducer, setSelectedProducer] = useState('all');
   const [results, setResults] = useState<WineSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [countries, setCountries] = useState<{value: string; label: string}[]>([]);
+  const [regions, setRegions] = useState<{value: string; label: string}[]>([]);
+  const [appellations, setAppellations] = useState<{value: string; label: string}[]>([]);
+  const [producers, setProducers] = useState<{value: string; label: string}[]>([]);
   const itemsPerPage = 20;
 
   useEffect(() => {
     if (open) {
       loadCountries();
+      loadRegions();
+      loadAppellations();
+      loadProducers();
       searchWines();
     }
   }, [open]);
@@ -63,7 +72,7 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
       setCurrentPage(1);
       searchWines();
     }
-  }, [searchTerm, selectedType, selectedCountry]);
+  }, [searchTerm, selectedType, selectedCountry, selectedRegion, selectedAppellation, selectedProducer]);
 
   useEffect(() => {
     if (open) {
@@ -86,6 +95,60 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
       setCountries(countryOptions);
     } catch (error) {
       console.error('Error loading countries:', error);
+    }
+  };
+
+  const loadRegions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('regions')
+        .select('id, name')
+        .order('name');
+      
+      if (error) throw error;
+      const regionOptions = (data || []).map(region => ({
+        value: region.id,
+        label: region.name
+      }));
+      setRegions(regionOptions);
+    } catch (error) {
+      console.error('Error loading regions:', error);
+    }
+  };
+
+  const loadAppellations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('appellations')
+        .select('id, name')
+        .order('name');
+      
+      if (error) throw error;
+      const appellationOptions = (data || []).map(appellation => ({
+        value: appellation.id,
+        label: appellation.name
+      }));
+      setAppellations(appellationOptions);
+    } catch (error) {
+      console.error('Error loading appellations:', error);
+    }
+  };
+
+  const loadProducers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('producers')
+        .select('id, name')
+        .order('name');
+      
+      if (error) throw error;
+      const producerOptions = (data || []).map(producer => ({
+        value: producer.id,
+        label: producer.name
+      }));
+      setProducers(producerOptions);
+    } catch (error) {
+      console.error('Error loading producers:', error);
     }
   };
 
@@ -116,6 +179,18 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
       if (selectedCountry !== 'all') {
         query = query.eq('country_id', selectedCountry);
       }
+      
+      if (selectedRegion !== 'all') {
+        query = query.eq('region_id', selectedRegion);
+      }
+      
+      if (selectedAppellation !== 'all') {
+        query = query.eq('appellation_id', selectedAppellation);
+      }
+      
+      if (selectedProducer !== 'all') {
+        query = query.eq('producer_id', selectedProducer);
+      }
 
       // Apply pagination
       const from = (currentPage - 1) * itemsPerPage;
@@ -145,6 +220,9 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
     setSearchTerm('');
     setSelectedType('all');
     setSelectedCountry('all');
+    setSelectedRegion('all');
+    setSelectedAppellation('all');
+    setSelectedProducer('all');
     setCurrentPage(1);
     setResults([]);
   };
@@ -171,7 +249,7 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
             <div>
               <Label htmlFor="search">Search</Label>
               <Input
@@ -187,7 +265,7 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
                 <SelectTrigger>
                   <SelectValue placeholder="All types" />
                 </SelectTrigger>
-                <SelectContent className="z-[60]">
+                <SelectContent className="z-[60]" side="bottom">
                   <SelectItem value="all">All types</SelectItem>
                   <SelectItem value="red">Red</SelectItem>
                   <SelectItem value="white">White</SelectItem>
@@ -206,6 +284,36 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
                 onValueChange={setSelectedCountry}
                 placeholder="All countries"
                 searchPlaceholder="Search countries..."
+              />
+            </div>
+            <div>
+              <Label htmlFor="region">Region</Label>
+              <SearchableSelect
+                options={[{value: 'all', label: 'All regions'}, ...regions]}
+                value={selectedRegion}
+                onValueChange={setSelectedRegion}
+                placeholder="All regions"
+                searchPlaceholder="Search regions..."
+              />
+            </div>
+            <div>
+              <Label htmlFor="appellation">Appellation</Label>
+              <SearchableSelect
+                options={[{value: 'all', label: 'All appellations'}, ...appellations]}
+                value={selectedAppellation}
+                onValueChange={setSelectedAppellation}
+                placeholder="All appellations"
+                searchPlaceholder="Search appellations..."
+              />
+            </div>
+            <div>
+              <Label htmlFor="producer">Producer</Label>
+              <SearchableSelect
+                options={[{value: 'all', label: 'All producers'}, ...producers]}
+                value={selectedProducer}
+                onValueChange={setSelectedProducer}
+                placeholder="All producers"
+                searchPlaceholder="Search producers..."
               />
             </div>
           </div>

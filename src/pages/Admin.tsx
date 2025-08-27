@@ -135,6 +135,20 @@ export default function Admin() {
   }, [searchTerm, countryFilter, regionFilter, appellationFilter, producerFilter]);
 
   useEffect(() => {
+    if (activeTab === 'regions') {
+      setCurrentPage(1); // Reset to first page when filters change
+      loadData();
+    }
+  }, [countryFilter]);
+
+  useEffect(() => {
+    if (activeTab === 'appellations') {
+      setCurrentPage(1); // Reset to first page when filters change
+      loadData();
+    }
+  }, [countryFilter, regionFilter]);
+
+  useEffect(() => {
     loadData();
   }, [currentPage]);
 
@@ -182,30 +196,53 @@ export default function Admin() {
           break;
           
         case 'regions':
-          const { data: regionsData, error: regionsError } = await supabase
+          let regionsQuery = supabase
             .from('regions')
-            .select('*, countries(name)')
-            .order(sortField, { ascending: sortDirection === 'asc' });
+            .select('*, countries(name)');
+          
+          // Apply country filter for regions
+          if (activeTab === 'regions' && countryFilter) {
+            regionsQuery = regionsQuery.eq('country_id', countryFilter);
+          }
+          
+          regionsQuery = regionsQuery.order(sortField, { ascending: sortDirection === 'asc' });
+          
+          const { data: regionsData, error: regionsError } = await regionsQuery;
           if (regionsError) throw regionsError;
           setRegions(regionsData || []);
+          
           // Also load countries for the dropdown
           const { data: allCountries } = await supabase.from('countries').select('*').order('name');
           setCountries(allCountries || []);
           break;
           
         case 'appellations':
-          const { data: appellationsData, error: appellationsError } = await supabase
+          let appellationsQuery = supabase
             .from('appellations')
-            .select('*, regions(name, countries(name))')
-            .order(sortField, { ascending: sortDirection === 'asc' });
+            .select('*, regions(name, countries(name))');
+          
+          // Apply filters for appellations
+          if (activeTab === 'appellations' && countryFilter) {
+            appellationsQuery = appellationsQuery.eq('regions.country_id', countryFilter);
+          }
+          if (activeTab === 'appellations' && regionFilter) {
+            appellationsQuery = appellationsQuery.eq('region_id', regionFilter);
+          }
+          
+          appellationsQuery = appellationsQuery.order(sortField, { ascending: sortDirection === 'asc' });
+          
+          const { data: appellationsData, error: appellationsError } = await appellationsQuery;
           if (appellationsError) throw appellationsError;
           setAppellations(appellationsData || []);
-          // Also load regions for the dropdown
+          
+          // Also load regions and countries for the dropdown
           const { data: allRegions } = await supabase
             .from('regions')
             .select('*, countries(name)')
             .order('name');
           setRegions(allRegions || []);
+          const { data: allCountriesApp } = await supabase.from('countries').select('*').order('name');
+          setCountries(allCountriesApp || []);
           break;
           
         case 'grapes':
@@ -691,7 +728,7 @@ export default function Admin() {
                 <SelectTrigger>
                   <SelectValue placeholder="Select country" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent side="bottom">
                   {countries.map((country) => (
                     <SelectItem key={country.id} value={country.id}>
                       {country.name}
@@ -724,7 +761,7 @@ export default function Admin() {
                 <SelectTrigger>
                   <SelectValue placeholder="Select region" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent side="bottom">
                   {regions.map((region) => (
                     <SelectItem key={region.id} value={region.id}>
                       {region.name} ({region.countries?.name})
@@ -757,7 +794,7 @@ export default function Admin() {
                 <SelectTrigger>
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent side="bottom">
                   <SelectItem value="red">Red</SelectItem>
                   <SelectItem value="white">White</SelectItem>
                 </SelectContent>
@@ -801,7 +838,7 @@ export default function Admin() {
                   <SelectTrigger>
                     <SelectValue placeholder="Select wine type" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent side="bottom">
                     <SelectItem value="Red">Red</SelectItem>
                     <SelectItem value="White">White</SelectItem>
                     <SelectItem value="Rosé">Rosé</SelectItem>
@@ -826,7 +863,7 @@ export default function Admin() {
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
+                  <PopoverContent className="z-[60] w-full p-0 bg-popover" side="bottom" align="start" sideOffset={4}>
                     <Command>
                       <CommandInput placeholder="Search producers..." />
                       <CommandEmpty>No producer found.</CommandEmpty>
@@ -870,7 +907,7 @@ export default function Admin() {
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
+                  <PopoverContent className="z-[60] w-full p-0 bg-popover" side="bottom" align="start" sideOffset={4}>
                     <Command>
                       <CommandInput placeholder="Search countries..." />
                       <CommandEmpty>No country found.</CommandEmpty>
@@ -913,7 +950,7 @@ export default function Admin() {
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
+                  <PopoverContent className="z-[60] w-full p-0 bg-popover" side="bottom" align="start" sideOffset={4}>
                     <Command>
                       <CommandInput placeholder="Search regions..." />
                       <CommandEmpty>No region found.</CommandEmpty>
@@ -972,7 +1009,7 @@ export default function Admin() {
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
+                  <PopoverContent className="z-[60] w-full p-0 bg-popover" side="bottom" align="start" sideOffset={4}>
                     <Command>
                       <CommandInput placeholder="Search appellations..." />
                       <CommandEmpty>No appellation found.</CommandEmpty>
@@ -1153,7 +1190,7 @@ export default function Admin() {
                           <SelectTrigger className="w-32">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent side="bottom">
                             <SelectItem value="user">User</SelectItem>
                             <SelectItem value="admin">Admin</SelectItem>
                             <SelectItem value="owner">Owner</SelectItem>
@@ -1302,6 +1339,59 @@ export default function Admin() {
             </div>
           </CardHeader>
           <CardContent>
+            {activeTab === 'regions' && (
+              <div className="space-y-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <SearchableSelect
+                    options={[{value: '', label: 'All countries'}, ...countries.map(c => ({value: c.id, label: c.name}))]}
+                    value={countryFilter}
+                    onValueChange={setCountryFilter}
+                    placeholder="Filter by country"
+                    searchPlaceholder="Search countries..."
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setCountryFilter('');
+                    }}
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
+              </div>
+            )}
+            {activeTab === 'appellations' && (
+              <div className="space-y-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <SearchableSelect
+                    options={[{value: '', label: 'All countries'}, ...countries.map(c => ({value: c.id, label: c.name}))]}
+                    value={countryFilter}
+                    onValueChange={setCountryFilter}
+                    placeholder="Filter by country"
+                    searchPlaceholder="Search countries..."
+                  />
+                  <SearchableSelect
+                    options={[{value: '', label: 'All regions'}, ...regions.filter(r => !countryFilter || r.country_id === countryFilter).map(r => ({value: r.id, label: r.name}))]}
+                    value={regionFilter}
+                    onValueChange={setRegionFilter}
+                    placeholder="Filter by region"
+                    searchPlaceholder="Search regions..."
+                    disabled={!countryFilter}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setCountryFilter('');
+                      setRegionFilter('');
+                    }}
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
+              </div>
+            )}
             {activeTab === 'wine_database' && (
               <div className="space-y-4 mb-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
