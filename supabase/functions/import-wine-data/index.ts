@@ -47,14 +47,15 @@ serve(async (req) => {
     const headers = lines[0].split(',')
     console.log('Headers:', headers)
 
-    // Process in batches to avoid memory issues
-    const batchSize = 1000
+    // Process in smaller batches to avoid timeout
+    const batchSize = 100
     let processed = 0
     let inserted = 0
 
-    for (let i = 1; i < Math.min(lines.length, 10001); i += batchSize) { // Limit to first 10,000 wines
+    // Process first 1000 wines only to avoid timeout
+    for (let i = 1; i < Math.min(lines.length, 1001); i += batchSize) {
       const batch = []
-      const endIndex = Math.min(i + batchSize, lines.length, 10001)
+      const endIndex = Math.min(i + batchSize, lines.length, 1001)
 
       for (let j = i; j < endIndex; j++) {
         if (!lines[j] || lines[j].trim() === '') continue

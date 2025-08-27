@@ -87,6 +87,8 @@ export default function Admin() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [formData, setFormData] = useState<any>({});
+  const [sortField, setSortField] = useState<string>('name');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
     loadData();
@@ -100,7 +102,7 @@ export default function Admin() {
           const { data: countriesData, error: countriesError } = await supabase
             .from('countries')
             .select('*')
-            .order('name');
+            .order(sortField, { ascending: sortDirection === 'asc' });
           if (countriesError) throw countriesError;
           setCountries(countriesData || []);
           break;
@@ -109,7 +111,7 @@ export default function Admin() {
           const { data: regionsData, error: regionsError } = await supabase
             .from('regions')
             .select('*, countries(name)')
-            .order('name');
+            .order(sortField, { ascending: sortDirection === 'asc' });
           if (regionsError) throw regionsError;
           setRegions(regionsData || []);
           // Also load countries for the dropdown
@@ -121,7 +123,7 @@ export default function Admin() {
           const { data: appellationsData, error: appellationsError } = await supabase
             .from('appellations')
             .select('*, regions(name, countries(name))')
-            .order('name');
+            .order(sortField, { ascending: sortDirection === 'asc' });
           if (appellationsError) throw appellationsError;
           setAppellations(appellationsData || []);
           // Also load regions for the dropdown
@@ -136,7 +138,7 @@ export default function Admin() {
           const { data: grapesData, error: grapesError } = await supabase
             .from('grape_varieties')
             .select('*')
-            .order('name');
+            .order(sortField, { ascending: sortDirection === 'asc' });
           if (grapesError) throw grapesError;
           setGrapeVarieties(grapesData || []);
           break;
@@ -151,7 +153,7 @@ export default function Admin() {
               regions(name),
               appellations(name)
             `)
-            .order('name');
+            .order(sortField, { ascending: sortDirection === 'asc' });
           if (wineDbError) throw wineDbError;
           setWineDatabase(wineDbData || []);
           break;
