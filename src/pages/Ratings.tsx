@@ -89,18 +89,18 @@ export default function Ratings() {
 
   // Column visibility state for ratings table
   const ratingsColumns: ColumnConfig[] = [
-    { key: 'rating', label: 'Rating', defaultVisible: true },
     { key: 'wine_name', label: 'Wine Name', defaultVisible: true },
     { key: 'producer', label: 'Producer', defaultVisible: true },
     { key: 'vintage', label: 'Vintage', defaultVisible: true },
     { key: 'wine_type', label: 'Type', defaultVisible: true },
+    { key: 'rating', label: 'Rating', defaultVisible: true },
     { key: 'tasting_date', label: 'Tasting Date', defaultVisible: true },
-    { key: 'region', label: 'Region', defaultVisible: false },
-    { key: 'country', label: 'Country', defaultVisible: false },
-    { key: 'appellation', label: 'Appellation', defaultVisible: false },
-    { key: 'serving_temp', label: 'Serving Temperature', defaultVisible: false },
-    { key: 'food_pairing', label: 'Food Pairing', defaultVisible: false },
     { key: 'tasting_notes', label: 'Tasting Notes', defaultVisible: true },
+    { key: 'country', label: 'Country', defaultVisible: false },
+    { key: 'region', label: 'Region', defaultVisible: false },
+    { key: 'appellation', label: 'Appellation', defaultVisible: false },
+    { key: 'food_pairing', label: 'Food Pairing', defaultVisible: false },
+    { key: 'serving_temp', label: 'Serving Temperature', defaultVisible: false },
     { key: 'appearance_color', label: 'Appearance Color', defaultVisible: false },
     { key: 'aroma_intensity', label: 'Aroma Intensity', defaultVisible: false },
     { key: 'palate_body', label: 'Body', defaultVisible: false },
@@ -628,23 +628,9 @@ export default function Ratings() {
                         <TableRow key={rating.id}>
                           {visibleRatingsColumns.includes('rating') && (
                             <TableCell>
-                              <div className="flex items-center gap-1">
-                                <div className={`px-2 py-1 rounded text-sm font-medium ${getRatingColor(rating.rating)}`}>
-                                  {rating.rating}/5
-                                </div>
-                                <div className="flex">
-                                  {[...Array(5)].map((_, i) => (
-                                    <Star 
-                                      key={i} 
-                                      className={`h-3 w-3 ${
-                                        i < rating.rating 
-                                          ? 'fill-yellow-400 text-yellow-400' 
-                                          : 'text-gray-300'
-                                      }`} 
-                                    />
-                                  ))}
-                                </div>
-                              </div>
+                              <Badge className={getRatingColor(rating.rating)}>
+                                {rating.rating}/100
+                              </Badge>
                             </TableCell>
                           )}
                           {visibleRatingsColumns.includes('wine_name') && (
