@@ -106,7 +106,7 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
 
       // Apply filters
       if (searchTerm) {
-        query = query.or(`name.ilike.%${searchTerm}%,producers.name.ilike.%${searchTerm}%,regions.name.ilike.%${searchTerm}%`);
+        query = query.or(`name.ilike.%${searchTerm}%,producers.name.ilike.%${searchTerm}%,regions.name.ilike.%${searchTerm}%,appellations.name.ilike.%${searchTerm}%`);
       }
       
       if (selectedType !== 'all') {

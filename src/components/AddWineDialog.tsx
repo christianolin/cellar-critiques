@@ -351,17 +351,17 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
               <h4 className="font-medium">Wine Information</h4>
               <WineSearchDialog 
                 onWineSelect={(wine) => {
-                 setFormData({
-                   ...formData,
-                   name: wine.name,
-                   producer: wine.producers?.name || '',
-                   vintage: wine.vintage || null,
-                   wine_type: wine.wine_type as any,
-                   alcohol_content: wine.alcohol_content || null,
-                   country_id: wine.country_id || '',
-                   region_id: wine.region_id || '',
-                   appellation_id: wine.appellation_id || '',
-                 });
+                setFormData({
+                  ...formData,
+                  name: wine.name,
+                  producer: wine.producers?.name || '',
+                  vintage: wine.vintage || null,
+                  wine_type: wine.wine_type as any,
+                  alcohol_content: wine.alcohol_content || null,
+                  country_id: wine.country_id || '',
+                  region_id: wine.region_id || '',
+                  appellation_id: wine.appellation_id || '',
+                });
                 }}
                 trigger={
                   <Button type="button" variant="outline" size="sm">
