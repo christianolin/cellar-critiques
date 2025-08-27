@@ -320,7 +320,13 @@ export default function Cellar() {
                         {wine.regions?.name || wine.countries?.name || 'N/A'}
                       </TableCell>
                       <TableCell>
-                        <QuantityControl cellarEntry={cellarEntry} onUpdate={fetchCellarWines} />
+                        <QuantityControl 
+                          cellarId={cellarEntry.id}
+                          wineId={cellarEntry.wines.id}
+                          wineName={wine.name}
+                          currentQuantity={cellarEntry.quantity}
+                          onQuantityChange={fetchCellarWines}
+                        />
                       </TableCell>
                       <TableCell>
                         {cellarEntry.purchase_price ? `${cellarEntry.purchase_price} DKK` : 'N/A'}
@@ -362,7 +368,13 @@ export default function Cellar() {
                       </div>
                       <div className="flex justify-between items-center text-sm">
                         <span className="text-muted-foreground">Quantity:</span>
-                        <QuantityControl cellarEntry={cellarEntry} onUpdate={fetchCellarWines} />
+                        <QuantityControl 
+                          cellarId={cellarEntry.id}
+                          wineId={cellarEntry.wines.id}
+                          wineName={wine.name}
+                          currentQuantity={cellarEntry.quantity}
+                          onQuantityChange={fetchCellarWines}
+                        />
                       </div>
                       {cellarEntry.purchase_price && (
                         <div className="flex justify-between text-sm">

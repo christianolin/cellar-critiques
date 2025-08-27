@@ -186,7 +186,7 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
           name: newWineData.name,
           producer: newWineData.producer,
           vintage: newWineData.vintage,
-          wine_type: newWineData.wine_type,
+          wine_type: newWineData.wine_type as "red" | "white" | "rose" | "sparkling" | "dessert" | "fortified",
           country_id: newWineData.country_id || null,
           region_id: newWineData.region_id || null,
           alcohol_content: newWineData.alcohol_content,
