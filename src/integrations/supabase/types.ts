@@ -352,7 +352,6 @@ export type Database = {
           producer_id: string
           region_id: string | null
           updated_at: string
-          vintage: number | null
           wine_type: string
         }
         Insert: {
@@ -366,7 +365,6 @@ export type Database = {
           producer_id: string
           region_id?: string | null
           updated_at?: string
-          vintage?: number | null
           wine_type: string
         }
         Update: {
@@ -380,7 +378,6 @@ export type Database = {
           producer_id?: string
           region_id?: string | null
           updated_at?: string
-          vintage?: number | null
           wine_type?: string
         }
         Relationships: [

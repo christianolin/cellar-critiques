@@ -49,7 +49,6 @@ interface WineDatabase {
   id: string;
   name: string;
   wine_type: string;
-  vintage: number | null;
   description: string | null;
   producer_id: string;
   country_id: string;
@@ -820,7 +819,7 @@ export default function Admin() {
       case 'wine_database':
         return (
           <>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <div>
                 <Label htmlFor="name">Wine Name</Label>
                 <Input
@@ -828,17 +827,6 @@ export default function Admin() {
                   value={formData.name || ''}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
-                />
-              </div>
-              <div>
-                <Label htmlFor="vintage">Vintage (Optional)</Label>
-                <Input
-                  id="vintage"
-                  type="number"
-                  min="1800"
-                  max={new Date().getFullYear() + 2}
-                  value={formData.vintage || ''}
-                  onChange={(e) => setFormData({ ...formData, vintage: e.target.value ? parseInt(e.target.value) : null })}
                 />
               </div>
             </div>
@@ -1102,7 +1090,7 @@ export default function Admin() {
         break;
       case 'wine_database':
         data = wineDatabase; // Already filtered on server side
-        headers = ['Name', 'Vintage', 'Producer', 'Type', 'Country', 'Region', 'Appellation', 'Actions'];
+        headers = ['Name', 'Producer', 'Type', 'Country', 'Region', 'Appellation', 'Actions'];
         break;
       case 'users':
         data = users;
@@ -1169,7 +1157,7 @@ export default function Admin() {
                 {activeTab === 'wine_database' && (
                   <>
                     <TableCell>{item.name}</TableCell>
-                    <TableCell>{item.vintage || 'N/A'}</TableCell>
+                    
                     <TableCell>{item.producers?.name || ''}</TableCell>
                     <TableCell className="capitalize">{item.wine_type}</TableCell>
                     <TableCell>{item.countries?.name || ''}</TableCell>

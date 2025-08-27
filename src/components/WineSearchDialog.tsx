@@ -16,7 +16,6 @@ interface WineSearchResult {
   id: string;
   name: string;
   wine_type: string;
-  vintage?: number | null;
   alcohol_content?: number | null;
   description?: string | null;
   producer_id: string;
@@ -159,7 +158,7 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
       let query = supabase
         .from('wine_database')
         .select(`
-          id, name, wine_type, vintage, alcohol_content, description,
+          id, name, wine_type, alcohol_content, description,
           producer_id, country_id, region_id, appellation_id,
           producers ( name ),
           countries ( name ),
@@ -343,9 +342,6 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
                           <p className="text-sm text-muted-foreground">{wine.producers?.name || ''}</p>
                           <div className="flex items-center gap-2 mt-2">
                             <Badge variant="outline" className="text-xs">{wine.wine_type}</Badge>
-                            {wine.vintage && (
-                              <Badge variant="outline" className="text-xs">{wine.vintage}</Badge>
-                            )}
                             {wine.countries?.name && (
                               <Badge variant="secondary" className="text-xs">{wine.countries.name}</Badge>
                             )}

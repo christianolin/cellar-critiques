@@ -564,7 +564,7 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
                               ...newWineData,
                               name: wine.name,
                               producer: wine.producers?.name || '',
-                              vintage: wine.vintage || null,
+                              vintage: null,
                               wine_type: wine.wine_type as any,
                               alcohol_content: wine.alcohol_content || null,
                               country_id: wine.country_id || '',
