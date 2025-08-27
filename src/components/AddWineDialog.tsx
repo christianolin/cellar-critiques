@@ -138,7 +138,14 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
     if (formData.country_id) {
       const filtered = regions.filter(region => region.country_id === formData.country_id);
       setFilteredRegions(filtered);
-      setFormData(prev => ({ ...prev, region_id: '', appellation_id: '' }));
+      setFormData(prev => {
+        const regionValid = prev.region_id && filtered.some(r => r.id === prev.region_id);
+        return { 
+          ...prev, 
+          region_id: regionValid ? prev.region_id : '', 
+          appellation_id: regionValid ? prev.appellation_id : '' 
+        };
+      });
     } else {
       setFilteredRegions([]);
     }
@@ -149,7 +156,10 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
     if (formData.region_id) {
       const filtered = appellations.filter(appellation => appellation.region_id === formData.region_id);
       setFilteredAppellations(filtered);
-      setFormData(prev => ({ ...prev, appellation_id: '' }));
+      setFormData(prev => {
+        const appellationValid = prev.appellation_id && filtered.some(a => a.id === prev.appellation_id);
+        return { ...prev, appellation_id: appellationValid ? prev.appellation_id : '' };
+      });
     } else {
       setFilteredAppellations([]);
     }
