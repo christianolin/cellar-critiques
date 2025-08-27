@@ -352,11 +352,33 @@ export type Database = {
       }
       wine_ratings: {
         Row: {
+          appearance_clarity: string | null
+          appearance_color: string | null
+          appearance_comments: string | null
+          appearance_intensity: string | null
+          appearance_viscosity: string | null
+          aroma_comments: string | null
+          aroma_condition: string | null
+          aroma_intensity: string | null
+          aroma_primary: string | null
+          aroma_secondary: string | null
+          aroma_tertiary: string | null
           body: string | null
           color: string | null
           created_at: string
           food_pairing: string | null
           id: string
+          palate_acidity: string | null
+          palate_balance: string | null
+          palate_body: string | null
+          palate_comments: string | null
+          palate_complexity: string | null
+          palate_finish: string | null
+          palate_flavor_primary: string | null
+          palate_flavor_secondary: string | null
+          palate_flavor_tertiary: string | null
+          palate_sweetness: string | null
+          palate_tannin: string | null
           rating: number
           serving_temp_max: number | null
           serving_temp_min: number | null
@@ -368,11 +390,33 @@ export type Database = {
           wine_id: string
         }
         Insert: {
+          appearance_clarity?: string | null
+          appearance_color?: string | null
+          appearance_comments?: string | null
+          appearance_intensity?: string | null
+          appearance_viscosity?: string | null
+          aroma_comments?: string | null
+          aroma_condition?: string | null
+          aroma_intensity?: string | null
+          aroma_primary?: string | null
+          aroma_secondary?: string | null
+          aroma_tertiary?: string | null
           body?: string | null
           color?: string | null
           created_at?: string
           food_pairing?: string | null
           id?: string
+          palate_acidity?: string | null
+          palate_balance?: string | null
+          palate_body?: string | null
+          palate_comments?: string | null
+          palate_complexity?: string | null
+          palate_finish?: string | null
+          palate_flavor_primary?: string | null
+          palate_flavor_secondary?: string | null
+          palate_flavor_tertiary?: string | null
+          palate_sweetness?: string | null
+          palate_tannin?: string | null
           rating: number
           serving_temp_max?: number | null
           serving_temp_min?: number | null
@@ -384,11 +428,33 @@ export type Database = {
           wine_id: string
         }
         Update: {
+          appearance_clarity?: string | null
+          appearance_color?: string | null
+          appearance_comments?: string | null
+          appearance_intensity?: string | null
+          appearance_viscosity?: string | null
+          aroma_comments?: string | null
+          aroma_condition?: string | null
+          aroma_intensity?: string | null
+          aroma_primary?: string | null
+          aroma_secondary?: string | null
+          aroma_tertiary?: string | null
           body?: string | null
           color?: string | null
           created_at?: string
           food_pairing?: string | null
           id?: string
+          palate_acidity?: string | null
+          palate_balance?: string | null
+          palate_body?: string | null
+          palate_comments?: string | null
+          palate_complexity?: string | null
+          palate_finish?: string | null
+          palate_flavor_primary?: string | null
+          palate_flavor_secondary?: string | null
+          palate_flavor_tertiary?: string | null
+          palate_sweetness?: string | null
+          palate_tannin?: string | null
           rating?: number
           serving_temp_max?: number | null
           serving_temp_min?: number | null

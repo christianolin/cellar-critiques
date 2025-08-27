@@ -25,6 +25,29 @@ interface WineRating {
   sweetness: string | null;
   serving_temp_min: number | null;
   serving_temp_max: number | null;
+  // Detailed rating fields
+  appearance_color: string | null;
+  appearance_intensity: string | null;
+  appearance_clarity: string | null;
+  appearance_viscosity: string | null;
+  appearance_comments: string | null;
+  aroma_condition: string | null;
+  aroma_intensity: string | null;
+  aroma_primary: string | null;
+  aroma_secondary: string | null;
+  aroma_tertiary: string | null;
+  aroma_comments: string | null;
+  palate_sweetness: string | null;
+  palate_acidity: string | null;
+  palate_tannin: string | null;
+  palate_body: string | null;
+  palate_flavor_primary: string | null;
+  palate_flavor_secondary: string | null;
+  palate_flavor_tertiary: string | null;
+  palate_complexity: string | null;
+  palate_finish: string | null;
+  palate_balance: string | null;
+  palate_comments: string | null;
   wines: {
     id: string;
     name: string;
