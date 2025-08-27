@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import ConsumeWineDialog from './ConsumeWineDialog';
-import { useNavigate } from 'react-router-dom';
+import AddRatingDialog from './AddRatingDialog';
 
 interface QuantityControlProps {
   cellarId: string;
@@ -24,9 +24,9 @@ export default function QuantityControl({
   onQuantityChange 
 }: QuantityControlProps) {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [showConsumeDialog, setShowConsumeDialog] = useState(false);
+  const [showRatingDialog, setShowRatingDialog] = useState(false);
 
   const handleIncrease = async () => {
     if (!user) return;
@@ -93,8 +93,7 @@ export default function QuantityControl({
       onQuantityChange();
 
       if (shouldRate) {
-        // Navigate to ratings page with the wine pre-selected
-        navigate(`/ratings?wine_id=${wineId}`);
+        setShowRatingDialog(true);
       }
     } catch (error) {
       toast({
@@ -134,6 +133,12 @@ export default function QuantityControl({
         onOpenChange={setShowConsumeDialog}
         wineName={wineName}
         onConfirm={handleConsumeConfirm}
+      />
+
+      <AddRatingDialog
+        open={showRatingDialog}
+        onOpenChange={setShowRatingDialog}
+        onRatingAdded={onQuantityChange}
       />
     </>
   );
