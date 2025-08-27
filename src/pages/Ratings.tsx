@@ -60,7 +60,6 @@ interface WineRating {
 export default function Ratings() {
   const { user } = useAuth();
   const [ratings, setRatings] = useState<WineRating[]>([]);
-  const [friendsRatings, setFriendsRatings] = useState<WineRating[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
@@ -133,7 +132,6 @@ export default function Ratings() {
   useEffect(() => {
     if (user) {
       fetchRatings();
-      fetchFriendsRatings();
     }
   }, [user]);
 
@@ -195,64 +193,6 @@ export default function Ratings() {
         description: "Failed to load your ratings",
         variant: "destructive",
       });
-    }
-  };
-
-  const fetchFriendsRatings = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('wine_ratings')
-        .select(`
-          id,
-          user_id,
-          wine_id,
-          rating,
-          tasting_date,
-          tasting_notes,
-          food_pairing,
-          created_at,
-          updated_at,
-          appearance_color,
-          appearance_intensity,
-          appearance_clarity,
-          appearance_viscosity,
-          appearance_comments,
-          aroma_condition,
-          aroma_intensity,
-          aroma_primary,
-          aroma_secondary,
-          aroma_tertiary,
-          aroma_comments,
-          palate_sweetness,
-          palate_acidity,
-          palate_tannin,
-          palate_body,
-          palate_flavor_primary,
-          palate_flavor_secondary,
-          palate_flavor_tertiary,
-          palate_finish,
-          palate_complexity,
-          palate_balance,
-          palate_comments,
-          wines (
-            id,
-            name,
-            producer,
-            vintage,
-            wine_type,
-            countries:country_id ( name ),
-            regions:region_id ( name ),
-            appellations:appellation_id ( name )
-          )
-        `)
-        .neq('user_id', user?.id)
-        .order('created_at', { ascending: false })
-        .limit(20);
-
-      if (error) throw error;
-      setFriendsRatings(data || []);
-    } catch (error) {
-      console.error('Error loading friends ratings:', error);
     } finally {
       setLoading(false);
     }
@@ -279,26 +219,6 @@ export default function Ratings() {
     return matchesSearch && matchesVintage && matchesType && matchesRegion && matchesCountry && matchesAppellation && matchesProducer;
   });
 
-  const filteredFriendsRatings = friendsRatings.filter(rating => {
-    // Search term filter
-    const matchesSearch = searchTerm === '' || 
-      rating.wines.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      rating.wines.producer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      rating.wines.regions?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      rating.wines.countries?.name.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // Column filters
-    const matchesVintage = filters.vintage === '' || rating.wines.vintage?.toString() === filters.vintage;
-    const matchesType = filters.wine_type === '' || rating.wines.wine_type === filters.wine_type;
-    const matchesRegion = filters.region === '' || 
-      rating.wines.regions?.name === filters.region ||
-      rating.wines.countries?.name === filters.region;
-    const matchesCountry = filters.country === '' || rating.wines.countries?.name === filters.country;
-    const matchesAppellation = filters.appellation === '' || rating.wines.appellations?.name === filters.appellation;
-    const matchesProducer = filters.producer === '' || rating.wines.producer === filters.producer;
-    
-    return matchesSearch && matchesVintage && matchesType && matchesRegion && matchesCountry && matchesAppellation && matchesProducer;
-  });
 
   const getRatingColor = (rating: number) => {
     if (rating >= 95) return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300';
@@ -457,10 +377,7 @@ export default function Ratings() {
                 <List className="h-4 w-4" />
               </Button>
             </div>
-            <AddRatingDialog onRatingAdded={() => {
-              fetchRatings();
-              fetchFriendsRatings();
-            }} />
+            <AddRatingDialog onRatingAdded={fetchRatings} />
           </div>
         </div>
 
@@ -488,7 +405,7 @@ export default function Ratings() {
               className="px-3 py-1 text-sm border border-input bg-background rounded-md"
             >
               <option value="">All Vintages</option>
-              {Array.from(new Set([...ratings, ...friendsRatings].map(r => r.wines.vintage).filter(Boolean)))
+              {Array.from(new Set(ratings.map(r => r.wines.vintage).filter(Boolean)))
                 .sort((a, b) => (b as number) - (a as number))
                 .map(vintage => (
                 <option key={vintage} value={vintage?.toString()}>{vintage}</option>
@@ -501,7 +418,7 @@ export default function Ratings() {
               className="px-3 py-1 text-sm border border-input bg-background rounded-md"
             >
               <option value="">All Types</option>
-              {Array.from(new Set([...ratings, ...friendsRatings].map(r => r.wines.wine_type))).sort().map(type => (
+              {Array.from(new Set(ratings.map(r => r.wines.wine_type))).sort().map(type => (
                 <option key={type} value={type}>{type}</option>
               ))}
             </select>
@@ -512,7 +429,7 @@ export default function Ratings() {
               className="px-3 py-1 text-sm border border-input bg-background rounded-md"
             >
               <option value="">All Countries</option>
-              {Array.from(new Set([...ratings, ...friendsRatings].map(r => r.wines.countries?.name).filter(Boolean))).sort().map(country => (
+              {Array.from(new Set(ratings.map(r => r.wines.countries?.name).filter(Boolean))).sort().map(country => (
                 <option key={country} value={country}>{country}</option>
               ))}
             </select>
@@ -523,7 +440,7 @@ export default function Ratings() {
               className="px-3 py-1 text-sm border border-input bg-background rounded-md"
             >
               <option value="">All Regions</option>
-              {Array.from(new Set([...ratings, ...friendsRatings].map(r => r.wines.regions?.name || r.wines.countries?.name).filter(Boolean))).sort().map(region => (
+              {Array.from(new Set(ratings.map(r => r.wines.regions?.name || r.wines.countries?.name).filter(Boolean))).sort().map(region => (
                 <option key={region} value={region}>{region}</option>
               ))}
             </select>
@@ -534,7 +451,7 @@ export default function Ratings() {
               className="px-3 py-1 text-sm border border-input bg-background rounded-md"
             >
               <option value="">All Appellations</option>
-              {Array.from(new Set([...ratings, ...friendsRatings].map(r => r.wines.appellations?.name).filter(Boolean))).sort().map(appellation => (
+              {Array.from(new Set(ratings.map(r => r.wines.appellations?.name).filter(Boolean))).sort().map(appellation => (
                 <option key={appellation} value={appellation}>{appellation}</option>
               ))}
             </select>
@@ -545,7 +462,7 @@ export default function Ratings() {
               className="px-3 py-1 text-sm border border-input bg-background rounded-md"
             >
               <option value="">All Producers</option>
-              {Array.from(new Set([...ratings, ...friendsRatings].map(r => r.wines.producer))).sort().map(producer => (
+              {Array.from(new Set(ratings.map(r => r.wines.producer))).sort().map(producer => (
                 <option key={producer} value={producer}>{producer}</option>
               ))}
             </select>
@@ -562,14 +479,7 @@ export default function Ratings() {
           </div>
         </div>
 
-        <Tabs defaultValue="my-ratings" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="my-ratings">My Ratings ({ratings.length})</TabsTrigger>
-            <TabsTrigger value="community">Community Ratings</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="my-ratings" className="space-y-6">
-            {filteredRatings.length === 0 ? (
+        {filteredRatings.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12">
                   <Star className="h-12 w-12 text-muted-foreground mb-4" />
@@ -580,10 +490,7 @@ export default function Ratings() {
                       : "No ratings match your search criteria."
                     }
                   </p>
-                  <AddRatingDialog onRatingAdded={() => {
-                    fetchRatings();
-                    fetchFriendsRatings();
-                  }} />
+                  <AddRatingDialog onRatingAdded={fetchRatings} />
                 </CardContent>
               </Card>
             ) : viewMode === 'table' ? (
@@ -792,28 +699,6 @@ export default function Ratings() {
                 ))}
               </div>
             )}
-          </TabsContent>
-
-          <TabsContent value="community" className="space-y-6">
-            {filteredFriendsRatings.length === 0 ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <Star className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No community ratings</h3>
-                  <p className="text-muted-foreground text-center">
-                    Connect with friends to see their ratings!
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredFriendsRatings.map((rating) => (
-                  <RatingCard key={rating.id} rating={rating} showUser />
-                ))}
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
       </div>
     </Layout>
   );

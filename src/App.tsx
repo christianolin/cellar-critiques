@@ -10,6 +10,8 @@ import Friends from "@/pages/Friends";
 import Ratings from "@/pages/Ratings";
 import Admin from "@/pages/Admin";
 import Profile from "@/pages/Profile";
+import FriendCellar from "@/pages/FriendCellar";
+import FriendRatings from "@/pages/FriendRatings";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,7 +30,9 @@ const App = () => (
         <Route path="/ratings" element={<Ratings />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/profile" element={<Profile />} />
-        <Route path="*" element={<NotFound />} />
+          <Route path="/friends/:friendId/cellar" element={<FriendCellar />} />
+          <Route path="/friends/:friendId/ratings" element={<FriendRatings />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

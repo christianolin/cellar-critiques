@@ -9,6 +9,7 @@ import { toast } from '@/hooks/use-toast';
 import { Users, UserPlus, Search } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Link } from 'react-router-dom';
 
 interface Profile {
   id: string;
@@ -244,6 +245,21 @@ export default function Friends() {
                         {friend?.bio && (
                           <p className="text-sm">{friend.bio}</p>
                         )}
+                        <div className="flex gap-2">
+                          <Link to={`/friends/${friend?.user_id}/cellar`}>
+                            <Button 
+                              size="sm"
+                              variant="outline"
+                            >
+                              View Cellar
+                            </Button>
+                          </Link>
+                          <Link to={`/friends/${friend?.user_id}/ratings`}>
+                            <Button size="sm">
+                              View Ratings  
+                            </Button>
+                          </Link>
+                        </div>
                       </CardContent>
                     </Card>
                   );

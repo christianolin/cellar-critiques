@@ -19,7 +19,7 @@ export default function Layout({ children }: LayoutProps) {
     { name: 'Home', href: '/', icon: Home },
     { name: 'My Cellar', href: '/cellar', icon: Wine },
     { name: 'Friends', href: '/friends', icon: Users },
-    { name: 'Ratings', href: '/ratings', icon: Star },
+    { name: 'My Ratings', href: '/ratings', icon: Star },
     ...(!rolesLoading && isAdminOrOwner ? [{ name: 'Admin', href: '/admin', icon: Settings }] : []),
   ];
 
