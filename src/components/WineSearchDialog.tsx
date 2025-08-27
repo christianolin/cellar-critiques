@@ -234,28 +234,52 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
 
       // Apply filters
       if (searchTerm) {
-        // Intelligent multi-word search - search in wine name, producer name, and description
-        const searchWords = searchTerm.trim().toLowerCase().split(/\s+/).filter(word => word.length >= 2);
-        
-        if (searchWords.length === 1) {
-          // Single word search
-          const word = searchWords[0];
-          query = query.or(`name.ilike.*${word}*,producers.name.ilike.*${word}*,description.ilike.*${word}*`);
+        // Intelligent multi-word search without cross-table filters in OR
+        const words = searchTerm.trim().toLowerCase().split(/\s+/).filter(w => w.length >= 2);
+        const phrase = searchTerm.trim().toLowerCase();
+
+        // Look up matching producers separately, then OR by producer_id.in.(...)
+        let producerIds: string[] = [];
+        try {
+          const prodConds: string[] = [];
+          if (words.length <= 1) {
+            if (phrase.length >= 2) prodConds.push(`name.ilike.*${phrase}*`);
+          } else {
+            prodConds.push(`name.ilike.*${phrase}*`);
+            words.forEach(w => prodConds.push(`name.ilike.*${w}*`));
+          }
+          if (prodConds.length) {
+            const { data: matchedProducers } = await supabase
+              .from('producers')
+              .select('id')
+              .or(prodConds.join(','))
+              .limit(200);
+            producerIds = (matchedProducers || []).map(p => p.id);
+          }
+        } catch (e) {
+          // ignore producer lookup failures
+        }
+
+        const orConds: string[] = [];
+        if (words.length <= 1) {
+          if (phrase.length >= 2) {
+            orConds.push(`name.ilike.*${phrase}*`);
+            orConds.push(`description.ilike.*${phrase}*`);
+          }
         } else {
-          // Multi-word search - create OR conditions for all combinations
-          const conditions: string[] = [];
-          
-          // Add conditions for each word in wine name and producer name
-          searchWords.forEach(word => {
-            conditions.push(`name.ilike.*${word}*`);
-            conditions.push(`producers.name.ilike.*${word}*`);
+          orConds.push(`name.ilike.*${phrase}*`);
+          words.forEach(w => {
+            orConds.push(`name.ilike.*${w}*`);
+            orConds.push(`description.ilike.*${w}*`);
           });
-          
-          // Add full phrase searches
-          conditions.push(`name.ilike.*${searchTerm}*`);
-          conditions.push(`producers.name.ilike.*${searchTerm}*`);
-          
-          query = query.or(conditions.join(','));
+        }
+
+        if (producerIds.length) {
+          orConds.push(`producer_id.in.(${producerIds.join(',')})`);
+        }
+
+        if (orConds.length) {
+          query = query.or(orConds.join(','));
         }
       }
       
