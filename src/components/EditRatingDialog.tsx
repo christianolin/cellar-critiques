@@ -55,8 +55,6 @@ export default function EditRatingDialog({ rating, onUpdated }: EditRatingDialog
     tasting_date: rating.tasting_date || '',
     tasting_notes: rating.tasting_notes || '',
     food_pairing: rating.food_pairing || '',
-    serving_temp_min: rating.serving_temp_min as number | null,
-    serving_temp_max: rating.serving_temp_max as number | null,
     // Detailed rating fields
     appearance_color: rating.appearance_color || '',
     appearance_intensity: rating.appearance_intensity || '',
@@ -107,8 +105,6 @@ export default function EditRatingDialog({ rating, onUpdated }: EditRatingDialog
         tasting_date: rating.tasting_date || '',
         tasting_notes: rating.tasting_notes || '',
         food_pairing: rating.food_pairing || '',
-        serving_temp_min: rating.serving_temp_min,
-        serving_temp_max: rating.serving_temp_max,
         // Detailed rating fields
         appearance_color: rating.appearance_color || '',
         appearance_intensity: rating.appearance_intensity || '',
@@ -369,8 +365,6 @@ export default function EditRatingDialog({ rating, onUpdated }: EditRatingDialog
           tasting_notes: formData.tasting_notes || null,
           food_pairing: formData.food_pairing || null,
           tasting_date: formData.tasting_date || null,
-          serving_temp_min: formData.serving_temp_min,
-          serving_temp_max: formData.serving_temp_max,
           // Detailed rating fields
           appearance_color: formData.appearance_color || null,
           appearance_intensity: formData.appearance_intensity || null,
@@ -694,32 +688,6 @@ export default function EditRatingDialog({ rating, onUpdated }: EditRatingDialog
                     type="date"
                     value={formData.tasting_date}
                     onChange={(e) => setFormData({ ...formData, tasting_date: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              {/* Serving Temperature */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="serving_temp_min">Serving Temp Min (°C)</Label>
-                  <Input
-                    id="serving_temp_min"
-                    type="number"
-                    min={0}
-                    max={25}
-                    value={formData.serving_temp_min ?? ''}
-                    onChange={(e) => setFormData({ ...formData, serving_temp_min: e.target.value ? parseInt(e.target.value) : null })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="serving_temp_max">Serving Temp Max (°C)</Label>
-                  <Input
-                    id="serving_temp_max"
-                    type="number"
-                    min={0}
-                    max={25}
-                    value={formData.serving_temp_max ?? ''}
-                    onChange={(e) => setFormData({ ...formData, serving_temp_max: e.target.value ? parseInt(e.target.value) : null })}
                   />
                 </div>
               </div>

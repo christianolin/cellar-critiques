@@ -71,8 +71,6 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
     tasting_date: new Date().toISOString().split('T')[0],
     tasting_notes: '',
     food_pairing: '',
-    serving_temp_min: null as number | null,
-    serving_temp_max: null as number | null,
     // Detailed rating fields
     appearance_color: '',
     appearance_intensity: '',
@@ -235,8 +233,6 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
           tasting_date: formData.tasting_date,
           tasting_notes: formData.tasting_notes || null,
           food_pairing: formData.food_pairing || null,
-          serving_temp_min: formData.serving_temp_min,
-          serving_temp_max: formData.serving_temp_max,
           appearance_color: formData.appearance_color || null,
           appearance_intensity: formData.appearance_intensity || null,
           appearance_clarity: formData.appearance_clarity || null,
@@ -282,8 +278,6 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
       tasting_date: new Date().toISOString().split('T')[0],
       tasting_notes: '',
       food_pairing: '',
-      serving_temp_min: null,
-      serving_temp_max: null,
       appearance_color: '',
       appearance_intensity: '',
       appearance_clarity: '',
@@ -1112,28 +1106,6 @@ export default function AddRatingDialog({ onRatingAdded }: AddRatingDialogProps)
 
           {/* Serving Temperature */}
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="serving_temp_min">Serving Temp Min (°C)</Label>
-              <Input
-                id="serving_temp_min"
-                type="number"
-                min={0}
-                max={25}
-                value={formData.serving_temp_min ?? ''}
-                onChange={(e) => setFormData({ ...formData, serving_temp_min: e.target.value ? parseInt(e.target.value) : null })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="serving_temp_max">Serving Temp Max (°C)</Label>
-              <Input
-                id="serving_temp_max"
-                type="number"
-                min={0}
-                max={25}
-                value={formData.serving_temp_max ?? ''}
-                onChange={(e) => setFormData({ ...formData, serving_temp_max: e.target.value ? parseInt(e.target.value) : null })}
-              />
-            </div>
           </div>
 
           <DialogFooter>

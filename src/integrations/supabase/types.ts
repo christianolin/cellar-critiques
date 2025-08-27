@@ -378,8 +378,6 @@ export type Database = {
           palate_sweetness: string | null
           palate_tannin: string | null
           rating: number
-          serving_temp_max: number | null
-          serving_temp_min: number | null
           tasting_date: string | null
           tasting_notes: string | null
           updated_at: string
@@ -413,8 +411,6 @@ export type Database = {
           palate_sweetness?: string | null
           palate_tannin?: string | null
           rating: number
-          serving_temp_max?: number | null
-          serving_temp_min?: number | null
           tasting_date?: string | null
           tasting_notes?: string | null
           updated_at?: string
@@ -448,8 +444,6 @@ export type Database = {
           palate_sweetness?: string | null
           palate_tannin?: string | null
           rating?: number
-          serving_temp_max?: number | null
-          serving_temp_min?: number | null
           tasting_date?: string | null
           tasting_notes?: string | null
           updated_at?: string
@@ -547,6 +541,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_delete_wine: {
+        Args: { wine_id: string }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

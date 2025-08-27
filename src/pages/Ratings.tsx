@@ -21,8 +21,7 @@ interface WineRating {
   food_pairing: string | null;
   tasting_date: string | null;
   created_at: string;
-  serving_temp_min: number | null;
-  serving_temp_max: number | null;
+  updated_at: string;
   // Detailed rating fields
   appearance_color: string | null;
   appearance_intensity: string | null;
@@ -100,7 +99,6 @@ export default function Ratings() {
     { key: 'region', label: 'Region', defaultVisible: false },
     { key: 'appellation', label: 'Appellation', defaultVisible: false },
     { key: 'food_pairing', label: 'Food Pairing', defaultVisible: false },
-    { key: 'serving_temp', label: 'Serving Temperature', defaultVisible: false },
     { key: 'appearance_color', label: 'Appearance Color', defaultVisible: false },
     { key: 'aroma_intensity', label: 'Aroma Intensity', defaultVisible: false },
     { key: 'palate_body', label: 'Body', defaultVisible: false },
@@ -144,7 +142,37 @@ export default function Ratings() {
       const { data, error } = await supabase
         .from('wine_ratings')
         .select(`
-          *,
+          id,
+          user_id,
+          wine_id,
+          rating,
+          tasting_date,
+          tasting_notes,
+          food_pairing,
+          created_at,
+          updated_at,
+          appearance_color,
+          appearance_intensity,
+          appearance_clarity,
+          appearance_viscosity,
+          appearance_comments,
+          aroma_condition,
+          aroma_intensity,
+          aroma_primary,
+          aroma_secondary,
+          aroma_tertiary,
+          aroma_comments,
+          palate_sweetness,
+          palate_acidity,
+          palate_tannin,
+          palate_body,
+          palate_flavor_primary,
+          palate_flavor_secondary,
+          palate_flavor_tertiary,
+          palate_finish,
+          palate_complexity,
+          palate_balance,
+          palate_comments,
           wines (
             id,
             name,
@@ -175,7 +203,37 @@ export default function Ratings() {
       const { data, error } = await supabase
         .from('wine_ratings')
         .select(`
-          *,
+          id,
+          user_id,
+          wine_id,
+          rating,
+          tasting_date,
+          tasting_notes,
+          food_pairing,
+          created_at,
+          updated_at,
+          appearance_color,
+          appearance_intensity,
+          appearance_clarity,
+          appearance_viscosity,
+          appearance_comments,
+          aroma_condition,
+          aroma_intensity,
+          aroma_primary,
+          aroma_secondary,
+          aroma_tertiary,
+          aroma_comments,
+          palate_sweetness,
+          palate_acidity,
+          palate_tannin,
+          palate_body,
+          palate_flavor_primary,
+          palate_flavor_secondary,
+          palate_flavor_tertiary,
+          palate_finish,
+          palate_complexity,
+          palate_balance,
+          palate_comments,
           wines (
             id,
             name,
@@ -593,9 +651,6 @@ export default function Ratings() {
                         {visibleRatingsColumns.includes('appellation') && (
                           <TableHead>Appellation</TableHead>
                         )}
-                        {visibleRatingsColumns.includes('serving_temp') && (
-                          <TableHead>Serving Temp</TableHead>
-                        )}
                         {visibleRatingsColumns.includes('food_pairing') && (
                           <TableHead>Food Pairing</TableHead>
                         )}
@@ -670,14 +725,6 @@ export default function Ratings() {
                           {visibleRatingsColumns.includes('appellation') && (
                             <TableCell>
                               {rating.wines.appellations?.name || 'N/A'}
-                            </TableCell>
-                          )}
-                          {visibleRatingsColumns.includes('serving_temp') && (
-                            <TableCell>
-                              {rating.serving_temp_min && rating.serving_temp_max 
-                                ? `${rating.serving_temp_min}-${rating.serving_temp_max}°C`
-                                : 'N/A'
-                              }
                             </TableCell>
                           )}
                           {visibleRatingsColumns.includes('food_pairing') && (
