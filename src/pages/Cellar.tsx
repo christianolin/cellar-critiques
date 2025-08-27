@@ -41,6 +41,17 @@ export default function Cellar() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
+  const [filters, setFilters] = useState<{
+    vintage: string;
+    wine_type: string;
+    region: string;
+    producer: string;
+  }>({
+    vintage: '',
+    wine_type: '',  
+    region: '',
+    producer: ''
+  });
 
   useEffect(() => {
     if (user) {
@@ -137,12 +148,24 @@ export default function Cellar() {
     }
   };
 
-  const filteredWines = wines.filter(wine =>
-    wine.wines.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    wine.wines.producer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    wine.wines.regions?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    wine.wines.countries?.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredWines = wines.filter(wine => {
+    // Search term filter
+    const matchesSearch = searchTerm === '' || 
+      wine.wines.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      wine.wines.producer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      wine.wines.regions?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      wine.wines.countries?.name.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Column filters
+    const matchesVintage = filters.vintage === '' || wine.wines.vintage?.toString() === filters.vintage;
+    const matchesType = filters.wine_type === '' || wine.wines.wine_type === filters.wine_type;
+    const matchesRegion = filters.region === '' || 
+      wine.wines.regions?.name === filters.region ||
+      wine.wines.countries?.name === filters.region;
+    const matchesProducer = filters.producer === '' || wine.wines.producer === filters.producer;
+    
+    return matchesSearch && matchesVintage && matchesType && matchesRegion && matchesProducer;
+  });
 
   const [sortKey, setSortKey] = useState<'name' | 'producer' | 'vintage' | 'wine_type' | 'region' | 'quantity' | 'purchase_price'>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
@@ -313,7 +336,7 @@ export default function Cellar() {
           </Card>
         </div>
 
-        <div className="mb-6">
+        <div className="mb-6 space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
@@ -322,6 +345,70 @@ export default function Cellar() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
             />
+          </div>
+          
+          {/* Filters */}
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Filters:</span>
+            </div>
+            
+            <select 
+              value={filters.vintage} 
+              onChange={(e) => setFilters({...filters, vintage: e.target.value})}
+              className="px-3 py-1 text-sm border border-input bg-background rounded-md"
+            >
+              <option value="">All Vintages</option>
+              {Array.from(new Set(wines.map(w => w.wines.vintage).filter(Boolean)))
+                .sort((a, b) => (b as number) - (a as number))
+                .map(vintage => (
+                <option key={vintage} value={vintage?.toString()}>{vintage}</option>
+              ))}
+            </select>
+            
+            <select 
+              value={filters.wine_type} 
+              onChange={(e) => setFilters({...filters, wine_type: e.target.value})}
+              className="px-3 py-1 text-sm border border-input bg-background rounded-md"
+            >
+              <option value="">All Types</option>
+              {Array.from(new Set(wines.map(w => w.wines.wine_type))).sort().map(type => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+            </select>
+            
+            <select 
+              value={filters.region} 
+              onChange={(e) => setFilters({...filters, region: e.target.value})}
+              className="px-3 py-1 text-sm border border-input bg-background rounded-md"
+            >
+              <option value="">All Regions</option>
+              {Array.from(new Set(wines.map(w => w.wines.regions?.name || w.wines.countries?.name).filter(Boolean))).sort().map(region => (
+                <option key={region} value={region}>{region}</option>
+              ))}
+            </select>
+            
+            <select 
+              value={filters.producer} 
+              onChange={(e) => setFilters({...filters, producer: e.target.value})}
+              className="px-3 py-1 text-sm border border-input bg-background rounded-md"
+            >
+              <option value="">All Producers</option>
+              {Array.from(new Set(wines.map(w => w.wines.producer))).sort().map(producer => (
+                <option key={producer} value={producer}>{producer}</option>
+              ))}
+            </select>
+            
+            {(filters.vintage || filters.wine_type || filters.region || filters.producer) && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setFilters({vintage: '', wine_type: '', region: '', producer: ''})}
+              >
+                Clear Filters
+              </Button>
+            )}
           </div>
         </div>
 
@@ -501,7 +588,6 @@ export default function Cellar() {
                       <TableHead>Vintage</TableHead>
                       <TableHead>Consumed Date</TableHead>
                       <TableHead>Quantity</TableHead>
-                      <TableHead>Rating</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -522,13 +608,6 @@ export default function Cellar() {
                           {new Date(consumption.consumed_at).toLocaleDateString()}
                         </TableCell>
                         <TableCell>{consumption.quantity}</TableCell>
-                        <TableCell>
-                          {consumption.rating_id ? (
-                            <Badge variant="secondary">Rated</Badge>
-                          ) : (
-                            <Badge variant="outline">Not Rated</Badge>
-                          )}
-                        </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
                             <Button size="sm" onClick={() => addToCellar(consumption.wines?.id, consumption.wines?.name)}>
