@@ -23,11 +23,6 @@ export default function QuantityControl({ cellarEntry, onUpdate }: QuantityContr
   const [loading, setLoading] = useState(false);
 
   const updateQuantity = async (newQuantity: number) => {
-    if (newQuantity <= 0 && !showConsumeDialog) {
-      setShowConsumeDialog(true);
-      return;
-    }
-
     if (newQuantity < 0) return;
 
     setLoading(true);
@@ -55,6 +50,64 @@ export default function QuantityControl({ cellarEntry, onUpdate }: QuantityContr
     }
   };
 
+  const handleDecreaseClick = async () => {
+    if (!user || loading || cellarEntry.quantity <= 0) return;
+
+    const consume = window.confirm('Do you want to mark this bottle as consumed?');
+    if (consume) {
+      setLoading(true);
+      try {
+        const newQuantity = cellarEntry.quantity - 1;
+
+        const { error: consumeError } = await supabase
+          .from('wine_consumptions')
+          .insert({
+            user_id: user.id,
+            wine_id: cellarEntry.wine_id,
+            quantity: 1,
+            notes: null,
+          });
+        if (consumeError) throw consumeError;
+
+        if (newQuantity > 0) {
+          const { error: updateError } = await supabase
+            .from('wine_cellar')
+            .update({ quantity: newQuantity })
+            .eq('id', cellarEntry.id);
+          if (updateError) throw updateError;
+        } else {
+          const { error: deleteError } = await supabase
+            .from('wine_cellar')
+            .delete()
+            .eq('id', cellarEntry.id);
+          if (deleteError) throw deleteError;
+        }
+
+        toast({
+          title: 'Success',
+          description: '1 bottle moved to consumed archive',
+        });
+
+        onUpdate();
+
+        const shouldRate = window.confirm(`Would you like to rate ${cellarEntry.wines.name} now?`);
+        if (shouldRate) {
+          window.location.href = '/ratings';
+        }
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to record consumption',
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // Just decrease quantity without adding to archive
+      updateQuantity(cellarEntry.quantity - 1);
+    }
+  };
   const handleConsume = async () => {
     if (!user || consumeQuantity <= 0) return;
 
@@ -130,7 +183,7 @@ export default function QuantityControl({ cellarEntry, onUpdate }: QuantityContr
         <Button
           variant="outline"
           size="sm"
-          onClick={() => updateQuantity(cellarEntry.quantity - 1)}
+          onClick={handleDecreaseClick}
           disabled={loading || cellarEntry.quantity <= 0}
         >
           <Minus className="h-3 w-3" />

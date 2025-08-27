@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { Wine, Home, Users, Star, User, LogOut } from 'lucide-react';
@@ -11,6 +11,7 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const { user, signOut } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const navigation = [
     { name: 'Home', href: '/', icon: Home },
@@ -56,7 +57,7 @@ export default function Layout({ children }: LayoutProps) {
           <div className="flex items-center space-x-4">
             {user && (
               <div className="flex items-center space-x-2">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" onClick={() => navigate('/profile')}>
                   <User className="h-4 w-4 mr-2" />
                   Profile
                 </Button>

@@ -9,6 +9,7 @@ import { toast } from '@/hooks/use-toast';
 import { Plus, Search, Star, Calendar, Grid, List } from 'lucide-react';
 import Layout from '@/components/Layout';
 import AddRatingDialog from '@/components/AddRatingDialog';
+import EditRatingDialog from '@/components/EditRatingDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
@@ -321,6 +322,7 @@ export default function Ratings() {
                       <TableHead>Sweetness</TableHead>
                       <TableHead>Serving Temp</TableHead>
                       <TableHead>Notes</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -356,6 +358,9 @@ export default function Ratings() {
                             {rating.tasting_notes || 'No notes'}
                           </span>
                         </TableCell>
+                        <TableCell>
+                          <EditRatingDialog rating={rating} onUpdated={fetchRatings} />
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -364,7 +369,12 @@ export default function Ratings() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredRatings.map((rating) => (
-                  <RatingCard key={rating.id} rating={rating} />
+                  <div key={rating.id} className="space-y-2">
+                    <RatingCard rating={rating} />
+                    <div>
+                      <EditRatingDialog rating={rating} onUpdated={fetchRatings} />
+                    </div>
+                  </div>
                 ))}
               </div>
             )}

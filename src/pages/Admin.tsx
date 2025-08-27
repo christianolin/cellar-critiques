@@ -454,10 +454,10 @@ export default function Admin() {
                   Manage {activeTab} master data
                 </CardDescription>
               </div>
-              <Button onClick={handleAdd}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add {activeTab.slice(0, -1)}
-              </Button>
+                <Button onClick={handleAdd}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add {activeTab === 'countries' ? 'Country' : activeTab === 'regions' ? 'Region' : activeTab === 'appellations' ? 'Appellation' : 'Grape Variety'}
+                </Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -473,7 +473,7 @@ export default function Admin() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
-                {editingItem ? 'Edit' : 'Add'} {activeTab.slice(0, -1)}
+                {editingItem ? 'Edit' : 'Add'} {activeTab === 'countries' ? 'Country' : activeTab === 'regions' ? 'Region' : activeTab === 'appellations' ? 'Appellation' : 'Grape Variety'}
               </DialogTitle>
               <DialogDescription>
                 {editingItem ? 'Update the details below' : 'Fill in the details below'}
