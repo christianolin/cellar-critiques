@@ -310,7 +310,8 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
         .from('wine_ratings')
         .insert({
           user_id: user.id,
-          wine_id: wineDatabaseId || newWineData.wine_database_id || '',
+          wine_database_id: wineDatabaseId || newWineData.wine_database_id || '',
+          wine_vintage_id: wineVintageId || null,
           rating: formData.rating,
           tasting_date: formData.tasting_date,
           tasting_notes: formData.tasting_notes || null,
@@ -591,10 +592,11 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
                           onWineSelect={(wine) => {
                             setNewWineData({
                               ...newWineData,
+                              wine_database_id: wine.id, // Set the existing wine ID
                               name: wine.name,
                               producer: wine.producers?.name || '',
                               vintage: null,
-                              wine_type: wine.wine_type as any,
+                              wine_type: wine.wine_type,
                               alcohol_content: wine.alcohol_content || null,
                               country_id: wine.country_id || '',
                               region_id: wine.region_id || '',

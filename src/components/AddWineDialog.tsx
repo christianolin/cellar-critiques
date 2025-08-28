@@ -319,15 +319,35 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
         wineDatabaseId = wineDb?.id;
       }
 
-      // TODO: Create wine_vintage entry when types are updated
-      // This will store vintage-specific metadata like alcohol_content and grape composition
+      // 2) Create wine_vintage entry for vintage-specific metadata
       let wineVintageId: string | undefined;
+      if (formData.vintage || formData.alcohol_content || formData.image_url) {
+        const vintageData = {
+          wine_database_id: wineDatabaseId,
+          vintage: formData.vintage || new Date().getFullYear(),
+          alcohol_content: formData.alcohol_content,
+          image_url: formData.image_url,
+        };
+
+        const { data: vintage, error: vintageErr } = await supabase
+          .from('wine_vintages')
+          .insert(vintageData)
+          .select('id')
+          .single();
+        
+        if (vintageErr) {
+          console.error('Error creating wine_vintage entry:', vintageErr);
+          throw new Error(`Failed to create wine vintage entry: ${vintageErr.message}`);
+        }
+        wineVintageId = vintage?.id;
+      }
 
       // If adding to cellar, create cellar entry
       if (addToCellar) {
         const cellarData = {
           user_id: user.id,
           wine_database_id: wineDatabaseId,
+          wine_vintage_id: wineVintageId || null,
           quantity: formData.quantity,
           purchase_date: formData.purchase_date || null,
           purchase_price: formData.purchase_price,
@@ -412,10 +432,11 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
                 onWineSelect={(wine) => {
                 setFormData({
                   ...formData,
+                  wine_database_id: wine.id, // Set the existing wine ID
                   name: wine.name,
                   producer: wine.producers?.name || '',
                   vintage: null,
-                  wine_type: wine.wine_type as any,
+                  wine_type: wine.wine_type,
                   alcohol_content: wine.alcohol_content || null,
                   country_id: wine.country_id || '',
                   region_id: wine.region_id || '',
