@@ -16,6 +16,7 @@ import { ColumnSelector, type ColumnConfig } from '@/components/ColumnSelector';
 
 interface WineRating {
   id: string;
+  user_id: string;
   rating: number;
   tasting_notes: string | null;
   food_pairing: string | null;
@@ -132,16 +133,16 @@ export default function Ratings() {
   };
 
   const addToCellar = async (wineId: string, wineName: string) => {
-    if (!user) return;
+    if (!user || !wineId) return;
 
     try {
-             // Check if wine already exists in cellar
-       const { data: existingEntry } = await supabase
-         .from('wine_cellar')
-         .select('*')
-         .eq('user_id', user.id)
-         .eq('wine_id', wineId)
-         .single();
+                    // Check if wine already exists in cellar
+        const { data: existingEntry } = await supabase
+          .from('wine_cellar')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('wine_database_id', wineId)
+          .single();
 
       if (existingEntry) {
         // Update quantity
@@ -152,14 +153,14 @@ export default function Ratings() {
 
         if (error) throw error;
       } else {
-                 // Create new entry
-         const { error } = await supabase
-           .from('wine_cellar')
-           .insert({
-             user_id: user.id,
-             wine_id: wineId,
-             quantity: 1,
-           });
+                          // Create new entry
+          const { error } = await supabase
+            .from('wine_cellar')
+            .insert({
+              user_id: user.id,
+              wine_database_id: wineId,
+              quantity: 1,
+            });
 
         if (error) throw error;
       }
@@ -239,28 +240,32 @@ export default function Ratings() {
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+            if (error) throw error;
       
-             // Transform data to match interface
-       const transformedData = (data || []).map((rating: any) => ({
-         ...rating,
-         wines: {
-           id: rating.wine_database?.id || '',
-           name: rating.wine_database?.name || 'Unknown Wine',
-           producer: rating.wine_database?.producers?.name || 'Unknown Producer',
-           vintage: rating.wine_vintages?.vintage || null,
-           wine_type: rating.wine_database?.wine_type || 'red',
-           countries: rating.wine_database?.countries,
-           regions: rating.wine_database?.regions,
-           appellations: rating.wine_database?.appellations,
-         }
-       }));
+      console.log('Raw ratings data:', data);
       
+      // Transform data to match interface
+        const transformedData = (data || []).map((rating: any) => ({
+          ...rating,
+          wines: {
+            id: rating.wine_database?.id || rating.id || '',
+            name: rating.wine_database?.name || 'Unknown Wine',
+            producer: rating.wine_database?.producers?.name || 'Unknown Producer',
+            vintage: rating.wine_vintages?.vintage || null,
+            wine_type: rating.wine_database?.wine_type || 'red',
+            countries: rating.wine_database?.countries,
+            regions: rating.wine_database?.regions,
+            appellations: rating.wine_database?.appellations,
+          }
+        }));
+      
+      console.log('Transformed ratings data:', transformedData);
       setRatings(transformedData);
     } catch (error) {
+      console.error('Error loading ratings:', error);
       toast({
         title: "Error",
-        description: "Failed to load your ratings",
+        description: `Failed to load your ratings: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
     } finally {
@@ -418,7 +423,8 @@ export default function Ratings() {
             <Button 
               size="sm" 
               variant="outline"
-                                               onClick={() => addToCellar(rating.wine_database_id || rating.wines.id, rating.wines.name)}
+              onClick={() => rating.wine_database_id ? addToCellar(rating.wine_database_id, rating.wines.name) : null}
+              disabled={!rating.wine_database_id}
             >
               <Plus className="h-4 w-4 mr-1" />
               Add to Cellar
@@ -763,10 +769,11 @@ export default function Ratings() {
                            <TableCell>
                             <div className="flex gap-2">
                               <EditRatingDialog rating={rating} onUpdated={fetchRatings} />
-                              <Button 
+                                                            <Button 
                                 size="sm" 
                                 variant="outline"
-                                onClick={() => addToCellar(rating.wine_database_id || rating.wines.id, rating.wines.name)}
+                                onClick={() => rating.wine_database_id ? addToCellar(rating.wine_database_id, rating.wines.name) : null}
+                                disabled={!rating.wine_database_id}
                               >
                                 <Plus className="h-4 w-4 mr-1" />
                                 Add to Cellar

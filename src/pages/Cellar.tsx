@@ -163,6 +163,9 @@ export default function Cellar() {
         .eq('user_id', user?.id);
 
       if (error) throw error;
+      
+      console.log('Raw cellar data:', data);
+      
       const mapped = (data || []).map((row: any) => {
         // Back-compat: expose vintage on wine_database
         if (row.vintage?.vintage && row.wine_database) {
@@ -176,11 +179,14 @@ export default function Cellar() {
         row.wines = row.wine_database;
         return row;
       });
+      
+      console.log('Mapped cellar data:', mapped);
       setWines(mapped);
     } catch (error) {
+      console.error('Error loading cellar:', error);
       toast({
         title: "Error",
-        description: "Failed to load your wine cellar",
+        description: `Failed to load your wine cellar: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
     } finally {
@@ -220,7 +226,7 @@ export default function Cellar() {
   };
 
   const addToCellar = async (wineId: string, wineName: string) => {
-    if (!user) return;
+    if (!user || !wineId) return;
     try {
       const { data: existing, error: existingError } = await supabase
         .from('wine_cellar')
@@ -897,7 +903,11 @@ export default function Cellar() {
                         )}
                         <TableCell>
                           <div className="flex gap-2">
-                                                         <Button size="sm" onClick={() => addToCellar(consumption.wine_database_id || consumption.wines?.id, consumption.wines?.name)}>
+                                                         <Button 
+                               size="sm" 
+                               onClick={() => consumption.wine_database_id ? addToCellar(consumption.wine_database_id, consumption.wines?.name || 'Unknown Wine') : null}
+                               disabled={!consumption.wine_database_id}
+                             >
                               Add to Cellar
                             </Button>
                             <DeleteConsumptionDialog
