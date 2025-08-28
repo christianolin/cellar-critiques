@@ -288,7 +288,7 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
         wineDatabaseId = wineDb?.id;
       }
 
-      // TODO: Create wine_vintage entry when wine_vintages table is available
+      // TODO: Create wine_vintage entry when types are updated
       // This will store vintage-specific metadata like alcohol_content and grape composition
       let wineVintageId: string | undefined;
 

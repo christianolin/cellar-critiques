@@ -61,7 +61,8 @@ export default function QuantityControls({ cellarEntry, onUpdate }: QuantityCont
         .from('wine_consumptions')
         .insert({
           user_id: user.id,
-          wine_id: cellarEntry.wines.id,
+          wine_database_id: cellarEntry.wine_database_id,
+          wine_vintage_id: cellarEntry.wine_vintage_id,
           quantity: consumeQuantity,
           notes: consumeNotes || null,
         });
@@ -177,7 +178,7 @@ export default function QuantityControls({ cellarEntry, onUpdate }: QuantityCont
           <DialogHeader>
             <DialogTitle>Consume Wine</DialogTitle>
             <DialogDescription>
-              Record consumption of {cellarEntry.wines.name}
+              Record consumption of {cellarEntry.wines?.name || 'Unknown Wine'}
             </DialogDescription>
           </DialogHeader>
           

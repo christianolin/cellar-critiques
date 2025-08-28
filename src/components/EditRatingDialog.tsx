@@ -174,31 +174,37 @@ export default function EditRatingDialog({ rating, onUpdated }: EditRatingDialog
 
   const loadWineGrapeComposition = async () => {
     try {
-      const { data, error } = await supabase
-        .from('wine_grape_composition')
-        .select(`
-          grape_variety_id,
-          percentage,
-          grape_varieties (
-            name,
-            type
-          )
-        `)
-        .eq('wine_id', rating.wines.id);
+      // Load grape composition from wine_vintage_grapes if we have a vintage
+      if (rating.wine_vintage_id) {
+        const { data, error } = await supabase
+          .from('wine_vintage_grapes')
+          .select(`
+            grape_variety_id,
+            percentage,
+            grape_varieties (
+              name,
+              type
+            )
+          `)
+          .eq('wine_vintage_id', rating.wine_vintage_id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      setWineGrapeComposition(data || []);
-      
-      // Convert to format expected by wineData
-      const grapes = (data || []).map(item => ({
-        id: item.grape_variety_id,
-        name: item.grape_varieties.name,
-        type: item.grape_varieties.type,
-        percentage: item.percentage
-      }));
+        setWineGrapeComposition(data || []);
+        
+        // Convert to format expected by wineData
+        const grapes = (data || []).map(item => ({
+          id: item.grape_variety_id,
+          name: item.grape_varieties.name,
+          type: item.grape_varieties.type,
+          percentage: item.percentage
+        }));
 
-      setWineData(prev => ({ ...prev, grape_varieties: grapes }));
+        setWineData(prev => ({ ...prev, grape_varieties: grapes }));
+      } else {
+        setWineGrapeComposition([]);
+        setWineData(prev => ({ ...prev, grape_varieties: [] }));
+      }
     } catch (error) {
       console.error('Error loading grape composition:', error);
     }
@@ -298,24 +304,26 @@ export default function EditRatingDialog({ rating, onUpdated }: EditRatingDialog
     }
   };
 
-  const updateWineGrapeComposition = async (wineId: string) => {
+  const updateWineGrapeComposition = async (wineVintageId: string | null) => {
     try {
+      if (!wineVintageId) return;
+
       // Delete existing compositions
       await supabase
-        .from('wine_grape_composition')
+        .from('wine_vintage_grapes')
         .delete()
-        .eq('wine_id', wineId);
+        .eq('wine_vintage_id', wineVintageId);
 
       // Insert new compositions
       if (wineData.grape_varieties.length > 0) {
         const compositions = wineData.grape_varieties.map(grape => ({
-          wine_id: wineId,
+          wine_vintage_id: wineVintageId,
           grape_variety_id: grape.id,
           percentage: grape.percentage
         }));
 
         const { error } = await supabase
-          .from('wine_grape_composition')
+          .from('wine_vintage_grapes')
           .insert(compositions);
 
         if (error) throw error;
@@ -331,28 +339,55 @@ export default function EditRatingDialog({ rating, onUpdated }: EditRatingDialog
     setSaving(true);
     
     try {
-      // Update wine data
+      // Update wine_database data
       const { error: wineError } = await supabase
-        .from('wines')
+        .from('wine_database')
         .update({
           name: wineData.name,
-          producer: wineData.producer,
-          vintage: wineData.vintage,
           wine_type: wineData.wine_type as "red" | "white" | "rose" | "sparkling" | "dessert" | "fortified",
-          bottle_size: wineData.bottle_size,
-          alcohol_content: wineData.alcohol_content,
-          image_url: wineData.image_url,
           country_id: wineData.country_id || null,
           region_id: wineData.region_id || null,
           appellation_id: wineData.appellation_id || null,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', rating.wines.id);
+        .eq('id', rating.wine_database_id);
 
       if (wineError) throw wineError;
 
-      // Update grape composition
-      await updateWineGrapeComposition(rating.wines.id);
+      // Update or create wine_vintage entry
+      let wineVintageId = rating.wine_vintage_id;
+      if (wineData.vintage) {
+        if (wineVintageId) {
+          // Update existing vintage
+          const { error: vintageError } = await supabase
+            .from('wine_vintages')
+            .update({
+              vintage: wineData.vintage,
+              alcohol_content: wineData.alcohol_content,
+              image_url: wineData.image_url,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', wineVintageId);
+          if (vintageError) throw vintageError;
+        } else {
+          // Create new vintage
+          const { data: vintageData, error: vintageError } = await supabase
+            .from('wine_vintages')
+            .insert({
+              wine_database_id: rating.wine_database_id,
+              vintage: wineData.vintage,
+              alcohol_content: wineData.alcohol_content,
+              image_url: wineData.image_url,
+            })
+            .select('id')
+            .single();
+          if (vintageError) throw vintageError;
+          wineVintageId = vintageData?.id;
+        }
+
+        // Update grape composition
+        await updateWineGrapeComposition(wineVintageId);
+      }
 
       // Update rating data
       const { error: ratingError } = await supabase
