@@ -705,24 +705,39 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
                      <div>
                        <Label htmlFor="region">Region</Label>
                        <SearchableSelect
-                         options={filteredRegions.map(region => ({value: region.id, label: region.name}))}
+                         options={(newWineData.country_id ? filteredRegions : regions).map(region => ({value: region.id, label: region.name}))}
                          value={newWineData.region_id}
-                         onValueChange={(value) => setNewWineData({ ...newWineData, region_id: value, appellation_id: '' })}
-                         placeholder={newWineData.country_id ? "Select region" : "Select country first"}
+                         onValueChange={(value) => {
+                           const selectedRegion = regions.find(r => r.id === value);
+                           setNewWineData({ 
+                             ...newWineData, 
+                             region_id: value, 
+                             country_id: selectedRegion?.country_id || newWineData.country_id,
+                             appellation_id: ''
+                           });
+                         }}
+                         placeholder="Select region"
                          searchPlaceholder="Search regions..."
-                         disabled={!newWineData.country_id}
                          allowNone={true}
                        />
                      </div>
                      <div>
                        <Label htmlFor="appellation">Appellation</Label>
                        <SearchableSelect
-                         options={filteredAppellations.map(appellation => ({value: appellation.id, label: appellation.name}))}
+                         options={(newWineData.region_id ? filteredAppellations : appellations).map(appellation => ({value: appellation.id, label: appellation.name}))}
                          value={newWineData.appellation_id}
-                         onValueChange={(value) => setNewWineData({ ...newWineData, appellation_id: value })}
-                         placeholder={newWineData.region_id ? "Select appellation" : "Select region first"}
+                         onValueChange={(value) => {
+                           const selectedApp = appellations.find(a => a.id === value);
+                           const selectedRegion = selectedApp ? regions.find(r => r.id === selectedApp.region_id) : undefined;
+                           setNewWineData({ 
+                             ...newWineData, 
+                             appellation_id: value,
+                             region_id: selectedRegion?.id || newWineData.region_id,
+                             country_id: selectedRegion?.country_id || newWineData.country_id,
+                           });
+                         }}
+                         placeholder="Select appellation"
                          searchPlaceholder="Search appellations..."
-                         disabled={!newWineData.region_id}
                          allowNone={true}
                        />
                      </div>

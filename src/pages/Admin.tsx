@@ -1345,12 +1345,17 @@ export default function Admin() {
                     searchPlaceholder="Search countries..."
                   />
                   <SearchableSelect
-                    options={[{value: '', label: 'All regions'}, ...regions.filter(r => !countryFilter || r.country_id === countryFilter).map(r => ({value: r.id, label: r.name}))]}
+                    options={[{value: '', label: 'All regions'}, ...regions.map(r => ({value: r.id, label: r.name}))]}
                     value={regionFilter}
-                    onValueChange={setRegionFilter}
+                    onValueChange={(val) => {
+                      setRegionFilter(val);
+                      if (val) {
+                        const region = regions.find(r => r.id === val);
+                        if (region) setCountryFilter(region.country_id);
+                      }
+                    }}
                     placeholder="Filter by region"
                     searchPlaceholder="Search regions..."
-                    disabled={!countryFilter}
                   />
                   <Button
                     variant="outline"
@@ -1383,22 +1388,51 @@ export default function Admin() {
                     onValueChange={setCountryFilter}
                     placeholder="Filter by country"
                     searchPlaceholder="Search countries..."
+                    onSearchChange={async (term) => {
+                      const like = term?.trim() ? `%${term.trim()}%` : '%';
+                      const { data } = await supabase.from('countries').select('id,name').ilike('name', like).order('name');
+                      setCountries((data as any) || []);
+                    }}
                   />
                   <SearchableSelect
-                    options={[{value: '', label: 'All regions'}, ...regions.filter(r => !countryFilter || r.country_id === countryFilter).map(r => ({value: r.id, label: r.name}))]}
+                    options={[{value: '', label: 'All regions'}, ...regions.map(r => ({value: r.id, label: r.name}))]}
                     value={regionFilter}
-                    onValueChange={setRegionFilter}
+                    onValueChange={(val) => {
+                      setRegionFilter(val);
+                      if (val) {
+                        const region = regions.find(r => r.id === val);
+                        if (region) setCountryFilter(region.country_id);
+                      }
+                    }}
                     placeholder="Filter by region"
                     searchPlaceholder="Search regions..."
-                    disabled={!countryFilter}
+                    onSearchChange={async (term) => {
+                      const like = term?.trim() ? `%${term.trim()}%` : '%';
+                      const { data } = await supabase.from('regions').select('id,name,country_id').ilike('name', like).order('name');
+                      setRegions((data as any) || []);
+                    }}
                   />
                   <SearchableSelect
-                    options={[{value: '', label: 'All appellations'}, ...appellations.filter(a => !regionFilter || a.region_id === regionFilter).map(a => ({value: a.id, label: a.name}))]}
+                    options={[{value: '', label: 'All appellations'}, ...appellations.map(a => ({value: a.id, label: a.name}))]}
                     value={appellationFilter}
-                    onValueChange={setAppellationFilter}
+                    onValueChange={(val) => {
+                      setAppellationFilter(val);
+                      if (val) {
+                        const app = appellations.find(a => a.id === val);
+                        const region = app ? regions.find(r => r.id === app.region_id) : undefined;
+                        if (region) {
+                          setRegionFilter(region.id);
+                          setCountryFilter(region.country_id);
+                        }
+                      }
+                    }}
                     placeholder="Filter by appellation"
                     searchPlaceholder="Search appellations..."
-                    disabled={!regionFilter}
+                    onSearchChange={async (term) => {
+                      const like = term?.trim() ? `%${term.trim()}%` : '%';
+                      const { data } = await supabase.from('appellations').select('id,name,region_id').ilike('name', like).order('name');
+                      setAppellations((data as any) || []);
+                    }}
                   />
                   <SearchableSelect
                     options={[{value: '', label: 'All producers'}, ...wineProducers.map(p => ({value: p.id, label: p.name}))]}
@@ -1406,6 +1440,11 @@ export default function Admin() {
                     onValueChange={setProducerFilter}
                     placeholder="Filter by producer"
                     searchPlaceholder="Search producers..."
+                    onSearchChange={async (term) => {
+                      const like = term?.trim() ? `%${term.trim()}%` : '%';
+                      const { data } = await supabase.from('producers').select('id,name').ilike('name', like).order('name');
+                      setWineProducers((data as any) || []);
+                    }}
                   />
                 </div>
                 <div className="flex gap-2">

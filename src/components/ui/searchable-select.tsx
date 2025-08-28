@@ -23,6 +23,7 @@ interface SearchableSelectProps {
   noneLabel?: string;
   onSearchChange?: (term: string) => void;
   onOpenChange?: (open: boolean) => void;
+  onLoadMore?: () => void;
 }
 
 export function SearchableSelect({
@@ -38,8 +39,10 @@ export function SearchableSelect({
   noneLabel = "None",
   onSearchChange,
   onOpenChange,
+  onLoadMore,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
+  const groupRef = React.useRef<HTMLDivElement | null>(null);
 
   const selectedOption = options.find((option) => option.value === value);
 
@@ -61,7 +64,16 @@ export function SearchableSelect({
         <Command onValueChange={(val) => onSearchChange?.(val)}>
           <CommandInput placeholder={searchPlaceholder} />
           <CommandEmpty>{emptyText}</CommandEmpty>
-          <CommandGroup className="max-h-72 overscroll-contain overflow-y-auto overflow-x-hidden">
+          <CommandGroup
+            ref={groupRef as any}
+            className="max-h-72 overscroll-contain overflow-y-auto overflow-x-hidden"
+            onScroll={(e) => {
+              const el = e.currentTarget as HTMLDivElement;
+              if (!onLoadMore) return;
+              const nearBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 24;
+              if (nearBottom) onLoadMore();
+            }}
+          >
             {allowNone && (
               <CommandItem
                 value=""
