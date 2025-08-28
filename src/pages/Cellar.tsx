@@ -223,7 +223,7 @@ export default function Cellar() {
         .from('wine_cellar')
         .select('*')
         .eq('user_id', user.id)
-        .eq('wine_database_id', wineId)
+        .eq('wine_id', wineId)
         .maybeSingle();
 
       if (existingError && existingError.code !== 'PGRST116') throw existingError;
@@ -237,7 +237,7 @@ export default function Cellar() {
       } else {
         const { error } = await supabase
           .from('wine_cellar')
-          .insert({ user_id: user.id, wine_database_id: wineId, quantity: 1 });
+          .insert({ user_id: user.id, wine_id: wineId, quantity: 1 });
         if (error) throw error;
       }
 

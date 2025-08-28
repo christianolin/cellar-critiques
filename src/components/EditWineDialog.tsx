@@ -80,17 +80,17 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
   const [filteredAppellations, setFilteredAppellations] = useState<Appellation[]>([]);
 
   const [formData, setFormData] = useState<WineFormData>({
-    name: cellarEntry.wines.name,
-    producer: cellarEntry.wines.producer,
-    vintage: cellarEntry.wines.vintage,
-    wine_type: cellarEntry.wines.wine_type,
-    bottle_size: cellarEntry.wines.bottle_size || 'Bottle (750ml)',
-    country_id: cellarEntry.wines.country_id || '',
-    region_id: cellarEntry.wines.region_id || '',
-    appellation_id: cellarEntry.wines.appellation_id || '',
+    name: cellarEntry.wine_database?.name || '',
+    producer: cellarEntry.wine_database?.producers?.name || '',
+    vintage: cellarEntry.wine_vintages?.vintage || null,
+    wine_type: cellarEntry.wine_database?.wine_type || '',
+    bottle_size: '750ml', // Default bottle size
+    country_id: cellarEntry.wine_database?.country_id || '',
+    region_id: cellarEntry.wine_database?.region_id || '',
+    appellation_id: cellarEntry.wine_database?.appellation_id || '',
     grape_varieties: [],
-    alcohol_content: cellarEntry.wines.alcohol_content,
-    image_url: cellarEntry.wines.image_url || null,
+    alcohol_content: cellarEntry.wine_vintages?.alcohol_content || null,
+    image_url: cellarEntry.wine_vintages?.image_url || null,
     quantity: cellarEntry.quantity,
     purchase_date: cellarEntry.purchase_date || '',
     purchase_price: cellarEntry.purchase_price,
@@ -122,17 +122,8 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
       setAppellations(appellationsRes.data || []);
       setGrapeVarieties(grapeVarietiesRes.data || []);
 
-      // Initialize grape varieties with percentages from existing data
-      if (cellarEntry.wines.grape_variety_ids && cellarEntry.wines.grape_variety_ids.length > 0) {
-        const selectedGrapes = grapeVarietiesRes.data?.filter(grape => 
-          cellarEntry.wines.grape_variety_ids.includes(grape.id)
-        ).map(grape => ({
-          ...grape,
-          percentage: Math.floor(100 / cellarEntry.wines.grape_variety_ids.length)
-        })) || [];
-        
-        setFormData(prev => ({ ...prev, grape_varieties: selectedGrapes }));
-      }
+      // Initialize grape varieties (if needed in the future)
+      // For now, we'll leave grape varieties empty since the data structure has changed
     } catch (error) {
       toast({
         title: "Error",
@@ -254,24 +245,30 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
 
     setLoading(true);
     try {
-      // Update wine entry
+      // Update wine_database entry
+      let producerId: string | undefined;
+      if (formData.producer) {
+        const { data: prod } = await supabase.from('producers').select('id').ilike('name', formData.producer).limit(1).maybeSingle();
+        if (prod?.id) producerId = prod.id;
+        else {
+          const { data: newProd } = await supabase.from('producers').insert({ name: formData.producer }).select('id').single();
+          producerId = newProd?.id;
+        }
+      }
+      
       const wineData = {
         name: formData.name,
-        producer: formData.producer,
-        vintage: formData.vintage,
         wine_type: formData.wine_type as "red" | "white" | "rose" | "sparkling" | "dessert" | "fortified",
-        bottle_size: formData.bottle_size,
+        producer_id: producerId,
         country_id: formData.country_id || null,
         region_id: formData.region_id || null,
         appellation_id: formData.appellation_id || null,
-        grape_variety_ids: formData.grape_varieties.map(g => g.id),
-        image_url: formData.image_url
       };
 
       const { error: wineError } = await supabase
-        .from('wines')
+        .from('wine_database')
         .update(wineData)
-        .eq('id', cellarEntry.wines.id);
+        .eq('id', cellarEntry.wine_database_id);
 
       if (wineError) throw wineError;
 

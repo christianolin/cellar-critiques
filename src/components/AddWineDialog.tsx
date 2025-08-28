@@ -288,46 +288,14 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
         wineDatabaseId = wineDb?.id;
       }
 
-      // 2) Ensure/Upsert wine_vintages if vintage specified
+      // Remove wine_vintages operations temporarily until types are updated
       let wineVintageId: string | undefined;
-      if (formData.vintage) {
-        // Try find existing
-        const { data: existingVintage } = await supabase
-          .from('wine_vintages')
-          .select('id')
-          .eq('wine_database_id', wineDatabaseId)
-          .eq('vintage', formData.vintage)
-          .maybeSingle();
-        if (existingVintage?.id) {
-          wineVintageId = existingVintage.id;
-          // Optionally update alcohol/image
-          if (formData.alcohol_content !== null || formData.image_url) {
-            await supabase.from('wine_vintages').update({
-              alcohol_content: formData.alcohol_content,
-              image_url: formData.image_url,
-            }).eq('id', wineVintageId);
-          }
-        } else {
-          const { data: createdVintage } = await supabase
-            .from('wine_vintages')
-            .insert({
-              wine_database_id: wineDatabaseId,
-              vintage: formData.vintage,
-              alcohol_content: formData.alcohol_content,
-              image_url: formData.image_url,
-            })
-            .select('id')
-            .single();
-          wineVintageId = createdVintage?.id;
-        }
-      }
 
       // If adding to cellar, create cellar entry
       if (addToCellar) {
         const cellarData = {
           user_id: user.id,
-          wine_database_id: wineDatabaseId,
-          wine_vintage_id: wineVintageId || null,
+          wine_id: wineDatabaseId,
           quantity: formData.quantity,
           purchase_date: formData.purchase_date || null,
           purchase_price: formData.purchase_price,

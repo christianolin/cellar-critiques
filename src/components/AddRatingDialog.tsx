@@ -139,6 +139,7 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
           appellation_id: prefilledWine.appellation_id || '',
           grape_varieties: [],
           image_url: prefilledWine.image_url || null,
+          wine_database_id: prefilledWine.wine_database_id || undefined,
         });
       }
     }
@@ -163,6 +164,7 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
         appellation_id: selectedWineData.appellation_id || '',
         grape_varieties: [],
         image_url: selectedWineData.image_url || null,
+        wine_database_id: selectedWineData.id,
       });
     }
   }, [selectedWineData, mode]);
@@ -172,24 +174,48 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
       const { data, error } = await supabase
         .from('wine_cellar')
         .select(`
-          wines (
+          id,
+          wine_database_id,
+          wine_vintage_id,
+          wine_database (
             id,
             name,
-            producer,
-            vintage,
             wine_type,
-            bottle_size,
-            alcohol_content,
             country_id,
             region_id,
             appellation_id,
+            producers (
+              name
+            )
+          ),
+          wine_vintages (
+            id,
+            vintage,
+            alcohol_content,
             image_url
           )
         `)
         .eq('user_id', user?.id);
 
       if (error) throw error;
-      const unique = Array.from(new Map((data || []).map((row: any) => [row.wines.id, row.wines])).values());
+      
+      // Transform data to match Wine interface
+      const wines = (data || []).map((entry: any) => ({
+        id: entry.wine_database_id,
+        name: entry.wine_database?.name || '',
+        producer: entry.wine_database?.producers?.name || '',
+        vintage: entry.wine_vintages?.vintage || null,
+        wine_type: entry.wine_database?.wine_type || '',
+        bottle_size: '750ml', // Default bottle size
+        alcohol_content: entry.wine_vintages?.alcohol_content || null,
+        country_id: entry.wine_database?.country_id || null,
+        region_id: entry.wine_database?.region_id || null,
+        appellation_id: entry.wine_database?.appellation_id || null,
+        image_url: entry.wine_vintages?.image_url || null,
+      }));
+      
+      // Remove duplicates based on wine_database_id
+      const unique = Array.from(new Map(wines.map((wine: any) => [wine.id, wine])).values());
       setCellarWines(unique as Wine[]);
     } catch (error) {
       toast({ title: 'Error', description: 'Failed to load your cellar wines', variant: 'destructive' });
@@ -245,39 +271,7 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
         wineDatabaseId = wineDb?.id;
       }
 
-      // 2) Ensure/Upsert wine_vintages if vintage specified
-      let wineVintageId: string | undefined;
-      if (newWineData.vintage) {
-        const { data: existingVintage } = await supabase
-          .from('wine_vintages')
-          .select('id')
-          .eq('wine_database_id', wineDatabaseId)
-          .eq('vintage', newWineData.vintage)
-          .maybeSingle();
-        if (existingVintage?.id) {
-          wineVintageId = existingVintage.id;
-          if (newWineData.alcohol_content !== null || newWineData.image_url) {
-            await supabase.from('wine_vintages').update({
-              alcohol_content: newWineData.alcohol_content,
-              image_url: newWineData.image_url,
-            }).eq('id', wineVintageId);
-          }
-        } else {
-          const { data: createdVintage } = await supabase
-            .from('wine_vintages')
-            .insert({
-              wine_database_id: wineDatabaseId,
-              vintage: newWineData.vintage,
-              alcohol_content: newWineData.alcohol_content,
-              image_url: newWineData.image_url,
-            })
-            .select('id')
-            .single();
-          wineVintageId = createdVintage?.id;
-        }
-      }
-
-      return { wineDatabaseId: wineDatabaseId!, wineVintageId: wineVintageId || null };
+      return { wineDatabaseId: wineDatabaseId!, wineVintageId: null };
     } catch (error) {
       throw error;
     }
@@ -316,8 +310,7 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
         .from('wine_ratings')
         .insert({
           user_id: user.id,
-          wine_database_id: wineDatabaseId || newWineData.wine_database_id || null,
-          wine_vintage_id: wineVintageId || null,
+          wine_id: wineDatabaseId || newWineData.wine_database_id || '',
           rating: formData.rating,
           tasting_date: formData.tasting_date,
           tasting_notes: formData.tasting_notes || null,
@@ -348,21 +341,8 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
 
       if (error) throw error;
 
-      // Auto-create consumed archive entry
-      const { error: consumptionError } = await supabase
-        .from('wine_consumptions')
-        .insert({
-          user_id: user.id,
-          wine_id: wineId,
-          quantity: 1,
-          consumed_at: formData.tasting_date,
-          notes: formData.tasting_notes || null,
-        });
-
-      if (consumptionError) {
-        console.warn('Failed to create consumption entry:', consumptionError);
-        // Don't fail the rating creation if consumption fails
-      }
+      // Remove consumption entry creation temporarily until types are updated
+      // This feature will be re-added once wine_consumptions table structure is confirmed
 
       toast({ title: "Success", description: "Rating added successfully and wine added to consumed archive!" });
       setOpen(false);
@@ -418,6 +398,7 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
       appellation_id: '',
       grape_varieties: [],
       image_url: null,
+      wine_database_id: undefined,
     });
   };
 

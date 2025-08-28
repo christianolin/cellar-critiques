@@ -44,21 +44,36 @@ export default function ConsumedWines() {
         .from('wine_consumptions')
         .select(`
           *,
-          wines (
+          wine_database (
             id,
             name,
-            producer,
-            vintage,
             wine_type,
-            countries:country_id ( name ),
-            regions:region_id ( name )
-          )
+            producers ( name ),
+            countries ( name ),
+            regions ( name )
+          ),
+          wine_vintages ( vintage )
         `)
         .eq('user_id', user?.id)
         .order('consumed_at', { ascending: false });
 
       if (error) throw error;
-      setConsumedWines(data || []);
+      
+      // Transform data to match interface
+      const transformed = (data || []).map((item: any) => ({
+        ...item,
+        wines: {
+          id: item.wine_database?.id,
+          name: item.wine_database?.name || 'Unknown Wine',
+          producer: item.wine_database?.producers?.name || 'Unknown Producer',
+          vintage: item.wine_vintages?.vintage || null,
+          wine_type: item.wine_database?.wine_type || 'red',
+          countries: item.wine_database?.countries,
+          regions: item.wine_database?.regions,
+        }
+      }));
+      
+      setConsumedWines(transformed);
     } catch (error) {
       toast({
         title: "Error",
@@ -79,7 +94,7 @@ export default function ConsumedWines() {
         .from('wine_cellar')
         .select('*')
         .eq('user_id', user.id)
-        .eq('wine_database_id', wineId)
+        .eq('wine_id', wineId)
         .single();
 
       if (existingEntry) {
@@ -96,7 +111,7 @@ export default function ConsumedWines() {
           .from('wine_cellar')
           .insert({
             user_id: user.id,
-            wine_database_id: wineId,
+            wine_id: wineId,
             quantity: 1,
           });
 
