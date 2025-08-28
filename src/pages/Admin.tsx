@@ -874,161 +874,137 @@ export default function Admin() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="country_id">Country</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      className="w-full justify-between"
-                    >
-                      {formData.country_id
-                        ? countries.find((country) => country.id === formData.country_id)?.name
-                        : "Select country..."}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="z-[60] w-full p-0 bg-popover" side="bottom" align="start" sideOffset={4}>
-                    <Command>
-                      <CommandInput placeholder="Search countries..." />
-                      <CommandEmpty>No country found.</CommandEmpty>
-                      <CommandGroup>
-                        {countries.map((country) => (
-                          <CommandItem
-                            key={country.id}
-                            value={country.name}
-                            onSelect={() => {
-                              setFormData({ ...formData, country_id: country.id });
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                formData.country_id === country.id ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {country.name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <SearchableSelect
+                  options={countries.map((country) => ({ value: country.id, label: country.name }))}
+                  value={formData.country_id || ''}
+                  onValueChange={(value) => {
+                    setFormData({ 
+                      ...formData, 
+                      country_id: value, 
+                      region_id: null, 
+                      appellation_id: null 
+                    });
+                  }}
+                  placeholder="Select country"
+                  searchPlaceholder="Search countries..."
+                  onSearchChange={async (term) => {
+                    const like = term?.trim() ? `%${term.trim()}%` : "%";
+                    const { data } = await supabase
+                      .from('countries')
+                      .select('id, name, code')
+                      .ilike('name', like)
+                      .order('name');
+                    setCountries(data || []);
+                  }}
+                />
               </div>
               <div>
                 <Label htmlFor="region_id">Region (Optional)</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      className="w-full justify-between"
-                      disabled={!formData.country_id}
-                    >
-                      {formData.region_id
-                        ? filteredRegions.find((region) => region.id === formData.region_id)?.name
-                        : formData.country_id ? "Select region..." : "Select country first"}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="z-[60] w-full p-0 bg-popover" side="bottom" align="start" sideOffset={4}>
-                    <Command>
-                      <CommandInput placeholder="Search regions..." />
-                      <CommandEmpty>No region found.</CommandEmpty>
-                      <CommandGroup>
-                        <CommandItem
-                          value="none"
-                          onSelect={() => {
-                            setFormData({ ...formData, region_id: null });
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              !formData.region_id ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          None
-                        </CommandItem>
-                        {filteredRegions.map((region) => (
-                          <CommandItem
-                            key={region.id}
-                            value={region.name}
-                            onSelect={() => {
-                              setFormData({ ...formData, region_id: region.id });
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                formData.region_id === region.id ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {region.name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <SearchableSelect
+                  options={[
+                    { value: '', label: 'None' },
+                    ...filteredRegions.map((region) => ({ value: region.id, label: region.name }))
+                  ]}
+                  value={formData.region_id || ''}
+                  onValueChange={async (value) => {
+                    if (value === '') {
+                      setFormData({ ...formData, region_id: null, appellation_id: null });
+                    } else {
+                      // Get the region details to auto-fill country if not set
+                      if (!formData.country_id) {
+                        const { data: regionData } = await supabase
+                          .from('regions')
+                          .select('country_id, countries(name)')
+                          .eq('id', value)
+                          .single();
+                        if (regionData) {
+                          setFormData({ 
+                            ...formData, 
+                            region_id: value, 
+                            country_id: regionData.country_id,
+                            appellation_id: null 
+                          });
+                          return;
+                        }
+                      }
+                      setFormData({ ...formData, region_id: value, appellation_id: null });
+                    }
+                  }}
+                  placeholder="Select region"
+                  searchPlaceholder="Search regions..."
+                  onSearchChange={async (term) => {
+                    const like = term?.trim() ? `%${term.trim()}%` : "%";
+                    let query = supabase
+                      .from('regions')
+                      .select('id, name, country_id, countries(name)')
+                      .ilike('name', like)
+                      .order('name');
+                    
+                    // Only filter by country if one is already selected
+                    // This allows users to select any region first
+                    if (formData.country_id) {
+                      query = query.eq('country_id', formData.country_id);
+                    }
+                    
+                    const { data } = await query;
+                    setFilteredRegions(data || []);
+                  }}
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="appellation_id">Appellation (Optional)</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      className="w-full justify-between"
-                      disabled={!formData.region_id}
-                    >
-                      {formData.appellation_id
-                        ? filteredAppellations.find((appellation) => appellation.id === formData.appellation_id)?.name
-                        : formData.region_id ? "Select appellation..." : "Select region first"}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="z-[60] w-full p-0 bg-popover" side="bottom" align="start" sideOffset={4}>
-                    <Command>
-                      <CommandInput placeholder="Search appellations..." />
-                      <CommandEmpty>No appellation found.</CommandEmpty>
-                      <CommandGroup>
-                        <CommandItem
-                          value="none"
-                          onSelect={() => {
-                            setFormData({ ...formData, appellation_id: null });
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              !formData.appellation_id ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          None
-                        </CommandItem>
-                        {filteredAppellations.map((appellation) => (
-                          <CommandItem
-                            key={appellation.id}
-                            value={appellation.name}
-                            onSelect={() => {
-                              setFormData({ ...formData, appellation_id: appellation.id });
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                formData.appellation_id === appellation.id ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {appellation.name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <SearchableSelect
+                  options={[
+                    { value: '', label: 'None' },
+                    ...filteredAppellations.map((appellation) => ({ value: appellation.id, label: appellation.name }))
+                  ]}
+                  value={formData.appellation_id || ''}
+                  onValueChange={async (value) => {
+                    if (value === '') {
+                      setFormData({ ...formData, appellation_id: null });
+                    } else {
+                      // Get the appellation details to auto-fill region and country if not set
+                      if (!formData.region_id || !formData.country_id) {
+                        const { data: appellationData } = await supabase
+                          .from('appellations')
+                          .select('region_id, regions(country_id, name, countries(name))')
+                          .eq('id', value)
+                          .single();
+                        if (appellationData) {
+                          setFormData({ 
+                            ...formData, 
+                            appellation_id: value,
+                            region_id: appellationData.region_id,
+                            country_id: appellationData.regions.country_id
+                          });
+                          return;
+                        }
+                      }
+                      setFormData({ ...formData, appellation_id: value });
+                    }
+                  }}
+                  placeholder="Select appellation"
+                  searchPlaceholder="Search appellations..."
+                  onSearchChange={async (term) => {
+                    const like = term?.trim() ? `%${term.trim()}%` : "%";
+                    let query = supabase
+                      .from('appellations')
+                      .select('id, name, region_id, regions(name, countries(name))')
+                      .ilike('name', like)
+                      .order('name');
+                    
+                    // Only filter by region if one is already selected
+                    // This allows users to select any appellation first
+                    if (formData.region_id) {
+                      query = query.eq('region_id', formData.region_id);
+                    }
+                    
+                    const { data } = await query;
+                    setFilteredAppellations(data || []);
+                  }}
+                />
               </div>
               <div />
             </div>
