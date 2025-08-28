@@ -92,6 +92,13 @@ export default function Admin() {
   const [filteredRegions, setFilteredRegions] = useState<Region[]>([]);
   const [filteredAppellations, setFilteredAppellations] = useState<Appellation[]>([]);
   
+  // Search states for individual tabs
+  const [countriesSearchTerm, setCountriesSearchTerm] = useState('');
+  const [regionsSearchTerm, setRegionsSearchTerm] = useState('');
+  const [appellationsSearchTerm, setAppellationsSearchTerm] = useState('');
+  const [grapesSearchTerm, setGrapesSearchTerm] = useState('');
+  const [producersSearchTerm, setProducersSearchTerm] = useState('');
+  
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
