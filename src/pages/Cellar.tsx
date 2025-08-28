@@ -144,7 +144,7 @@ export default function Cellar() {
         .from('wine_cellar')
         .select(`
           *,
-          wines:wine_database_id (
+          wine_database:wine_database_id (
             id,
             name,
             wine_type,
@@ -166,13 +166,15 @@ export default function Cellar() {
       if (error) throw error;
       const mapped = (data || []).map((row: any) => {
         // Back-compat: expose vintage on wines
-        if (row.vintage?.vintage && row.wines) {
-          row.wines.vintage = row.vintage.vintage;
+        if (row.vintage?.vintage && row.wine_database) {
+          row.wine_database.vintage = row.vintage.vintage;
         }
         // Back-compat: expose producer string
-        if (row.wines?.producers?.name) {
-          row.wines.producer = row.wines.producers.name;
+        if (row.wine_database?.producers?.name) {
+          row.wine_database.producer = row.wine_database.producers.name;
         }
+        // Create wines property for backward compatibility
+        row.wines = row.wine_database;
         return row;
       });
       setWines(mapped);
@@ -193,7 +195,7 @@ export default function Cellar() {
         .from('wine_consumptions')
         .select(`
           *,
-          wines:wine_database_id (
+          wine_database:wine_database_id (
             id,
             name,
             wine_type,
@@ -206,8 +208,10 @@ export default function Cellar() {
 
       if (error) throw error;
       const mapped = (data || []).map((row: any) => {
-        if (row.vintage?.vintage && row.wines) row.wines.vintage = row.vintage.vintage;
-        if (row.wines?.producers?.name) row.wines.producer = row.wines.producers.name;
+        if (row.vintage?.vintage && row.wine_database) row.wine_database.vintage = row.vintage.vintage;
+        if (row.wine_database?.producers?.name) row.wine_database.producer = row.wine_database.producers.name;
+        // Create wines property for backward compatibility
+        row.wines = row.wine_database;
         return row;
       });
       setConsumedWines(mapped);
@@ -223,7 +227,7 @@ export default function Cellar() {
         .from('wine_cellar')
         .select('*')
         .eq('user_id', user.id)
-        .eq('wine_id', wineId)
+        .eq('wine_database_id', wineId)
         .maybeSingle();
 
       if (existingError && existingError.code !== 'PGRST116') throw existingError;

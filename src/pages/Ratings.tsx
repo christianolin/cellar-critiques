@@ -223,9 +223,9 @@ export default function Ratings() {
             name,
             wine_type,
             producers ( name ),
-            countries:country_id ( name ),
-            regions:region_id ( name ),
-            appellations:appellation_id ( name )
+            countries ( name ),
+            regions ( name ),
+            appellations ( name )
           ),
           wine_vintages (
             id,

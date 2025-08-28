@@ -75,7 +75,7 @@ interface User {
 export default function Admin() {
   const { user } = useAuth();
   const { isOwner, isAdminOrOwner, loading: rolesLoading } = useUserRole();
-  const [activeTab, setActiveTab] = useState<'countries' | 'regions' | 'appellations' | 'grapes' | 'wine_database' | 'users'>('countries');
+  const [activeTab, setActiveTab] = useState<'countries' | 'regions' | 'appellations' | 'grapes' | 'producers' | 'wine_database' | 'users'>('countries');
   const [loading, setLoading] = useState(false);
   
   // Data states
@@ -256,6 +256,15 @@ export default function Admin() {
             .order(sortField, { ascending: sortDirection === 'asc' });
           if (grapesError) throw grapesError;
           setGrapeVarieties(grapesData || []);
+          break;
+          
+        case 'producers':
+          const { data: producersData, error: producersError } = await supabase
+            .from('producers')
+            .select('*')
+            .order(sortField, { ascending: sortDirection === 'asc' });
+          if (producersError) throw producersError;
+          setWineProducers(producersData || []);
           break;
           
         case 'wine_database':
@@ -518,6 +527,22 @@ export default function Admin() {
           // For now, allow deletion to avoid type errors
           return { canDelete: true, message: '' };
 
+        case 'producers':
+          // Check for wine database entries
+          const { data: wineEntries } = await supabase
+            .from('wine_database')
+            .select('id')
+            .eq('producer_id', id);
+
+          if (wineEntries && wineEntries.length > 0) {
+            return {
+              canDelete: false,
+              message: `This producer cannot be deleted because it is used in ${wineEntries.length} wine(s). Remove the wines first.`
+            };
+          }
+
+          return { canDelete: true, message: '' };
+
         case 'wine_database':
           // Check for wine cellar entries, ratings, and consumptions
           const [{ data: cellarEntries }, { data: ratings }, { data: consumptions }] = await Promise.all([
@@ -618,6 +643,7 @@ export default function Admin() {
       case 'regions': return 'regions';
       case 'appellations': return 'appellations';
       case 'grapes': return 'grape_varieties';
+      case 'producers': return 'producers';
       case 'wine_database': return 'wine_database';
       case 'users': return 'user_roles';
       default: return 'countries';
@@ -802,6 +828,21 @@ export default function Admin() {
                   <SelectItem value="white">White</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </>
+        );
+        
+      case 'producers':
+        return (
+          <>
+            <div>
+              <Label htmlFor="name">Producer Name</Label>
+              <Input
+                id="name"
+                value={formData.name || ''}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+              />
             </div>
           </>
         );
@@ -1024,6 +1065,10 @@ export default function Admin() {
         data = grapeVarieties;
         headers = ['Name', 'Type', 'Actions'];
         break;
+      case 'producers':
+        data = wineProducers;
+        headers = ['Name', 'Actions'];
+        break;
       case 'wine_database':
         data = wineDatabase; // Already filtered on server side
         headers = ['Name', 'Producer', 'Type', 'Country', 'Region', 'Appellation', 'Actions'];
@@ -1088,6 +1133,11 @@ export default function Admin() {
                   <>
                     <TableCell>{item.name}</TableCell>
                     <TableCell className="capitalize">{item.type}</TableCell>
+                  </>
+                )}
+                {activeTab === 'producers' && (
+                  <>
+                    <TableCell>{item.name}</TableCell>
                   </>
                 )}
                 {activeTab === 'wine_database' && (
@@ -1246,6 +1296,7 @@ export default function Admin() {
             { key: 'regions', label: 'Regions' },
             { key: 'appellations', label: 'Appellations' },
             { key: 'grapes', label: 'Grape Varieties' },
+            { key: 'producers', label: 'Producers' },
             { key: 'wine_database', label: 'Wine Database' },
             ...(isOwner ? [{ key: 'users', label: 'Users' }] : [])
           ].map((tab) => (
@@ -1271,7 +1322,7 @@ export default function Admin() {
               {activeTab !== 'users' && (
                 <Button onClick={handleAdd}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Add {activeTab === 'countries' ? 'Country' : activeTab === 'regions' ? 'Region' : activeTab === 'appellations' ? 'Appellation' : activeTab === 'grapes' ? 'Grape Variety' : activeTab === 'wine_database' ? 'Wine' : 'Item'}
+                  Add {activeTab === 'countries' ? 'Country' : activeTab === 'regions' ? 'Region' : activeTab === 'appellations' ? 'Appellation' : activeTab === 'grapes' ? 'Grape Variety' : activeTab === 'producers' ? 'Producer' : activeTab === 'wine_database' ? 'Wine' : 'Item'}
                 </Button>
               )}
             </div>
@@ -1444,7 +1495,7 @@ export default function Admin() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
-                {editingItem ? 'Edit' : 'Add'} {activeTab === 'countries' ? 'Country' : activeTab === 'regions' ? 'Region' : activeTab === 'appellations' ? 'Appellation' : activeTab === 'wine_database' ? 'Wine' : 'Grape Variety'}
+                {editingItem ? 'Edit' : 'Add'} {activeTab === 'countries' ? 'Country' : activeTab === 'regions' ? 'Region' : activeTab === 'appellations' ? 'Appellation' : activeTab === 'grapes' ? 'Grape Variety' : activeTab === 'producers' ? 'Producer' : activeTab === 'wine_database' ? 'Wine' : 'Item'}
               </DialogTitle>
               <DialogDescription>
                 {editingItem ? 'Update the details below' : 'Fill in the details below'}
