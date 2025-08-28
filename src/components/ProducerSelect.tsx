@@ -29,7 +29,7 @@ export default function ProducerSelect({
       .select("id,name")
       .ilike("name", like)
       .order("name")
-      .limit(200);
+      ;
     const opts = (data || []).map((p) => ({ value: p.name, label: p.name }));
     // Ensure current value is present for display
     if (value && !opts.find((o) => o.value === value)) {

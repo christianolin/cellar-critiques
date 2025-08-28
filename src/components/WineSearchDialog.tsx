@@ -17,7 +17,6 @@ interface WineSearchResult {
   name: string;
   wine_type: string;
   alcohol_content?: number | null;
-  description?: string | null;
   producer_id: string;
   country_id: string;
   region_id?: string | null;
@@ -224,7 +223,7 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
       let query = supabase
         .from('wine_database')
         .select(`
-          id, name, wine_type, alcohol_content, description,
+          id, name, wine_type, alcohol_content,
           producer_id, country_id, region_id, appellation_id,
           producers ( name ),
           countries ( name ),
@@ -256,7 +255,6 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
         // Require every word to match at least one field (AND of OR-groups)
         for (const w of uniqueWords) {
           const conds: string[] = [`name.ilike.%${w}%`];
-          if (isSingle) conds.push(`description.ilike.%${w}%`);
           const ids = producersByWord.get(w) || [];
           if (ids.length) conds.push(`producer_id.in.(${ids.join(',')})`);
           query = query.or(conds.join(',')); // multiple .or calls combine with AND
@@ -447,9 +445,7 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
                           {wine.alcohol_content && (
                             <p className="text-xs text-muted-foreground mt-1">{wine.alcohol_content}% ABV</p>
                           )}
-                          {wine.description && (
-                            <p className="text-xs text-muted-foreground mt-1">{wine.description}</p>
-                          )}
+                          {/* description removed */}
                         </div>
                         <ExternalLink className="h-4 w-4 text-muted-foreground flex-shrink-0 ml-2" />
                       </div>

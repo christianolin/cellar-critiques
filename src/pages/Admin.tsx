@@ -49,7 +49,6 @@ interface WineDatabase {
   id: string;
   name: string;
   wine_type: string;
-  description: string | null;
   producer_id: string;
   country_id: string;
   region_id: string | null;
@@ -294,7 +293,6 @@ export default function Admin() {
         // Require every word to match at least one field (AND of OR-groups)
         for (const w of uniqueWords) {
           const conds: string[] = [`name.ilike.%${w}%`];
-          if (isSingle) conds.push(`description.ilike.%${w}%`);
           const ids = producersByWord.get(w) || [];
           if (ids.length) conds.push(`producer_id.in.(${ids.join(',')})`);
           query = query.or(conds.join(',')); // multiple .or calls combine with AND
@@ -1073,14 +1071,7 @@ export default function Admin() {
               </div>
               <div />
             </div>
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Input
-                id="description"
-                value={formData.description || ''}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              />
-            </div>
+            <div />
           </>
         );
     }
