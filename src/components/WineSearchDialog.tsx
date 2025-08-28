@@ -25,6 +25,12 @@ interface WineSearchResult {
   countries?: { name: string } | null;
   regions?: { name: string } | null;
   appellations?: { name: string } | null;
+  wine_vintages?: Array<{
+    id: string;
+    vintage: number;
+    alcohol_content: number | null;
+    image_url: string | null;
+  }> | null;
 }
 
 interface WineSearchDialogProps {
@@ -229,12 +235,18 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
       let query = supabase
         .from('wine_database')
         .select(`
-          id, name, wine_type, alcohol_content,
+          id, name, wine_type,
           producer_id, country_id, region_id, appellation_id,
           producers ( name ),
           countries ( name ),
           regions ( name ),
-          appellations ( name )
+          appellations ( name ),
+          wine_vintages ( 
+            id, 
+            vintage, 
+            alcohol_content,
+            image_url 
+          )
         `, { count: 'exact' });
 
       // Apply filters
@@ -449,8 +461,8 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
                               <Badge variant="secondary" className="text-xs">{wine.appellations.name}</Badge>
                             )}
                           </div>
-                          {wine.alcohol_content && (
-                            <p className="text-xs text-muted-foreground mt-1">{wine.alcohol_content}% ABV</p>
+                          {wine.wine_vintages && wine.wine_vintages.length > 0 && wine.wine_vintages[0].alcohol_content && (
+                            <p className="text-xs text-muted-foreground mt-1">{wine.wine_vintages[0].alcohol_content}% ABV</p>
                           )}
                           {/* description removed */}
                         </div>

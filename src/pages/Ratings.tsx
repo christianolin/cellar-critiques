@@ -188,7 +188,8 @@ export default function Ratings() {
         .select(`
           id,
           user_id,
-          wine_id,
+          wine_database_id,
+          wine_vintage_id,
           rating,
           tasting_date,
           tasting_notes,
@@ -217,22 +218,43 @@ export default function Ratings() {
           palate_complexity,
           palate_balance,
           palate_comments,
-          wines (
+          wine_database (
             id,
             name,
-            producer,
-            vintage,
             wine_type,
+            producers ( name ),
             countries:country_id ( name ),
             regions:region_id ( name ),
             appellations:appellation_id ( name )
+          ),
+          wine_vintages (
+            id,
+            vintage,
+            alcohol_content,
+            image_url
           )
         `)
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setRatings(data || []);
+      
+      // Transform data to match interface
+      const transformedData = (data || []).map((rating: any) => ({
+        ...rating,
+        wines: {
+          id: rating.wine_database?.id || '',
+          name: rating.wine_database?.name || 'Unknown Wine',
+          producer: rating.wine_database?.producers?.name || 'Unknown Producer',
+          vintage: rating.wine_vintages?.vintage || null,
+          wine_type: rating.wine_database?.wine_type || 'red',
+          countries: rating.wine_database?.countries,
+          regions: rating.wine_database?.regions,
+          appellations: rating.wine_database?.appellations,
+        }
+      }));
+      
+      setRatings(transformedData);
     } catch (error) {
       toast({
         title: "Error",
