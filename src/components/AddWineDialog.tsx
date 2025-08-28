@@ -253,9 +253,29 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
     }
   };
 
+  const validateForm = () => {
+    return formData.name && formData.producer && formData.wine_type && formData.country_id;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to add wines",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!validateForm()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
     try {
@@ -265,10 +285,18 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
         // resolve producer_id by name (create producer if missing)
         let producerId: string | undefined;
         if (formData.producer) {
-          const { data: prod } = await supabase.from('producers').select('id').ilike('name', formData.producer).limit(1).maybeSingle();
+          const { data: prod, error: prodErr } = await supabase.from('producers').select('id').ilike('name', formData.producer).limit(1).maybeSingle();
+          if (prodErr) {
+            console.error('Error looking up producer:', prodErr);
+            throw new Error(`Failed to look up producer: ${prodErr.message}`);
+          }
           if (prod?.id) producerId = prod.id;
           else {
-            const { data: newProd } = await supabase.from('producers').insert({ name: formData.producer }).select('id').single();
+            const { data: newProd, error: newProdErr } = await supabase.from('producers').insert({ name: formData.producer }).select('id').single();
+            if (newProdErr) {
+              console.error('Error creating producer:', newProdErr);
+              throw new Error(`Failed to create producer: ${newProdErr.message}`);
+            }
             producerId = newProd?.id;
           }
         }
@@ -284,7 +312,10 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
           })
           .select('id')
           .single();
-        if (wineDbErr) throw wineDbErr;
+        if (wineDbErr) {
+          console.error('Error creating wine_database entry:', wineDbErr);
+          throw new Error(`Failed to create wine database entry: ${wineDbErr.message}`);
+        }
         wineDatabaseId = wineDb?.id;
       }
 
@@ -296,7 +327,7 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
       if (addToCellar) {
         const cellarData = {
           user_id: user.id,
-          wine_id: wineDatabaseId,
+          wine_database_id: wineDatabaseId,
           quantity: formData.quantity,
           purchase_date: formData.purchase_date || null,
           purchase_price: formData.purchase_price,
@@ -308,7 +339,10 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
           .from('wine_cellar')
           .insert(cellarData);
 
-        if (cellarError) throw cellarError;
+        if (cellarError) {
+          console.error('Error adding to cellar:', cellarError);
+          throw new Error(`Failed to add wine to cellar: ${cellarError.message}`);
+        }
       }
 
       toast({
@@ -342,9 +376,11 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
       onWineAdded?.();
       
     } catch (error) {
+      console.error('Error adding wine:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       toast({
         title: "Error",
-        description: "Failed to add wine",
+        description: `Failed to add wine: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {
@@ -623,7 +659,7 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
           )}
 
           <DialogFooter>
-            <Button type="submit" disabled={loading || !formData.name || !formData.producer || !formData.wine_type || !formData.country_id}>
+            <Button type="submit" disabled={loading || !validateForm()}>
               {loading ? (addToCellar ? 'Adding to Cellar...' : 'Creating Wine...') : (addToCellar ? 'Add to Cellar' : 'Create Wine')}
             </Button>
           </DialogFooter>
