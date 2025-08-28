@@ -110,13 +110,14 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
     producer: '',
     vintage: null as number | null,
     wine_type: 'red' as 'red' | 'white' | 'rose' | 'sparkling' | 'dessert' | 'fortified',
-    alcohol_content: null as number | null,
+    alcohol_content: null as number | null, // stored on wine_vintages
     bottle_size: '750ml',
     country_id: '',
     region_id: '',
     appellation_id: '',
     grape_varieties: [] as { id: string; name: string; type: string; percentage: number }[],
     image_url: null as string | null,
+    wine_database_id: undefined as string | undefined,
   });
   useEffect(() => {
     if (open) {
@@ -213,28 +214,70 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
     }
   };
 
-  const createNewWine = async () => {
+  const createOrSelectWine = async () => {
     try {
-      const { data, error } = await supabase
-        .from('wines')
-        .insert({
-          name: newWineData.name,
-          producer: newWineData.producer,
-          vintage: newWineData.vintage,
-          wine_type: newWineData.wine_type,
-          alcohol_content: newWineData.alcohol_content,
-          bottle_size: newWineData.bottle_size,
-          country_id: newWineData.country_id || null,
-          region_id: newWineData.region_id || null,
-          appellation_id: newWineData.appellation_id || null,
-          grape_variety_ids: newWineData.grape_varieties.map(g => g.id),
-          image_url: newWineData.image_url,
-        })
-        .select()
-        .single();
+      // 1) Ensure wine_database exists (or use provided id)
+      let wineDatabaseId = newWineData.wine_database_id;
+      if (!wineDatabaseId) {
+        // resolve producer_id by name
+        let producerId: string | undefined;
+        if (newWineData.producer) {
+          const { data: prod } = await supabase.from('producers').select('id').ilike('name', newWineData.producer).limit(1).maybeSingle();
+          if (prod?.id) producerId = prod.id;
+          else {
+            const { data: newProd } = await supabase.from('producers').insert({ name: newWineData.producer }).select('id').single();
+            producerId = newProd?.id;
+          }
+        }
+        const { data: wineDb, error: wineDbErr } = await supabase
+          .from('wine_database')
+          .insert({
+            name: newWineData.name,
+            wine_type: newWineData.wine_type,
+            producer_id: producerId!,
+            country_id: newWineData.country_id || null,
+            region_id: newWineData.region_id || null,
+            appellation_id: newWineData.appellation_id || null,
+          })
+          .select('id')
+          .single();
+        if (wineDbErr) throw wineDbErr;
+        wineDatabaseId = wineDb?.id;
+      }
 
-      if (error) throw error;
-      return data.id;
+      // 2) Ensure/Upsert wine_vintages if vintage specified
+      let wineVintageId: string | undefined;
+      if (newWineData.vintage) {
+        const { data: existingVintage } = await supabase
+          .from('wine_vintages')
+          .select('id')
+          .eq('wine_database_id', wineDatabaseId)
+          .eq('vintage', newWineData.vintage)
+          .maybeSingle();
+        if (existingVintage?.id) {
+          wineVintageId = existingVintage.id;
+          if (newWineData.alcohol_content !== null || newWineData.image_url) {
+            await supabase.from('wine_vintages').update({
+              alcohol_content: newWineData.alcohol_content,
+              image_url: newWineData.image_url,
+            }).eq('id', wineVintageId);
+          }
+        } else {
+          const { data: createdVintage } = await supabase
+            .from('wine_vintages')
+            .insert({
+              wine_database_id: wineDatabaseId,
+              vintage: newWineData.vintage,
+              alcohol_content: newWineData.alcohol_content,
+              image_url: newWineData.image_url,
+            })
+            .select('id')
+            .single();
+          wineVintageId = createdVintage?.id;
+        }
+      }
+
+      return { wineDatabaseId: wineDatabaseId!, wineVintageId: wineVintageId || null };
     } catch (error) {
       throw error;
     }
@@ -244,7 +287,8 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
     e.preventDefault();
     if (!user) return;
 
-    let wineId = selectedWine;
+    let wineDatabaseId: string | undefined;
+    let wineVintageId: string | null | undefined;
 
     if (mode === 'new') {
       if (!newWineData.name || !newWineData.producer) {
@@ -253,7 +297,9 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
       }
       setLoading(true);
       try {
-        wineId = await createNewWine();
+        const ids = await createOrSelectWine();
+        wineDatabaseId = ids.wineDatabaseId;
+        wineVintageId = ids.wineVintageId;
       } catch (error) {
         toast({ title: "Error", description: "Failed to create wine", variant: "destructive" });
         setLoading(false);
@@ -270,7 +316,8 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
         .from('wine_ratings')
         .insert({
           user_id: user.id,
-          wine_id: wineId,
+          wine_database_id: wineDatabaseId || newWineData.wine_database_id || null,
+          wine_vintage_id: wineVintageId || null,
           rating: formData.rating,
           tasting_date: formData.tasting_date,
           tasting_notes: formData.tasting_notes || null,

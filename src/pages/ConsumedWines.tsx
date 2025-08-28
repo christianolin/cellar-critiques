@@ -79,7 +79,7 @@ export default function ConsumedWines() {
         .from('wine_cellar')
         .select('*')
         .eq('user_id', user.id)
-        .eq('wine_id', wineId)
+        .eq('wine_database_id', wineId)
         .single();
 
       if (existingEntry) {
@@ -96,7 +96,7 @@ export default function ConsumedWines() {
           .from('wine_cellar')
           .insert({
             user_id: user.id,
-            wine_id: wineId,
+            wine_database_id: wineId,
             quantity: 1,
           });
 

@@ -172,23 +172,30 @@ export default function FriendCellar() {
         .from('wine_cellar')
         .select(`
           *,
-          wines (
+          wines:wine_database_id (
             id,
             name,
-            producer,
-            vintage,
             wine_type,
-            bottle_size,
             image_url,
-            countries:country_id ( name ),
-            regions:region_id ( name ),
-            appellations:appellation_id ( name )
+            producers ( name ),
+            countries ( name ),
+            regions ( name ),
+            appellations ( name )
+          ),
+          vintage:wine_vintage_id (
+            id,
+            vintage
           )
         `)
         .eq('user_id', friendId);
 
       if (error) throw error;
-      setWines(data || []);
+      const mapped = (data || []).map((row: any) => {
+        if (row.vintage?.vintage && row.wines) row.wines.vintage = row.vintage.vintage;
+        if (row.wines?.producers?.name) row.wines.producer = row.wines.producers.name;
+        return row;
+      });
+      setWines(mapped || []);
     } catch (error) {
       toast({
         title: "Error",

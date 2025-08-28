@@ -59,7 +59,7 @@ interface WineFormData {
   region_id: string;
   appellation_id: string;
   grape_varieties: GrapeWithPercentage[];
-  alcohol_content: number | null;
+  alcohol_content: number | null; // moved to wine_vintages on save
   image_url: string | null;
   // Cellar specific fields
   quantity?: number;
@@ -67,6 +67,7 @@ interface WineFormData {
   purchase_price?: number;
   storage_location?: string;
   notes?: string;
+  wine_database_id?: string; // selected canonical wine
 }
 
 export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddWineDialogProps) {
@@ -258,34 +259,75 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
 
     setLoading(true);
     try {
-      // First create the wine entry
-      const wineData = {
-        name: formData.name,
-        producer: formData.producer,
-        vintage: formData.vintage,
-        wine_type: formData.wine_type as "red" | "white" | "rose" | "sparkling" | "dessert" | "fortified",
-        bottle_size: formData.bottle_size,
-        country_id: formData.country_id || null,
-        region_id: formData.region_id || null,
-        appellation_id: formData.appellation_id || null,
-        grape_variety_ids: formData.grape_varieties.map(g => g.id),
-        alcohol_content: formData.alcohol_content,
-        image_url: formData.image_url
-      };
+      // 1) Ensure a wine_database row exists (use selected if provided)
+      let wineDatabaseId = formData.wine_database_id;
+      if (!wineDatabaseId) {
+        // resolve producer_id by name (create producer if missing)
+        let producerId: string | undefined;
+        if (formData.producer) {
+          const { data: prod } = await supabase.from('producers').select('id').ilike('name', formData.producer).limit(1).maybeSingle();
+          if (prod?.id) producerId = prod.id;
+          else {
+            const { data: newProd } = await supabase.from('producers').insert({ name: formData.producer }).select('id').single();
+            producerId = newProd?.id;
+          }
+        }
+        const { data: wineDb, error: wineDbErr } = await supabase
+          .from('wine_database')
+          .insert({
+            name: formData.name,
+            wine_type: formData.wine_type,
+            producer_id: producerId!,
+            country_id: formData.country_id || null,
+            region_id: formData.region_id || null,
+            appellation_id: formData.appellation_id || null,
+          })
+          .select('id')
+          .single();
+        if (wineDbErr) throw wineDbErr;
+        wineDatabaseId = wineDb?.id;
+      }
 
-      const { data: wine, error: wineError } = await supabase
-        .from('wines')
-        .insert(wineData)
-        .select()
-        .single();
-
-      if (wineError) throw wineError;
+      // 2) Ensure/Upsert wine_vintages if vintage specified
+      let wineVintageId: string | undefined;
+      if (formData.vintage) {
+        // Try find existing
+        const { data: existingVintage } = await supabase
+          .from('wine_vintages')
+          .select('id')
+          .eq('wine_database_id', wineDatabaseId)
+          .eq('vintage', formData.vintage)
+          .maybeSingle();
+        if (existingVintage?.id) {
+          wineVintageId = existingVintage.id;
+          // Optionally update alcohol/image
+          if (formData.alcohol_content !== null || formData.image_url) {
+            await supabase.from('wine_vintages').update({
+              alcohol_content: formData.alcohol_content,
+              image_url: formData.image_url,
+            }).eq('id', wineVintageId);
+          }
+        } else {
+          const { data: createdVintage } = await supabase
+            .from('wine_vintages')
+            .insert({
+              wine_database_id: wineDatabaseId,
+              vintage: formData.vintage,
+              alcohol_content: formData.alcohol_content,
+              image_url: formData.image_url,
+            })
+            .select('id')
+            .single();
+          wineVintageId = createdVintage?.id;
+        }
+      }
 
       // If adding to cellar, create cellar entry
       if (addToCellar) {
         const cellarData = {
           user_id: user.id,
-          wine_id: wine.id,
+          wine_database_id: wineDatabaseId,
+          wine_vintage_id: wineVintageId || null,
           quantity: formData.quantity,
           purchase_date: formData.purchase_date || null,
           purchase_price: formData.purchase_price,
@@ -302,7 +344,7 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
 
       toast({
         title: "Success",
-        description: addToCellar ? "Wine added to your cellar!" : "Wine created successfully!",
+        description: addToCellar ? "Wine added to your cellar!" : "Wine saved to database!",
       });
 
       // Reset form
@@ -318,6 +360,7 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
         grape_varieties: [],
         alcohol_content: null,
         image_url: null,
+        wine_database_id: undefined,
         ...(addToCellar ? {
           quantity: 1,
           purchase_date: '',

@@ -144,23 +144,38 @@ export default function Cellar() {
         .from('wine_cellar')
         .select(`
           *,
-          wines (
+          wines:wine_database_id (
             id,
             name,
-            producer,
-            vintage,
             wine_type,
-            bottle_size,
             image_url,
-            countries:country_id ( name ),
-            regions:region_id ( name ),
-            appellations:appellation_id ( name )
+            producers ( name ),
+            countries ( name ),
+            regions ( name ),
+            appellations ( name )
+          ),
+          vintage:wine_vintage_id (
+            id,
+            vintage,
+            alcohol_content,
+            image_url
           )
         `)
         .eq('user_id', user?.id);
 
       if (error) throw error;
-      setWines(data || []);
+      const mapped = (data || []).map((row: any) => {
+        // Back-compat: expose vintage on wines
+        if (row.vintage?.vintage && row.wines) {
+          row.wines.vintage = row.vintage.vintage;
+        }
+        // Back-compat: expose producer string
+        if (row.wines?.producers?.name) {
+          row.wines.producer = row.wines.producers.name;
+        }
+        return row;
+      });
+      setWines(mapped);
     } catch (error) {
       toast({
         title: "Error",
@@ -178,19 +193,24 @@ export default function Cellar() {
         .from('wine_consumptions')
         .select(`
           *,
-          wines (
+          wines:wine_database_id (
             id,
             name,
-            producer,
-            vintage,
-            wine_type
-          )
+            wine_type,
+            producers ( name )
+          ),
+          vintage:wine_vintage_id ( id, vintage )
         `)
         .eq('user_id', user?.id)
         .order('consumed_at', { ascending: false });
 
       if (error) throw error;
-      setConsumedWines(data || []);
+      const mapped = (data || []).map((row: any) => {
+        if (row.vintage?.vintage && row.wines) row.wines.vintage = row.vintage.vintage;
+        if (row.wines?.producers?.name) row.wines.producer = row.wines.producers.name;
+        return row;
+      });
+      setConsumedWines(mapped);
     } catch (error) {
       console.error('Failed to load consumed wines:', error);
     }
@@ -203,7 +223,7 @@ export default function Cellar() {
         .from('wine_cellar')
         .select('*')
         .eq('user_id', user.id)
-        .eq('wine_id', wineId)
+        .eq('wine_database_id', wineId)
         .maybeSingle();
 
       if (existingError && existingError.code !== 'PGRST116') throw existingError;
@@ -217,7 +237,7 @@ export default function Cellar() {
       } else {
         const { error } = await supabase
           .from('wine_cellar')
-          .insert({ user_id: user.id, wine_id: wineId, quantity: 1 });
+          .insert({ user_id: user.id, wine_database_id: wineId, quantity: 1 });
         if (error) throw error;
       }
 
