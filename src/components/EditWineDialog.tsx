@@ -450,12 +450,18 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
             <div>
               <Label htmlFor="region">Region</Label>
               <SearchableSelect
-                options={filteredRegions.map((region) => ({ value: region.id, label: region.name }))}
+                options={(formData.country_id ? filteredRegions : regions).map((region) => ({ value: region.id, label: region.name }))}
                 value={formData.region_id}
-                onValueChange={(value) => setFormData({ ...formData, region_id: value })}
+                onValueChange={(value) => {
+                  const selectedRegion = regions.find(r => r.id === value);
+                  setFormData({
+                    ...formData,
+                    region_id: value,
+                    country_id: selectedRegion?.country_id || formData.country_id,
+                  });
+                }}
                 placeholder="Select region"
                 searchPlaceholder="Search regions..."
-                disabled={!formData.country_id}
                 allowNone={true}
               />
             </div>
@@ -464,12 +470,20 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
           <div>
             <Label htmlFor="appellation">Appellation/Classification</Label>
             <SearchableSelect
-              options={filteredAppellations.map((appellation) => ({ value: appellation.id, label: appellation.name }))}
+              options={(formData.region_id ? filteredAppellations : appellations).map((appellation) => ({ value: appellation.id, label: appellation.name }))}
               value={formData.appellation_id}
-              onValueChange={(value) => setFormData({ ...formData, appellation_id: value })}
+              onValueChange={(value) => {
+                const selectedApp = appellations.find(a => a.id === value);
+                const selectedRegion = selectedApp ? regions.find(r => r.id === selectedApp.region_id) : undefined;
+                setFormData({
+                  ...formData,
+                  appellation_id: value,
+                  region_id: selectedRegion?.id || formData.region_id,
+                  country_id: selectedRegion?.country_id || formData.country_id,
+                });
+              }}
               placeholder="Select appellation"
               searchPlaceholder="Search appellations..."
-              disabled={!formData.region_id}
               allowNone={true}
             />
           </div>

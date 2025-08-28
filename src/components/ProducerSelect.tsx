@@ -23,7 +23,12 @@ export default function ProducerSelect({
   const [open, setOpen] = useState(false);
 
   const fetchProducers = useCallback(async (term: string) => {
-    const like = term?.trim() ? `%${term.trim()}%` : "%";
+    const trimmed = term?.trim() || "";
+    if (trimmed.length < 2) {
+      setOptions(value ? [{ value, label: value }] : []);
+      return;
+    }
+    const like = `%${trimmed}%`;
     const { data } = await supabase
       .from("producers")
       .select("id,name")
@@ -40,9 +45,10 @@ export default function ProducerSelect({
 
   useEffect(() => {
     if (open) {
-      fetchProducers("");
+      // Do not prefetch the first 1000; wait for user typing
+      fetchProducers(value || "");
     }
-  }, [open, fetchProducers]);
+  }, [open, fetchProducers, value]);
 
   const handleSearchChange = useCallback((term: string) => {
     fetchProducers(term);
