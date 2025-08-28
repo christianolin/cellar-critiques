@@ -31,9 +31,9 @@ interface WineInCellar {
     wine_type: string;
     bottle_size: string | null;
     image_url: string | null;
-    countries?: { name: string; };
-    regions?: { name: string; };
-    appellations?: { name: string; };
+    country?: { name: string; };
+    region?: { name: string; };
+    appellation?: { name: string; };
   };
 }
 
@@ -148,10 +148,10 @@ export default function Cellar() {
             id,
             name,
             wine_type,
-            producers ( name ),
-            countries ( name ),
-            regions ( name ),
-            appellations ( name )
+            producer:producer_id ( name ),
+            country:country_id ( name ),
+            region:region_id ( name ),
+            appellation:appellation_id ( name )
           ),
           vintage:wine_vintage_id (
             id,
@@ -166,14 +166,21 @@ export default function Cellar() {
       
       console.log('Raw cellar data:', data);
       
+      // Handle case where no cellar entries exist yet
+      if (!data || data.length === 0) {
+        console.log('No cellar entries found - user likely has no wines yet');
+        setWines([]);
+        return;
+      }
+      
       const mapped = (data || []).map((row: any) => {
         // Back-compat: expose vintage on wine_database
         if (row.vintage?.vintage && row.wine_database) {
           row.wine_database.vintage = row.vintage.vintage;
         }
         // Back-compat: expose producer string
-        if (row.wine_database?.producers?.name) {
-          row.wine_database.producer = row.wine_database.producers.name;
+        if (row.wine_database?.producer?.name) {
+          row.wine_database.producer = row.wine_database.producer.name;
         }
         // Create wines property for backward compatibility
         row.wines = row.wine_database;
@@ -204,7 +211,7 @@ export default function Cellar() {
             id,
             name,
             wine_type,
-            producers ( name )
+            producer:producer_id ( name )
           ),
           vintage:wine_vintage_id ( id, vintage )
         `)
@@ -212,9 +219,17 @@ export default function Cellar() {
         .order('consumed_at', { ascending: false });
 
       if (error) throw error;
+      
+      // Handle case where no consumed wines exist yet
+      if (!data || data.length === 0) {
+        console.log('No consumed wines found - user likely has no consumption history yet');
+        setConsumedWines([]);
+        return;
+      }
+      
       const mapped = (data || []).map((row: any) => {
         if (row.vintage?.vintage && row.wine_database) row.wine_database.vintage = row.vintage.vintage;
-        if (row.wine_database?.producers?.name) row.wine_database.producer = row.wine_database.producers.name;
+        if (row.wine_database?.producer?.name) row.wine_database.producer = row.wine_database.producer.name;
         // Create wines property for backward compatibility
         row.wines = row.wine_database;
         return row;
@@ -262,17 +277,17 @@ export default function Cellar() {
     const matchesSearch = searchTerm === '' || 
       wine.wines.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       wine.wines.producer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      wine.wines.regions?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      wine.wines.countries?.name.toLowerCase().includes(searchTerm.toLowerCase());
+             wine.wines.region?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+       wine.wines.country?.name.toLowerCase().includes(searchTerm.toLowerCase());
     
     // Column filters
     const matchesVintage = filters.vintage === '' || wine.wines.vintage?.toString() === filters.vintage;
     const matchesType = filters.wine_type === '' || wine.wines.wine_type === filters.wine_type;
-    const matchesRegion = filters.region === '' || 
-      wine.wines.regions?.name === filters.region ||
-      wine.wines.countries?.name === filters.region;
-    const matchesCountry = filters.country === '' || wine.wines.countries?.name === filters.country;
-    const matchesAppellation = filters.appellation === '' || wine.wines.appellations?.name === filters.appellation;
+         const matchesRegion = filters.region === '' || 
+       wine.wines.region?.name === filters.region ||
+       wine.wines.country?.name === filters.region;
+     const matchesCountry = filters.country === '' || wine.wines.country?.name === filters.country;
+     const matchesAppellation = filters.appellation === '' || wine.wines.appellation?.name === filters.appellation;
     const matchesProducer = filters.producer === '' || wine.wines.producer === filters.producer;
     
     return matchesSearch && matchesVintage && matchesType && matchesRegion && matchesCountry && matchesAppellation && matchesProducer;
@@ -293,7 +308,7 @@ export default function Cellar() {
       case 'producer': aVal = a.wines.producer; bVal = b.wines.producer; break;
       case 'vintage': aVal = a.wines.vintage ?? 0; bVal = b.wines.vintage ?? 0; break;
       case 'wine_type': aVal = a.wines.wine_type; bVal = b.wines.wine_type; break;
-      case 'region': aVal = a.wines.regions?.name || a.wines.countries?.name || ''; bVal = b.wines.regions?.name || b.wines.countries?.name || ''; break;
+             case 'region': aVal = a.wines.region?.name || a.wines.country?.name || ''; bVal = b.wines.region?.name || b.wines.country?.name || ''; break;
       case 'quantity': aVal = a.quantity; bVal = b.quantity; break;
       case 'purchase_price': aVal = a.purchase_price || 0; bVal = b.purchase_price || 0; break;
       default: aVal = 0; bVal = 0;
@@ -530,7 +545,7 @@ export default function Cellar() {
               className="px-3 py-1 text-sm border border-input bg-background rounded-md"
             >
               <option value="">All Regions</option>
-              {Array.from(new Set(wines.map(w => w.wines.regions?.name || w.wines.countries?.name).filter(Boolean))).sort().map(region => (
+                             {Array.from(new Set(wines.map(w => w.wines.region?.name || w.wines.country?.name).filter(Boolean))).sort().map(region => (
                 <option key={region} value={region}>{region}</option>
               ))}
             </select>

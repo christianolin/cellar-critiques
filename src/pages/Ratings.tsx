@@ -54,9 +54,9 @@ interface WineRating {
     producer: string;
     vintage: number | null;
     wine_type: string;
-    countries?: { name: string };
-    regions?: { name: string };
-    appellations?: { name: string };
+    country?: { name: string };
+    region?: { name: string };
+    appellation?: { name: string };
   };
 }
 
@@ -225,10 +225,10 @@ export default function Ratings() {
             id,
             name,
             wine_type,
-            producers ( name ),
-            countries ( name ),
-            regions ( name ),
-            appellations ( name )
+            producer:producer_id ( name ),
+            country:country_id ( name ),
+            region:region_id ( name ),
+            appellation:appellation_id ( name )
           ),
           wine_vintages (
             id,
@@ -244,18 +244,25 @@ export default function Ratings() {
       
       console.log('Raw ratings data:', data);
       
+      // Handle case where no ratings exist yet
+      if (!data || data.length === 0) {
+        console.log('No ratings found - user likely has no ratings yet');
+        setRatings([]);
+        return;
+      }
+      
       // Transform data to match interface
         const transformedData = (data || []).map((rating: any) => ({
           ...rating,
           wines: {
             id: rating.wine_database?.id || rating.id || '',
             name: rating.wine_database?.name || 'Unknown Wine',
-            producer: rating.wine_database?.producers?.name || 'Unknown Producer',
+            producer: rating.wine_database?.producer?.name || 'Unknown Producer',
             vintage: rating.wine_vintages?.vintage || null,
             wine_type: rating.wine_database?.wine_type || 'red',
-            countries: rating.wine_database?.countries,
-            regions: rating.wine_database?.regions,
-            appellations: rating.wine_database?.appellations,
+            countries: rating.wine_database?.country,
+            regions: rating.wine_database?.region,
+            appellations: rating.wine_database?.appellation,
           }
         }));
       
@@ -278,17 +285,17 @@ export default function Ratings() {
     const matchesSearch = searchTerm === '' || 
       rating.wines.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       rating.wines.producer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      rating.wines.regions?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      rating.wines.countries?.name.toLowerCase().includes(searchTerm.toLowerCase());
+             rating.wines.region?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+       rating.wines.country?.name.toLowerCase().includes(searchTerm.toLowerCase());
     
     // Column filters
     const matchesVintage = filters.vintage === '' || rating.wines.vintage?.toString() === filters.vintage;
     const matchesType = filters.wine_type === '' || rating.wines.wine_type === filters.wine_type;
-    const matchesRegion = filters.region === '' || 
-      rating.wines.regions?.name === filters.region ||
-      rating.wines.countries?.name === filters.region;
-    const matchesCountry = filters.country === '' || rating.wines.countries?.name === filters.country;
-    const matchesAppellation = filters.appellation === '' || rating.wines.appellations?.name === filters.appellation;
+         const matchesRegion = filters.region === '' || 
+       rating.wines.region?.name === filters.region ||
+       rating.wines.country?.name === filters.region;
+     const matchesCountry = filters.country === '' || rating.wines.country?.name === filters.country;
+     const matchesAppellation = filters.appellation === '' || rating.wines.appellation?.name === filters.appellation;
     const matchesProducer = filters.producer === '' || rating.wines.producer === filters.producer;
     
     return matchesSearch && matchesVintage && matchesType && matchesRegion && matchesCountry && matchesAppellation && matchesProducer;
@@ -387,10 +394,10 @@ export default function Ratings() {
             <span className="text-sm font-medium">{getRatingLabel(rating.rating)}</span>
           </div>
           
-          {rating.wines.regions?.name || rating.wines.countries?.name ? (
+                     {rating.wines.region?.name || rating.wines.country?.name ? (
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Region:</span>
-              <span>{rating.wines.regions?.name || rating.wines.countries?.name}</span>
+                             <span>{rating.wines.region?.name || rating.wines.country?.name}</span>
             </div>
           ) : null}
           
@@ -517,7 +524,7 @@ export default function Ratings() {
               className="px-3 py-1 text-sm border border-input bg-background rounded-md"
             >
               <option value="">All Countries</option>
-              {Array.from(new Set(ratings.map(r => r.wines.countries?.name).filter(Boolean))).sort().map(country => (
+                             {Array.from(new Set(ratings.map(r => r.wines.country?.name).filter(Boolean))).sort().map(country => (
                 <option key={country} value={country}>{country}</option>
               ))}
             </select>
@@ -528,7 +535,7 @@ export default function Ratings() {
               className="px-3 py-1 text-sm border border-input bg-background rounded-md"
             >
               <option value="">All Regions</option>
-              {Array.from(new Set(ratings.map(r => r.wines.regions?.name || r.wines.countries?.name).filter(Boolean))).sort().map(region => (
+                             {Array.from(new Set(ratings.map(r => r.wines.region?.name || r.wines.country?.name).filter(Boolean))).sort().map(region => (
                 <option key={region} value={region}>{region}</option>
               ))}
             </select>
@@ -539,7 +546,7 @@ export default function Ratings() {
               className="px-3 py-1 text-sm border border-input bg-background rounded-md"
             >
               <option value="">All Appellations</option>
-              {Array.from(new Set(ratings.map(r => r.wines.appellations?.name).filter(Boolean))).sort().map(appellation => (
+                             {Array.from(new Set(ratings.map(r => r.wines.appellation?.name).filter(Boolean))).sort().map(appellation => (
                 <option key={appellation} value={appellation}>{appellation}</option>
               ))}
             </select>
@@ -708,15 +715,15 @@ export default function Ratings() {
                             </TableCell>
                           )}
                           {visibleRatingsColumns.includes('region') && (
-                            <TableCell>
-                              {rating.wines.regions?.name || 'N/A'}
-                            </TableCell>
+                                                         <TableCell>
+                               {rating.wines.region?.name || 'N/A'}
+                             </TableCell>
                           )}
-                          {visibleRatingsColumns.includes('country') && (
-                            <TableCell>
-                              {rating.wines.countries?.name || 'N/A'}
-                            </TableCell>
-                          )}
+                                                     {visibleRatingsColumns.includes('country') && (
+                             <TableCell>
+                               {rating.wines.country?.name || 'N/A'}
+                             </TableCell>
+                           )}
                           {visibleRatingsColumns.includes('appellation') && (
                             <TableCell>
                               {rating.wines.appellations?.name || 'N/A'}
