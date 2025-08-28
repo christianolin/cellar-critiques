@@ -60,7 +60,7 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
       loadCountries();
       loadRegions();
       loadAppellations();
-      loadProducers();
+      setProducers([]);
       searchWines();
     }
   }, [open]);
@@ -134,11 +134,13 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
     }
   };
 
-  const loadProducers = async () => {
+  const loadProducers = async (term: string) => {
     try {
+      const like = term?.trim() ? `%${term.trim()}%` : "%";
       const { data, error } = await supabase
         .from('producers')
         .select('id, name')
+        .ilike('name', like)
         .order('name');
       
       if (error) throw error;
@@ -150,6 +152,10 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
     } catch (error) {
       console.error('Error loading producers:', error);
     }
+  };
+
+  const handleProducerSearchChange = (term: string) => {
+    loadProducers(term);
   };
 
   const handleCountryChange = (countryId: string) => {
@@ -403,6 +409,7 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
                 onValueChange={setSelectedProducer}
                 placeholder="All producers"
                 searchPlaceholder="Search producers..."
+                onSearchChange={handleProducerSearchChange}
               />
             </div>
           </div>

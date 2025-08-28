@@ -751,21 +751,13 @@ export default function Admin() {
             </div>
             <div>
               <Label htmlFor="country_id">Country</Label>
-              <Select
+              <SearchableSelect
+                options={countries.map((country) => ({ value: country.id, label: country.name }))}
                 value={formData.country_id || ''}
                 onValueChange={(value) => setFormData({ ...formData, country_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select country" />
-                </SelectTrigger>
-                <SelectContent side="bottom">
-                  {countries.map((country) => (
-                    <SelectItem key={country.id} value={country.id}>
-                      {country.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Select country"
+                searchPlaceholder="Search countries..."
+              />
             </div>
           </>
         );
@@ -784,21 +776,13 @@ export default function Admin() {
             </div>
             <div>
               <Label htmlFor="region_id">Region</Label>
-              <Select
+              <SearchableSelect
+                options={regions.map((region) => ({ value: region.id, label: `${region.name} (${region.countries?.name || ''})` }))}
                 value={formData.region_id || ''}
                 onValueChange={(value) => setFormData({ ...formData, region_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select region" />
-                </SelectTrigger>
-                <SelectContent side="bottom">
-                  {regions.map((region) => (
-                    <SelectItem key={region.id} value={region.id}>
-                      {region.name} ({region.countries?.name})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Select region"
+                searchPlaceholder="Search regions..."
+              />
             </div>
           </>
         );
@@ -869,45 +853,22 @@ export default function Admin() {
               </div>
               <div>
                 <Label htmlFor="producer_id">Producer</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      className="w-full justify-between"
-                    >
-                      {formData.producer_id
-                        ? wineProducers.find((producer) => producer.id === formData.producer_id)?.name
-                        : "Select producer..."}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="z-[60] w-full p-0 bg-popover" side="bottom" align="start" sideOffset={4}>
-                    <Command>
-                      <CommandInput placeholder="Search producers..." />
-                      <CommandEmpty>No producer found.</CommandEmpty>
-                      <CommandGroup>
-                        {wineProducers.map((producer) => (
-                          <CommandItem
-                            key={producer.id}
-                            value={producer.name}
-                            onSelect={() => {
-                              setFormData({ ...formData, producer_id: producer.id });
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                formData.producer_id === producer.id ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {producer.name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <SearchableSelect
+                  options={wineProducers.map((producer) => ({ value: producer.id, label: producer.name }))}
+                  value={formData.producer_id || ''}
+                  onValueChange={(value) => setFormData({ ...formData, producer_id: value })}
+                  placeholder="Select producer"
+                  searchPlaceholder="Search producers..."
+                  onSearchChange={async (term) => {
+                    const like = term?.trim() ? `%${term.trim()}%` : "%";
+                    const { data } = await supabase
+                      .from('producers')
+                      .select('id, name')
+                      .ilike('name', like)
+                      .order('name');
+                    setWineProducers(data || []);
+                  }}
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
