@@ -245,7 +245,7 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
               .from('producers')
               .select('id')
               .ilike('name', `%${w}%`)
-              .limit(500);
+              ;
             return [w, (data || []).map(p => p.id as string)] as const;
           });
           const results = await Promise.all(lookups);

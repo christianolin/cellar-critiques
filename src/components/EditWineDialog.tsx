@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { Edit, X } from 'lucide-react';
 import ProducerSelect from '@/components/ProducerSelect';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 
 interface EditWineDialogProps {
   cellarEntry: any;
@@ -438,61 +439,39 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="country">Country</Label>
-              <Select 
-                value={formData.country_id} 
+              <SearchableSelect
+                options={countries.map((country) => ({ value: country.id, label: country.name }))}
+                value={formData.country_id}
                 onValueChange={(value) => setFormData({ ...formData, country_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select country" />
-                </SelectTrigger>
-                <SelectContent>
-                  {countries.map((country) => (
-                    <SelectItem key={country.id} value={country.id}>
-                      {country.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Select country"
+                searchPlaceholder="Search countries..."
+              />
             </div>
             <div>
               <Label htmlFor="region">Region</Label>
-              <Select 
-                value={formData.region_id} 
+              <SearchableSelect
+                options={filteredRegions.map((region) => ({ value: region.id, label: region.name }))}
+                value={formData.region_id}
                 onValueChange={(value) => setFormData({ ...formData, region_id: value })}
+                placeholder="Select region"
+                searchPlaceholder="Search regions..."
                 disabled={!formData.country_id}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select region" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredRegions.map((region) => (
-                    <SelectItem key={region.id} value={region.id}>
-                      {region.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                allowNone={true}
+              />
             </div>
           </div>
 
           <div>
             <Label htmlFor="appellation">Appellation/Classification</Label>
-            <Select 
-              value={formData.appellation_id} 
+            <SearchableSelect
+              options={filteredAppellations.map((appellation) => ({ value: appellation.id, label: appellation.name }))}
+              value={formData.appellation_id}
               onValueChange={(value) => setFormData({ ...formData, appellation_id: value })}
+              placeholder="Select appellation"
+              searchPlaceholder="Search appellations..."
               disabled={!formData.region_id}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select appellation" />
-              </SelectTrigger>
-              <SelectContent>
-                {filteredAppellations.map((appellation) => (
-                  <SelectItem key={appellation.id} value={appellation.id}>
-                    {appellation.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              allowNone={true}
+            />
           </div>
 
           <div>
