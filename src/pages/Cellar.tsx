@@ -148,7 +148,6 @@ export default function Cellar() {
             id,
             name,
             wine_type,
-            image_url,
             producers ( name ),
             countries ( name ),
             regions ( name ),
@@ -165,7 +164,7 @@ export default function Cellar() {
 
       if (error) throw error;
       const mapped = (data || []).map((row: any) => {
-        // Back-compat: expose vintage on wines
+        // Back-compat: expose vintage on wine_database
         if (row.vintage?.vintage && row.wine_database) {
           row.wine_database.vintage = row.vintage.vintage;
         }
@@ -239,9 +238,9 @@ export default function Cellar() {
           .eq('id', existing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from('wine_cellar')
-          .insert({ user_id: user.id, wine_id: wineId, quantity: 1 });
+                 const { error } = await supabase
+           .from('wine_cellar')
+           .insert({ user_id: user.id, wine_database_id: wineId, quantity: 1 });
         if (error) throw error;
       }
 
@@ -898,7 +897,7 @@ export default function Cellar() {
                         )}
                         <TableCell>
                           <div className="flex gap-2">
-                            <Button size="sm" onClick={() => addToCellar(consumption.wines?.id, consumption.wines?.name)}>
+                                                         <Button size="sm" onClick={() => addToCellar(consumption.wine_database_id || consumption.wines?.id, consumption.wines?.name)}>
                               Add to Cellar
                             </Button>
                             <DeleteConsumptionDialog

@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       appellations: {
@@ -253,7 +278,8 @@ export type Database = {
           storage_location: string | null
           updated_at: string
           user_id: string
-          wine_id: string
+          wine_database_id: string | null
+          wine_vintage_id: string | null
         }
         Insert: {
           created_at?: string
@@ -265,7 +291,8 @@ export type Database = {
           storage_location?: string | null
           updated_at?: string
           user_id: string
-          wine_id: string
+          wine_database_id?: string | null
+          wine_vintage_id?: string | null
         }
         Update: {
           created_at?: string
@@ -277,14 +304,22 @@ export type Database = {
           storage_location?: string | null
           updated_at?: string
           user_id?: string
-          wine_id?: string
+          wine_database_id?: string | null
+          wine_vintage_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "wine_cellar_wine_id_fkey"
-            columns: ["wine_id"]
+            foreignKeyName: "wine_cellar_wine_database_id_fkey"
+            columns: ["wine_database_id"]
             isOneToOne: false
-            referencedRelation: "wines"
+            referencedRelation: "wine_database"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wine_cellar_wine_vintage_id_fkey"
+            columns: ["wine_vintage_id"]
+            isOneToOne: false
+            referencedRelation: "wine_vintages"
             referencedColumns: ["id"]
           },
         ]
@@ -299,7 +334,8 @@ export type Database = {
           rating_id: string | null
           updated_at: string
           user_id: string
-          wine_id: string
+          wine_database_id: string | null
+          wine_vintage_id: string | null
         }
         Insert: {
           consumed_at?: string
@@ -310,7 +346,8 @@ export type Database = {
           rating_id?: string | null
           updated_at?: string
           user_id: string
-          wine_id: string
+          wine_database_id?: string | null
+          wine_vintage_id?: string | null
         }
         Update: {
           consumed_at?: string
@@ -321,7 +358,8 @@ export type Database = {
           rating_id?: string | null
           updated_at?: string
           user_id?: string
-          wine_id?: string
+          wine_database_id?: string | null
+          wine_vintage_id?: string | null
         }
         Relationships: [
           {
@@ -332,21 +370,26 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "wine_consumptions_wine_id_fkey"
-            columns: ["wine_id"]
+            foreignKeyName: "wine_consumptions_wine_database_id_fkey"
+            columns: ["wine_database_id"]
             isOneToOne: false
-            referencedRelation: "wines"
+            referencedRelation: "wine_database"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wine_consumptions_wine_vintage_id_fkey"
+            columns: ["wine_vintage_id"]
+            isOneToOne: false
+            referencedRelation: "wine_vintages"
             referencedColumns: ["id"]
           },
         ]
       }
       wine_database: {
         Row: {
-          alcohol_content: number | null
           appellation_id: string | null
           country_id: string
           created_at: string
-          description: string | null
           id: string
           name: string
           producer_id: string
@@ -355,11 +398,9 @@ export type Database = {
           wine_type: string
         }
         Insert: {
-          alcohol_content?: number | null
           appellation_id?: string | null
           country_id: string
           created_at?: string
-          description?: string | null
           id?: string
           name: string
           producer_id: string
@@ -368,11 +409,9 @@ export type Database = {
           wine_type: string
         }
         Update: {
-          alcohol_content?: number | null
           appellation_id?: string | null
           country_id?: string
           created_at?: string
-          description?: string | null
           id?: string
           name?: string
           producer_id?: string
@@ -411,48 +450,6 @@ export type Database = {
           },
         ]
       }
-      wine_grape_composition: {
-        Row: {
-          created_at: string
-          grape_variety_id: string
-          id: string
-          percentage: number
-          updated_at: string
-          wine_id: string
-        }
-        Insert: {
-          created_at?: string
-          grape_variety_id: string
-          id?: string
-          percentage: number
-          updated_at?: string
-          wine_id: string
-        }
-        Update: {
-          created_at?: string
-          grape_variety_id?: string
-          id?: string
-          percentage?: number
-          updated_at?: string
-          wine_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "wine_grape_composition_grape_variety_id_fkey"
-            columns: ["grape_variety_id"]
-            isOneToOne: false
-            referencedRelation: "grape_varieties"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wine_grape_composition_wine_id_fkey"
-            columns: ["wine_id"]
-            isOneToOne: false
-            referencedRelation: "wines"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       wine_ratings: {
         Row: {
           appearance_clarity: string | null
@@ -485,7 +482,8 @@ export type Database = {
           tasting_notes: string | null
           updated_at: string
           user_id: string
-          wine_id: string
+          wine_database_id: string | null
+          wine_vintage_id: string | null
         }
         Insert: {
           appearance_clarity?: string | null
@@ -518,7 +516,8 @@ export type Database = {
           tasting_notes?: string | null
           updated_at?: string
           user_id: string
-          wine_id: string
+          wine_database_id?: string | null
+          wine_vintage_id?: string | null
         }
         Update: {
           appearance_clarity?: string | null
@@ -551,87 +550,102 @@ export type Database = {
           tasting_notes?: string | null
           updated_at?: string
           user_id?: string
-          wine_id?: string
+          wine_database_id?: string | null
+          wine_vintage_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "wine_ratings_wine_id_fkey"
-            columns: ["wine_id"]
+            foreignKeyName: "wine_ratings_wine_database_id_fkey"
+            columns: ["wine_database_id"]
             isOneToOne: false
-            referencedRelation: "wines"
+            referencedRelation: "wine_database"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wine_ratings_wine_vintage_id_fkey"
+            columns: ["wine_vintage_id"]
+            isOneToOne: false
+            referencedRelation: "wine_vintages"
             referencedColumns: ["id"]
           },
         ]
       }
-      wines: {
+      wine_vintage_grapes: {
         Row: {
-          alcohol_content: number | null
-          appellation_id: string | null
-          bottle_size: string | null
-          country_id: string | null
           created_at: string
-          grape_variety_ids: string[] | null
+          grape_variety_id: string
           id: string
-          image_url: string | null
-          name: string
-          producer: string
-          region_id: string | null
+          percentage: number | null
           updated_at: string
-          vintage: number | null
-          wine_type: Database["public"]["Enums"]["wine_type"]
+          wine_vintage_id: string
         }
         Insert: {
-          alcohol_content?: number | null
-          appellation_id?: string | null
-          bottle_size?: string | null
-          country_id?: string | null
           created_at?: string
-          grape_variety_ids?: string[] | null
+          grape_variety_id: string
           id?: string
-          image_url?: string | null
-          name: string
-          producer: string
-          region_id?: string | null
+          percentage?: number | null
           updated_at?: string
-          vintage?: number | null
-          wine_type: Database["public"]["Enums"]["wine_type"]
+          wine_vintage_id: string
         }
         Update: {
-          alcohol_content?: number | null
-          appellation_id?: string | null
-          bottle_size?: string | null
-          country_id?: string | null
           created_at?: string
-          grape_variety_ids?: string[] | null
+          grape_variety_id?: string
           id?: string
-          image_url?: string | null
-          name?: string
-          producer?: string
-          region_id?: string | null
+          percentage?: number | null
           updated_at?: string
-          vintage?: number | null
-          wine_type?: Database["public"]["Enums"]["wine_type"]
+          wine_vintage_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "wines_appellation_id_fkey"
-            columns: ["appellation_id"]
+            foreignKeyName: "wine_vintage_grapes_grape_variety_id_fkey"
+            columns: ["grape_variety_id"]
             isOneToOne: false
-            referencedRelation: "appellations"
+            referencedRelation: "grape_varieties"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "wines_country_id_fkey"
-            columns: ["country_id"]
+            foreignKeyName: "wine_vintage_grapes_wine_vintage_id_fkey"
+            columns: ["wine_vintage_id"]
             isOneToOne: false
-            referencedRelation: "countries"
+            referencedRelation: "wine_vintages"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      wine_vintages: {
+        Row: {
+          alcohol_content: number | null
+          created_at: string
+          id: string
+          image_url: string | null
+          updated_at: string
+          vintage: number
+          wine_database_id: string
+        }
+        Insert: {
+          alcohol_content?: number | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          updated_at?: string
+          vintage: number
+          wine_database_id: string
+        }
+        Update: {
+          alcohol_content?: number | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          updated_at?: string
+          vintage?: number
+          wine_database_id?: string
+        }
+        Relationships: [
           {
-            foreignKeyName: "wines_region_id_fkey"
-            columns: ["region_id"]
+            foreignKeyName: "wine_vintages_wine_database_id_fkey"
+            columns: ["wine_database_id"]
             isOneToOne: false
-            referencedRelation: "regions"
+            referencedRelation: "wine_database"
             referencedColumns: ["id"]
           },
         ]
@@ -645,12 +659,44 @@ export type Database = {
         Args: { wine_id: string }
         Returns: Json
       }
+      gtrgm_compress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_decompress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_in: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_options: {
+        Args: { "": unknown }
+        Returns: undefined
+      }
+      gtrgm_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      set_limit: {
+        Args: { "": number }
+        Returns: number
+      }
+      show_limit: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      show_trgm: {
+        Args: { "": string }
+        Returns: string[]
       }
     }
     Enums: {
@@ -790,6 +836,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["owner", "admin", "user"],

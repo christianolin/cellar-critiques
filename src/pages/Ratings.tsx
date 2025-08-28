@@ -22,6 +22,8 @@ interface WineRating {
   tasting_date: string | null;
   created_at: string;
   updated_at: string;
+  wine_database_id: string | null;
+  wine_vintage_id: string | null;
   // Detailed rating fields
   appearance_color: string | null;
   appearance_intensity: string | null;
@@ -133,13 +135,13 @@ export default function Ratings() {
     if (!user) return;
 
     try {
-      // Check if wine already exists in cellar
-      const { data: existingEntry } = await supabase
-        .from('wine_cellar')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('wine_id', wineId)
-        .single();
+             // Check if wine already exists in cellar
+       const { data: existingEntry } = await supabase
+         .from('wine_cellar')
+         .select('*')
+         .eq('user_id', user.id)
+         .eq('wine_id', wineId)
+         .single();
 
       if (existingEntry) {
         // Update quantity
@@ -150,14 +152,14 @@ export default function Ratings() {
 
         if (error) throw error;
       } else {
-        // Create new entry
-        const { error } = await supabase
-          .from('wine_cellar')
-          .insert({
-            user_id: user.id,
-            wine_id: wineId,
-            quantity: 1,
-          });
+                 // Create new entry
+         const { error } = await supabase
+           .from('wine_cellar')
+           .insert({
+             user_id: user.id,
+             wine_id: wineId,
+             quantity: 1,
+           });
 
         if (error) throw error;
       }
@@ -239,20 +241,20 @@ export default function Ratings() {
 
       if (error) throw error;
       
-      // Transform data to match interface
-      const transformedData = (data || []).map((rating: any) => ({
-        ...rating,
-        wines: {
-          id: rating.wine_database?.id || '',
-          name: rating.wine_database?.name || 'Unknown Wine',
-          producer: rating.wine_database?.producers?.name || 'Unknown Producer',
-          vintage: rating.wine_vintages?.vintage || null,
-          wine_type: rating.wine_database?.wine_type || 'red',
-          countries: rating.wine_database?.countries,
-          regions: rating.wine_database?.regions,
-          appellations: rating.wine_database?.appellations,
-        }
-      }));
+             // Transform data to match interface
+       const transformedData = (data || []).map((rating: any) => ({
+         ...rating,
+         wines: {
+           id: rating.wine_database?.id || '',
+           name: rating.wine_database?.name || 'Unknown Wine',
+           producer: rating.wine_database?.producers?.name || 'Unknown Producer',
+           vintage: rating.wine_vintages?.vintage || null,
+           wine_type: rating.wine_database?.wine_type || 'red',
+           countries: rating.wine_database?.countries,
+           regions: rating.wine_database?.regions,
+           appellations: rating.wine_database?.appellations,
+         }
+       }));
       
       setRatings(transformedData);
     } catch (error) {
@@ -416,7 +418,7 @@ export default function Ratings() {
             <Button 
               size="sm" 
               variant="outline"
-              onClick={() => addToCellar(rating.wines.id, rating.wines.name)}
+                                               onClick={() => addToCellar(rating.wine_database_id || rating.wines.id, rating.wines.name)}
             >
               <Plus className="h-4 w-4 mr-1" />
               Add to Cellar
@@ -764,7 +766,7 @@ export default function Ratings() {
                               <Button 
                                 size="sm" 
                                 variant="outline"
-                                onClick={() => addToCellar(rating.wines.id, rating.wines.name)}
+                                onClick={() => addToCellar(rating.wine_database_id || rating.wines.id, rating.wines.name)}
                               >
                                 <Plus className="h-4 w-4 mr-1" />
                                 Add to Cellar
