@@ -43,15 +43,18 @@ interface WineRating {
   palate_finish: string | null;
   palate_balance: string | null;
   palate_comments: string | null;
-  wines: {
+  wine_database: {
     id: string;
     name: string;
-    producer: string;
-    vintage: number | null;
+    producers?: { name: string };
     wine_type: string;
     countries?: { name: string };
     regions?: { name: string };
     appellations?: { name: string };
+  };
+  wine_vintages?: {
+    vintage: number;
+    alcohol_content: number | null;
   };
 }
 
@@ -171,7 +174,8 @@ export default function FriendRatings() {
         .select(`
           id,
           user_id,
-          wine_id,
+          wine_database_id,
+          wine_vintage_id,
           rating,
           tasting_date,
           tasting_notes,
@@ -200,15 +204,18 @@ export default function FriendRatings() {
           palate_complexity,
           palate_balance,
           palate_comments,
-          wines (
+          wine_database:wine_database_id (
             id,
             name,
-            producer,
-            vintage,
+            producers:producer_id ( name ),
             wine_type,
             countries:country_id ( name ),
             regions:region_id ( name ),
             appellations:appellation_id ( name )
+          ),
+          wine_vintages:wine_vintage_id (
+            vintage,
+            alcohol_content
           )
         `)
         .eq('user_id', friendId)
@@ -230,20 +237,20 @@ export default function FriendRatings() {
   const filteredRatings = ratings.filter(rating => {
     // Search term filter
     const matchesSearch = searchTerm === '' || 
-      rating.wines.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      rating.wines.producer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      rating.wines.regions?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      rating.wines.countries?.name.toLowerCase().includes(searchTerm.toLowerCase());
+      rating.wine_database.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      rating.wine_database.producers?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      rating.wine_database.regions?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      rating.wine_database.countries?.name.toLowerCase().includes(searchTerm.toLowerCase());
     
     // Column filters
-    const matchesVintage = filters.vintage === '' || rating.wines.vintage?.toString() === filters.vintage;
-    const matchesType = filters.wine_type === '' || rating.wines.wine_type === filters.wine_type;
+    const matchesVintage = filters.vintage === '' || rating.wine_vintages?.vintage?.toString() === filters.vintage;
+    const matchesType = filters.wine_type === '' || rating.wine_database.wine_type === filters.wine_type;
     const matchesRegion = filters.region === '' || 
-      rating.wines.regions?.name === filters.region ||
-      rating.wines.countries?.name === filters.region;
-    const matchesCountry = filters.country === '' || rating.wines.countries?.name === filters.country;
-    const matchesAppellation = filters.appellation === '' || rating.wines.appellations?.name === filters.appellation;
-    const matchesProducer = filters.producer === '' || rating.wines.producer === filters.producer;
+      rating.wine_database.regions?.name === filters.region ||
+      rating.wine_database.countries?.name === filters.region;
+    const matchesCountry = filters.country === '' || rating.wine_database.countries?.name === filters.country;
+    const matchesAppellation = filters.appellation === '' || rating.wine_database.appellations?.name === filters.appellation;
+    const matchesProducer = filters.producer === '' || rating.wine_database.producers?.name === filters.producer;
     
     return matchesSearch && matchesVintage && matchesType && matchesRegion && matchesCountry && matchesAppellation && matchesProducer;
   });
@@ -282,10 +289,10 @@ export default function FriendRatings() {
     let aVal: any;
     let bVal: any;
     switch (sortKey) {
-      case 'name': aVal = a.wines.name; bVal = b.wines.name; break;
-      case 'producer': aVal = a.wines.producer; bVal = b.wines.producer; break;
-      case 'vintage': aVal = a.wines.vintage ?? 0; bVal = b.wines.vintage ?? 0; break;
-      case 'type': aVal = a.wines.wine_type; bVal = b.wines.wine_type; break;
+      case 'name': aVal = a.wine_database.name; bVal = b.wine_database.name; break;
+      case 'producer': aVal = a.wine_database.producers?.name || ''; bVal = b.wine_database.producers?.name || ''; break;
+      case 'vintage': aVal = a.wine_vintages?.vintage ?? 0; bVal = b.wine_vintages?.vintage ?? 0; break;
+      case 'type': aVal = a.wine_database.wine_type; bVal = b.wine_database.wine_type; break;
       case 'rating': aVal = a.rating; bVal = b.rating; break;
       case 'tasted': aVal = a.tasting_date ? new Date(a.tasting_date).getTime() : 0; bVal = b.tasting_date ? new Date(b.tasting_date).getTime() : 0; break;
       default: aVal = 0; bVal = 0;
@@ -318,17 +325,17 @@ export default function FriendRatings() {
       <CardHeader>
         <div className="flex justify-between items-start">
           <div className="flex-1">
-            <CardTitle className="text-lg">{rating.wines.name}</CardTitle>
+            <CardTitle className="text-lg">{rating.wine_database.name}</CardTitle>
             <CardDescription>
-              {rating.wines.producer} • {rating.wines.vintage}
+              {rating.wine_database.producers?.name} • {rating.wine_vintages?.vintage}
             </CardDescription>
           </div>
           <div className="flex flex-col items-end gap-2">
             <Badge className={getRatingColor(rating.rating)}>
               {rating.rating}/100
             </Badge>
-            <Badge className={getWineTypeColor(rating.wines.wine_type)}>
-              {rating.wines.wine_type}
+            <Badge className={getWineTypeColor(rating.wine_database.wine_type)}>
+              {rating.wine_database.wine_type}
             </Badge>
           </div>
         </div>
@@ -340,10 +347,10 @@ export default function FriendRatings() {
             <span className="text-sm font-medium">{getRatingLabel(rating.rating)}</span>
           </div>
           
-          {rating.wines.regions?.name || rating.wines.countries?.name ? (
+          {rating.wine_database.regions?.name || rating.wine_database.countries?.name ? (
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Region:</span>
-              <span>{rating.wines.regions?.name || rating.wines.countries?.name}</span>
+              <span>{rating.wine_database.regions?.name || rating.wine_database.countries?.name}</span>
             </div>
           ) : null}
           
@@ -452,7 +459,7 @@ export default function FriendRatings() {
               className="px-3 py-1 text-sm border border-input bg-background rounded-md"
             >
               <option value="">All Vintages</option>
-              {Array.from(new Set(ratings.map(r => r.wines.vintage).filter(Boolean)))
+              {Array.from(new Set(ratings.map(r => r.wine_vintages?.vintage).filter(Boolean)))
                 .sort((a, b) => (b as number) - (a as number))
                 .map(vintage => (
                 <option key={vintage} value={vintage?.toString()}>{vintage}</option>
@@ -465,7 +472,7 @@ export default function FriendRatings() {
               className="px-3 py-1 text-sm border border-input bg-background rounded-md"
             >
               <option value="">All Types</option>
-              {Array.from(new Set(ratings.map(r => r.wines.wine_type))).sort().map(type => (
+              {Array.from(new Set(ratings.map(r => r.wine_database.wine_type))).sort().map(type => (
                 <option key={type} value={type}>{type}</option>
               ))}
             </select>
@@ -476,7 +483,7 @@ export default function FriendRatings() {
               className="px-3 py-1 text-sm border border-input bg-background rounded-md"
             >
               <option value="">All Countries</option>
-              {Array.from(new Set(ratings.map(r => r.wines.countries?.name).filter(Boolean))).sort().map(country => (
+              {Array.from(new Set(ratings.map(r => r.wine_database.countries?.name).filter(Boolean))).sort().map(country => (
                 <option key={country} value={country}>{country}</option>
               ))}
             </select>
@@ -487,7 +494,7 @@ export default function FriendRatings() {
               className="px-3 py-1 text-sm border border-input bg-background rounded-md"
             >
               <option value="">All Regions</option>
-              {Array.from(new Set(ratings.map(r => r.wines.regions?.name || r.wines.countries?.name).filter(Boolean))).sort().map(region => (
+              {Array.from(new Set(ratings.map(r => r.wine_database.regions?.name || r.wine_database.countries?.name).filter(Boolean))).sort().map(region => (
                 <option key={region} value={region}>{region}</option>
               ))}
             </select>
@@ -498,7 +505,7 @@ export default function FriendRatings() {
               className="px-3 py-1 text-sm border border-input bg-background rounded-md"
             >
               <option value="">All Appellations</option>
-              {Array.from(new Set(ratings.map(r => r.wines.appellations?.name).filter(Boolean))).sort().map(appellation => (
+              {Array.from(new Set(ratings.map(r => r.wine_database.appellations?.name).filter(Boolean))).sort().map(appellation => (
                 <option key={appellation} value={appellation}>{appellation}</option>
               ))}
             </select>
@@ -509,7 +516,7 @@ export default function FriendRatings() {
               className="px-3 py-1 text-sm border border-input bg-background rounded-md"
             >
               <option value="">All Producers</option>
-              {Array.from(new Set(ratings.map(r => r.wines.producer))).sort().map(producer => (
+              {Array.from(new Set(ratings.map(r => r.wine_database.producers?.name).filter(Boolean))).sort().map(producer => (
                 <option key={producer} value={producer}>{producer}</option>
               ))}
             </select>
@@ -641,18 +648,18 @@ export default function FriendRatings() {
                         </TableCell>
                       )}
                       {visibleRatingsColumns.includes('wine_name') && (
-                        <TableCell className="font-medium">{rating.wines.name}</TableCell>
+                        <TableCell className="font-medium">{rating.wine_database.name}</TableCell>
                       )}
                       {visibleRatingsColumns.includes('producer') && (
-                        <TableCell>{rating.wines.producer}</TableCell>
+                        <TableCell>{rating.wine_database.producers?.name || 'N/A'}</TableCell>
                       )}
                       {visibleRatingsColumns.includes('vintage') && (
-                        <TableCell>{rating.wines.vintage || 'NV'}</TableCell>
+                        <TableCell>{rating.wine_vintages?.vintage || 'NV'}</TableCell>
                       )}
                       {visibleRatingsColumns.includes('wine_type') && (
                         <TableCell>
-                          <Badge className={getWineTypeColor(rating.wines.wine_type)}>
-                            {rating.wines.wine_type}
+                          <Badge className={getWineTypeColor(rating.wine_database.wine_type)}>
+                            {rating.wine_database.wine_type}
                           </Badge>
                         </TableCell>
                       )}
@@ -666,17 +673,17 @@ export default function FriendRatings() {
                       )}
                       {visibleRatingsColumns.includes('region') && (
                         <TableCell>
-                          {rating.wines.regions?.name || 'N/A'}
+                          {rating.wine_database.regions?.name || 'N/A'}
                         </TableCell>
                       )}
                       {visibleRatingsColumns.includes('country') && (
                         <TableCell>
-                          {rating.wines.countries?.name || 'N/A'}
+                          {rating.wine_database.countries?.name || 'N/A'}
                         </TableCell>
                       )}
                       {visibleRatingsColumns.includes('appellation') && (
                         <TableCell>
-                          {rating.wines.appellations?.name || 'N/A'}
+                          {rating.wine_database.appellations?.name || 'N/A'}
                         </TableCell>
                       )}
                       {visibleRatingsColumns.includes('food_pairing') && (

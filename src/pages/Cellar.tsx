@@ -534,7 +534,7 @@ export default function Cellar() {
               className="px-3 py-1 text-sm border border-input bg-background rounded-md"
             >
               <option value="">All Countries</option>
-              {Array.from(new Set(wines.map(w => w.wines.countries?.name).filter(Boolean))).sort().map(country => (
+              {Array.from(new Set(wines.map(w => w.wines.country?.name).filter(Boolean))).sort().map(country => (
                 <option key={country} value={country}>{country}</option>
               ))}
             </select>
@@ -556,7 +556,7 @@ export default function Cellar() {
               className="px-3 py-1 text-sm border border-input bg-background rounded-md"
             >
               <option value="">All Appellations</option>
-              {Array.from(new Set(wines.map(w => w.wines.appellations?.name).filter(Boolean))).sort().map(appellation => (
+              {Array.from(new Set(wines.map(w => w.wines.appellation?.name).filter(Boolean))).sort().map(appellation => (
                 <option key={appellation} value={appellation}>{appellation}</option>
               ))}
             </select>
@@ -712,17 +712,17 @@ export default function Cellar() {
                             )}
                             {visibleCellarColumns.includes('region') && (
                               <TableCell>
-                                {wine.regions?.name || 'N/A'}
+                                {wine.region?.name || 'N/A'}
                               </TableCell>
                             )}
                             {visibleCellarColumns.includes('country') && (
                               <TableCell>
-                                {wine.countries?.name || 'N/A'}
+                                {wine.country?.name || 'N/A'}
                               </TableCell>
                             )}
                             {visibleCellarColumns.includes('appellation') && (
                               <TableCell>
-                                {wine.appellations?.name || 'N/A'}
+                                {wine.appellation?.name || 'N/A'}
                               </TableCell>
                             )}
                             {visibleCellarColumns.includes('quantity') && (
@@ -804,7 +804,7 @@ export default function Cellar() {
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Region:</span>
-                        <span>{wine.regions?.name || wine.countries?.name || 'N/A'}</span>
+                        <span>{wine.region?.name || wine.country?.name || 'N/A'}</span>
                       </div>
                       <div className="flex justify-between items-center text-sm">
                         <span className="text-muted-foreground">Quantity:</span>

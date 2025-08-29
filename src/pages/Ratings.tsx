@@ -726,7 +726,7 @@ export default function Ratings() {
                            )}
                           {visibleRatingsColumns.includes('appellation') && (
                             <TableCell>
-                              {rating.wines.appellations?.name || 'N/A'}
+                              {rating.wines.appellation?.name || 'N/A'}
                             </TableCell>
                           )}
                           {visibleRatingsColumns.includes('food_pairing') && (

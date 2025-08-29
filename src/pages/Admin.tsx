@@ -473,7 +473,7 @@ export default function Admin() {
             .eq('country_id', id);
           
           const { data: winesInCountry } = await supabase
-            .from('wines')
+            .from('wine_database')
             .select('id, name')
             .eq('country_id', id);
 
@@ -503,7 +503,7 @@ export default function Admin() {
             .eq('region_id', id);
           
           const { data: winesInRegion } = await supabase
-            .from('wines')
+            .from('wine_database')
             .select('id, name')
             .eq('region_id', id);
 
