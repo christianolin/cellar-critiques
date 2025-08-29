@@ -994,12 +994,12 @@ export default function Admin() {
                     <SelectValue placeholder="Select wine type" />
                   </SelectTrigger>
                   <SelectContent side="bottom">
-                    <SelectItem value="Red">Red</SelectItem>
-                    <SelectItem value="White">White</SelectItem>
-                    <SelectItem value="Rosé">Rosé</SelectItem>
-                    <SelectItem value="Sparkling">Sparkling</SelectItem>
-                    <SelectItem value="Dessert">Dessert</SelectItem>
-                    <SelectItem value="Fortified">Fortified</SelectItem>
+                     <SelectItem value="red">Red</SelectItem>
+                     <SelectItem value="white">White</SelectItem>
+                     <SelectItem value="rose">Rosé</SelectItem>
+                     <SelectItem value="sparkling">Sparkling</SelectItem>
+                     <SelectItem value="dessert">Dessert</SelectItem>
+                     <SelectItem value="fortified">Fortified</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1614,13 +1614,16 @@ export default function Admin() {
                       setAppellations((data as any) || []);
                     }}
                   />
-                  <ProducerSelect
-                    value={producerFilter}
-                    onChange={(id) => setProducerFilter(id)}
-                    allowNone
-                    noneLabel="All producers"
-                    placeholder="Filter by producer"
-                  />
+                   <ProducerSelect
+                     value={wineProducers.find(p => p.id === producerFilter)?.name || ''}
+                     onChange={(name) => {
+                       const producer = wineProducers.find(p => p.name === name);
+                       setProducerFilter(producer?.id || '');
+                     }}
+                     allowNone
+                     noneLabel="All producers"
+                     placeholder="Filter by producer"
+                   />
                 </div>
                 <div className="flex gap-2">
                   <Button

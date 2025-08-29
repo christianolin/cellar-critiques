@@ -645,19 +645,20 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <h4 className="font-medium">Select Existing Wine</h4>
-                    <WineSearchDialog 
-                      onWineSelect={(wine) => {
-                        setNewWineData({
-                          ...newWineData,
-                          wine_database_id: wine.id,
-                          name: wine.name,
-                          producer: wine.producers?.name || '',
-                          wine_type: wine.wine_type as 'red' | 'white' | 'rose' | 'sparkling' | 'dessert' | 'fortified',
-                          country_id: wine.country_id || '',
-                          region_id: wine.region_id || '',
-                          appellation_id: wine.appellation_id || '',
-                        });
-                      }}
+                     <WineSearchDialog 
+                       onWineSelect={(wine) => {
+                         setMode('existing');
+                         setNewWineData({
+                           ...newWineData,
+                           wine_database_id: wine.id,
+                           name: wine.name,
+                           producer: wine.producers?.name || '',
+                           wine_type: wine.wine_type as 'red' | 'white' | 'rose' | 'sparkling' | 'dessert' | 'fortified',
+                           country_id: wine.country_id || '',
+                           region_id: wine.region_id || '',
+                           appellation_id: wine.appellation_id || '',
+                         });
+                       }}
                       trigger={
                         <Button type="button" variant="outline" size="sm">
                           <Search className="h-4 w-4 mr-2" />

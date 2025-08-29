@@ -81,16 +81,16 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
 
   const [formData, setFormData] = useState<WineFormData>({
     name: cellarEntry.wine_database?.name || '',
-    producer: cellarEntry.wine_database?.producers?.name || '',
-    vintage: cellarEntry.wine_vintages?.vintage || null,
+    producer: cellarEntry.wine_database?.producer?.name || '',
+    vintage: cellarEntry.vintage?.vintage || null,
     wine_type: cellarEntry.wine_database?.wine_type || '',
-    bottle_size: '750ml', // Default bottle size
+    bottle_size: '750ml',
     country_id: cellarEntry.wine_database?.country_id || '',
     region_id: cellarEntry.wine_database?.region_id || '',
     appellation_id: cellarEntry.wine_database?.appellation_id || '',
     grape_varieties: [],
-    alcohol_content: cellarEntry.wine_vintages?.alcohol_content || null,
-    image_url: cellarEntry.wine_vintages?.image_url || null,
+    alcohol_content: cellarEntry.vintage?.alcohol_content || null,
+    image_url: cellarEntry.vintage?.image_url || null,
     quantity: cellarEntry.quantity,
     purchase_date: cellarEntry.purchase_date || '',
     purchase_price: cellarEntry.purchase_price,
@@ -323,227 +323,48 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Basic Information */}
-          <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="name">Wine Name *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="producer">Producer *</Label>
-              <ProducerSelect
-                value={formData.producer}
-                onChange={(name) => setFormData({ ...formData, producer: name })}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="vintage">Vintage</Label>
-              <Input
-                id="vintage"
-                type="number"
-                min="1800"
-                max="2030"
-                value={formData.vintage || ''}
-                onChange={(e) => setFormData({ ...formData, vintage: e.target.value ? parseInt(e.target.value) : null })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="wine_type">Wine Type *</Label>
-              <Select value={formData.wine_type} onValueChange={(value) => setFormData({ ...formData, wine_type: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select wine type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="red">Red</SelectItem>
-                  <SelectItem value="white">White</SelectItem>
-                  <SelectItem value="rose">Rosé</SelectItem>
-                  <SelectItem value="sparkling">Sparkling</SelectItem>
-                  <SelectItem value="dessert">Dessert</SelectItem>
-                  <SelectItem value="fortified">Fortified</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="bottle_size">Bottle Size</Label>
-              <Select 
-                value={formData.bottle_size} 
-                onValueChange={(value) => setFormData({ ...formData, bottle_size: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select bottle size" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Split (187.5ml)">Split (187.5ml)</SelectItem>
-                  <SelectItem value="Half Bottle (375ml)">Half Bottle (375ml)</SelectItem>
-                  <SelectItem value="Bottle (750ml)">Bottle (750ml)</SelectItem>
-                  <SelectItem value="Liter (1L)">Liter (1L)</SelectItem>
-                  <SelectItem value="Magnum (1.5L)">Magnum (1.5L)</SelectItem>
-                  <SelectItem value="Double Magnum (3L)">Double Magnum (3L)</SelectItem>
-                  <SelectItem value="Jeroboam (4.5L)">Jeroboam (4.5L)</SelectItem>
-                  <SelectItem value="Imperial (6L)">Imperial (6L)</SelectItem>
-                  <SelectItem value="Salmanazar (9L)">Salmanazar (9L)</SelectItem>
-                  <SelectItem value="Balthazar (12L)">Balthazar (12L)</SelectItem>
-                  <SelectItem value="Nebuchadnezzar (15L)">Nebuchadnezzar (15L)</SelectItem>
-                  <SelectItem value="Melchior (18L)">Melchior (18L)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="image">Wine Image</Label>
-              <div className="space-y-2">
-                {formData.image_url && (
-                  <div className="relative w-32 h-32 border rounded-lg overflow-hidden">
-                    <img 
-                      src={formData.image_url} 
-                      alt="Wine" 
-                      className="w-full h-full object-cover"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="absolute top-1 right-1"
-                      onClick={() => setFormData({ ...formData, image_url: null })}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                )}
-                <Input
-                  id="image"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  disabled={uploadingImage}
-                />
-                {uploadingImage && <p className="text-sm text-muted-foreground">Uploading...</p>}
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="country">Country</Label>
-              <SearchableSelect
-                options={countries.map((country) => ({ value: country.id, label: country.name }))}
-                value={formData.country_id}
-                onValueChange={(value) => setFormData({ ...formData, country_id: value })}
-                placeholder="Select country"
-                searchPlaceholder="Search countries..."
-              />
-            </div>
-            <div>
-              <Label htmlFor="region">Region</Label>
-              <SearchableSelect
-                options={(formData.country_id ? filteredRegions : regions).map((region) => ({ value: region.id, label: region.name }))}
-                value={formData.region_id}
-                onValueChange={(value) => {
-                  const selectedRegion = regions.find(r => r.id === value);
-                  setFormData({
-                    ...formData,
-                    region_id: value,
-                    country_id: selectedRegion?.country_id || formData.country_id,
-                  });
-                }}
-                placeholder="Select region"
-                searchPlaceholder="Search regions..."
-                allowNone={true}
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="appellation">Appellation/Classification</Label>
-            <SearchableSelect
-              options={(formData.region_id ? filteredAppellations : appellations).map((appellation) => ({ value: appellation.id, label: appellation.name }))}
-              value={formData.appellation_id}
-              onValueChange={(value) => {
-                const selectedApp = appellations.find(a => a.id === value);
-                const selectedRegion = selectedApp ? regions.find(r => r.id === selectedApp.region_id) : undefined;
-                setFormData({
-                  ...formData,
-                  appellation_id: value,
-                  region_id: selectedRegion?.id || formData.region_id,
-                  country_id: selectedRegion?.country_id || formData.country_id,
-                });
-              }}
-              placeholder="Select appellation"
-              searchPlaceholder="Search appellations..."
-              allowNone={true}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="grape_varieties">Grape Varieties with Percentages</Label>
-            <Select value="" onValueChange={addGrapeVariety}>
-              <SelectTrigger>
-                <SelectValue placeholder="Add grape varieties" />
-              </SelectTrigger>
-              <SelectContent>
-                {grapeVarieties.map((grape) => (
-                  <SelectItem key={grape.id} value={grape.id}>
-                    {grape.name} ({grape.type})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            {formData.grape_varieties.length > 0 && (
-              <div className="space-y-2 mt-2">
-                {formData.grape_varieties.map((grape) => (
-                  <div key={grape.id} className="flex items-center gap-2 p-2 bg-secondary rounded-md">
-                    <span className="flex-1 text-sm">{grape.name}</span>
-                    <Input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={grape.percentage}
-                      onChange={(e) => updateGrapePercentage(grape.id, parseInt(e.target.value) || 0)}
-                      className="w-20"
-                      placeholder="%"
-                    />
-                    <span className="text-sm">%</span>
-                    <X
-                      className="h-4 w-4 cursor-pointer"
-                      onClick={() => removeGrapeVariety(grape.id)}
-                    />
-                  </div>
-                ))}
-                <div className="text-xs text-muted-foreground">
-                  Total: {formData.grape_varieties.reduce((sum, g) => sum + g.percentage, 0)}%
+              <Label>Master Data Fields (Read-only)</Label>
+              <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div><span className="font-medium">Name:</span> {formData.name}</div>
+                  <div><span className="font-medium">Producer:</span> {formData.producer}</div>
+                  <div><span className="font-medium">Type:</span> {formData.wine_type}</div>
+                  <div><span className="font-medium">Country:</span> {countries.find(c => c.id === formData.country_id)?.name || 'N/A'}</div>
+                  <div><span className="font-medium">Region:</span> {regions.find(r => r.id === formData.region_id)?.name || 'N/A'}</div>
+                  <div><span className="font-medium">Appellation:</span> {appellations.find(a => a.id === formData.appellation_id)?.name || 'N/A'}</div>
                 </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Master wine data cannot be edited from cellar. Use Admin panel to edit wine database entries.
+                </p>
               </div>
-            )}
-          </div>
+            </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="alcohol_content">Alcohol Content (%)</Label>
-              <Input
-                id="alcohol_content"
-                type="number"
-                step="0.1"
-                min="0"
-                max="50"
-                value={formData.alcohol_content || ''}
-                onChange={(e) => setFormData({ ...formData, alcohol_content: e.target.value ? parseFloat(e.target.value) : null })}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="vintage">Vintage</Label>
+                <Input
+                  id="vintage"
+                  type="number"
+                  min="1800"
+                  max="2030"
+                  value={formData.vintage || ''}
+                  onChange={(e) => setFormData({ ...formData, vintage: e.target.value ? parseInt(e.target.value) : null })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="alcohol_content">Alcohol Content (%)</Label>
+                <Input
+                  id="alcohol_content"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="50"
+                  value={formData.alcohol_content || ''}
+                  onChange={(e) => setFormData({ ...formData, alcohol_content: e.target.value ? parseFloat(e.target.value) : null })}
+                />
+              </div>
             </div>
-            <div>
-            </div>
-          </div>
 
           {/* Cellar Information */}
           <div className="border-t pt-4">
