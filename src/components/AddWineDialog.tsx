@@ -60,6 +60,7 @@ interface GrapeWithPercentage {
 interface WineFormData {
   name: string;
   producer: string;
+  producer_id?: string;
   vintage: number | null;
   wine_type: string;
   bottle_size: string;
@@ -91,6 +92,7 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
   const [grapeVarieties, setGrapeVarieties] = useState<GrapeVariety[]>([]);
   const [filteredRegions, setFilteredRegions] = useState<Region[]>([]);
   const [filteredAppellations, setFilteredAppellations] = useState<Appellation[]>([]);
+  const [cachedProducerOptions, setCachedProducerOptions] = useState<{ value: string; label: string }[]>([]);
 
   const [formData, setFormData] = useState<WineFormData>({
     name: '',
@@ -233,8 +235,12 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
     }
   };
 
-  const validateForm = () =>
-    Boolean(formData.name && formData.producer && formData.wine_type && formData.country_id);
+  const validateForm = () => {
+    const hasExisting = Boolean(formData.wine_database_id);
+    const hasNewAndProducer = Boolean(formData.name && formData.producer_id);
+    const hasTypeCountry = Boolean(formData.wine_type && formData.country_id);
+    return (hasExisting || hasNewAndProducer) && hasTypeCountry;
+  };
 
   const addGrapeVariety = (grapeId: string) => {
     const grape = grapeVarieties.find((g) => g.id === grapeId);
@@ -294,40 +300,12 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
 
       if (!wineDatabaseId) {
         // Only create new wine_database entry if none was selected
-        let producerId: string | undefined;
-        if (formData.producer) {
-          const {
-            data: prod,
-            error: prodErr,
-          } = await supabase
-            .from('producers')
-            .select('id')
-            .ilike('name', formData.producer)
-            .limit(1)
-            .maybeSingle();
-
-          if (prodErr) {
-            console.error('Error looking up producer:', prodErr);
-            throw new Error(`Failed to look up producer: ${prodErr.message}`);
-          }
-
-          if (prod?.id) {
-            producerId = prod.id;
-          } else {
-            const {
-              data: newProd,
-              error: newProdErr,
-            } = await supabase.from('producers').insert({ name: formData.producer }).select('id').single();
-
-            if (newProdErr) {
-              console.error('Error creating producer:', newProdErr);
-              throw new Error(`Failed to create producer: ${newProdErr.message}`);
-            }
-            producerId = newProd?.id;
-          }
-        }
-
-        const { data: wineDb, error: wineDbErr } = await supabase
+        
+const producerId = formData.producer_id;
+if (!producerId) {
+  throw new Error('Please select a producer.');
+}
+, error: wineDbErr } = await supabase
           .from('wine_database')
           .insert({
             name: formData.name,
@@ -382,6 +360,23 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
 
         wineVintageId = vintage?.id;
       }
+
+      // Save grape composition for this vintage
+      if (wineVintageId && formData.grape_varieties.length > 0) {
+        const rows = formData.grape_varieties
+          .filter((g) => Number.isFinite(g.percentage as any))
+          .map((g) => ({
+            wine_vintage_id: wineVintageId,
+            grape_variety_id: g.id,
+            percentage: g.percentage,
+          }));
+        const { error: grapesErr } = await supabase.from('wine_vintage_grapes').insert(rows);
+        if (grapesErr) {
+          console.error('Error saving grape composition:', grapesErr);
+          throw new Error(`Failed to save grape composition: ${grapesErr.message}`);
+        }
+      }
+
 
       // If adding to cellar, create cellar entry
       if (addToCellar) {
@@ -572,7 +567,45 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
                           })}
                         />
                       </div>
+                    
+
+                  <div className="space-y-4 border-t pt-4">
+                    <h5 className="font-medium">Grape Composition</h5>
+                    <div className="flex gap-2">
+                      <SearchableSelect
+                        options={grapeVarieties.map(g => ({ value: g.id, label: `${g.name} (${g.type})` }))}
+                        value=""
+                        placeholder="Add a grape"
+                        searchPlaceholder="Search grapes..."
+                        onValueChange={(id) => addGrapeVariety(id)}
+                      />
                     </div>
+                    <div className="space-y-2">
+                      {formData.grape_varieties.map(g => (
+                        <div key={g.id} className="grid grid-cols-12 gap-2 items-center">
+                          <div className="col-span-6">{g.name}</div>
+                          <div className="col-span-4">
+                            <Input
+                              type="number"
+                              min={0}
+                              max={100}
+                              value={g.percentage}
+                              onChange={(e) => {
+                                const next = Math.max(0, Math.min(100, parseInt(e.target.value || '0', 10)));
+                                updateGrapePercentage(g.id, next);
+                              }}
+                            />
+                          </div>
+                          <div className="col-span-2 text-right">
+                            <Button type="button" variant="outline" size="sm" onClick={() => removeGrapeVariety(g.id)}>
+                              Remove
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+</div>
                   </div>
                 )}
               </div>
@@ -591,11 +624,47 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
                 </div>
 
                 <div>
-                  <Label htmlFor="producer">Producer *</Label>
-                  <ProducerSelect
-                    value={formData.producer}
-                    onChange={(name) => setFormData({ ...formData, producer: name })}
-                  />
+                  
+<Label htmlFor="producer">Producer *</Label>
+<SearchableSelect
+  options={cachedProducerOptions}
+  value={formData.producer_id || ''}
+  placeholder="Select producer"
+  searchPlaceholder="Search producers..."
+  onValueChange={(id) => {
+    const opt = cachedProducerOptions.find(o => o.value === id);
+    setFormData(prev => ({
+      ...prev,
+      producer_id: id || undefined,
+      producer: opt?.label || ''
+    }));
+  }}
+  onSearchChange={async (term) => {
+    const like = term?.trim() ? `%${term.trim()}%` : '%';
+    const { data, error } = await supabase
+      .from('producers')
+      .select('id,name')
+      .ilike('name', like)
+      .order('name')
+      .limit(100);
+    if (!error) {
+      setCachedProducerOptions((data || []).map(p => ({ value: p.id, label: p.name })));
+    }
+  }}
+  onOpenChange={(open) => {
+    if (open && cachedProducerOptions.length === 0) {
+      supabase
+        .from('producers')
+        .select('id,name')
+        .order('name')
+        .limit(50)
+        .then(({ data }) => {
+          setCachedProducerOptions((data || []).map(p => ({ value: p.id, label: p.name })));
+        });
+    }
+  }}
+/>
+
                 </div>
 
                 <div>
