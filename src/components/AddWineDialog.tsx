@@ -75,6 +75,7 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [mode, setMode] = useState<'new' | 'existing'>('new');
   const [countries, setCountries] = useState<Country[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
   const [appellations, setAppellation] = useState<Appellation[]>([]);
@@ -167,36 +168,6 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
     }
   }, [formData.region_id, appellations]);
 
-  const addGrapeVariety = (grapeId: string) => {
-    const grape = grapeVarieties.find(g => g.id === grapeId);
-    if (grape && !formData.grape_varieties.find(g => g.id === grapeId)) {
-      const newGrapes = [...formData.grape_varieties, { ...grape, percentage: 0 }];
-      const evenPercentage = Math.floor(100 / newGrapes.length);
-      const updatedGrapes = newGrapes.map(g => ({ ...g, percentage: evenPercentage }));
-      setFormData({ ...formData, grape_varieties: updatedGrapes });
-    }
-  };
-
-  const removeGrapeVariety = (grapeId: string) => {
-    const remainingGrapes = formData.grape_varieties.filter(g => g.id !== grapeId);
-    if (remainingGrapes.length > 0) {
-      const evenPercentage = Math.floor(100 / remainingGrapes.length);
-      const updatedGrapes = remainingGrapes.map(g => ({ ...g, percentage: evenPercentage }));
-      setFormData({ ...formData, grape_varieties: updatedGrapes });
-    } else {
-      setFormData({ ...formData, grape_varieties: [] });
-    }
-  };
-
-  const updateGrapePercentage = (grapeId: string, percentage: number) => {
-    setFormData({
-      ...formData,
-      grape_varieties: formData.grape_varieties.map(g => 
-        g.id === grapeId ? { ...g, percentage } : g
-      )
-    });
-  };
-
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -255,6 +226,36 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
 
   const validateForm = () => {
     return formData.name && formData.producer && formData.wine_type && formData.country_id;
+  };
+
+  const addGrapeVariety = (grapeId: string) => {
+    const grape = grapeVarieties.find(g => g.id === grapeId);
+    if (grape && !formData.grape_varieties.find(g => g.id === grapeId)) {
+      const newGrapes = [...formData.grape_varieties, { ...grape, percentage: 0 }];
+      const evenPercentage = Math.floor(100 / newGrapes.length);
+      const updatedGrapes = newGrapes.map(g => ({ ...g, percentage: evenPercentage }));
+      setFormData({ ...formData, grape_varieties: updatedGrapes });
+    }
+  };
+
+  const removeGrapeVariety = (grapeId: string) => {
+    const remainingGrapes = formData.grape_varieties.filter(g => g.id !== grapeId);
+    if (remainingGrapes.length > 0) {
+      const evenPercentage = Math.floor(100 / remainingGrapes.length);
+      const updatedGrapes = remainingGrapes.map(g => ({ ...g, percentage: evenPercentage }));
+      setFormData({ ...formData, grape_varieties: updatedGrapes });
+    } else {
+      setFormData({ ...formData, grape_varieties: [] });
+    }
+  };
+
+  const updateGrapePercentage = (grapeId: string, percentage: number) => {
+    setFormData({
+      ...formData,
+      grape_varieties: formData.grape_varieties.map(g => 
+        g.id === grapeId ? { ...g, percentage } : g
+      )
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -439,51 +440,121 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h4 className="font-medium">Wine Information</h4>
-              <WineSearchDialog 
-                onWineSelect={(wine) => {
-                setFormData({
-                  ...formData,
-                  wine_database_id: wine.id, // Set the existing wine ID
-                  name: wine.name,
-                  producer: wine.producers?.name || '',
-                  vintage: null,
-                  wine_type: wine.wine_type,
-                  alcohol_content: wine.alcohol_content || null,
-                  country_id: wine.country_id || '',
-                  region_id: wine.region_id || '',
-                  appellation_id: wine.appellation_id || '',
-                });
+            <h4 className="font-medium">Wine Selection</h4>
+            
+            {/* Wine selection mode */}
+            <div className="flex gap-2 mb-4">
+              <Button
+                type="button"
+                variant={mode === 'new' ? 'default' : 'outline'}
+                onClick={() => {
+                  setMode('new');
+                  setFormData({
+                    name: '',
+                    producer: '',
+                    vintage: null,
+                    wine_type: '',
+                    bottle_size: '750ml',
+                    country_id: '',
+                    region_id: '',
+                    appellation_id: '',
+                    grape_varieties: [],
+                    alcohol_content: null,
+                    image_url: null,
+                    wine_database_id: undefined,
+                    ...(addToCellar ? {
+                      quantity: 1,
+                      purchase_date: '',
+                      purchase_price: null,
+                      storage_location: '',
+                      notes: ''
+                    } : {})
+                  });
                 }}
-                trigger={
-                  <Button type="button" variant="outline" size="sm">
-                    <Search className="h-4 w-4 mr-2" />
-                    Search Wine Database
-                  </Button>
-                }
-              />
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add New Wine
+              </Button>
+              <Button
+                type="button"
+                variant={mode === 'existing' ? 'default' : 'outline'}
+                onClick={() => setMode('existing')}
+              >
+                <Search className="h-4 w-4 mr-2" />
+                Select from Wine Database
+              </Button>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Fill in the wine details or use the search above to auto-fill from our wine database
-            </p>
-            <div>
-              <Label htmlFor="name">Wine Name *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="producer">Producer *</Label>
-              <ProducerSelect
-                value={formData.producer}
-                onChange={(name) => setFormData({ ...formData, producer: name })}
-              />
-            </div>
-          </div>
+
+            {mode === 'existing' ? (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h5 className="font-medium">Select Existing Wine</h5>
+                  <WineSearchDialog 
+                    onWineSelect={(wine) => {
+                      setFormData({
+                        ...formData,
+                        wine_database_id: wine.id,
+                        name: wine.name,
+                        producer: wine.producers?.name || '',
+                        wine_type: wine.wine_type,
+                        country_id: wine.country_id || '',
+                        region_id: wine.region_id || '',
+                        appellation_id: wine.appellation_id || '',
+                      });
+                    }}
+                    trigger={
+                      <Button type="button" variant="outline" size="sm">
+                        <Search className="h-4 w-4 mr-2" />
+                        Search Wine Database
+                      </Button>
+                    }
+                  />
+                </div>
+                
+                {formData.wine_database_id ? (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h5 className="font-medium mb-2">Selected Wine from Database</h5>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div><strong>Name:</strong> {formData.name}</div>
+                      <div><strong>Producer:</strong> {formData.producer}</div>
+                      <div><strong>Type:</strong> {formData.wine_type}</div>
+                      <div><strong>Country:</strong> {countries.find(c => c.id === formData.country_id)?.name || 'N/A'}</div>
+                      <div><strong>Region:</strong> {regions.find(r => r.id === formData.region_id)?.name || 'N/A'}</div>
+                      <div><strong>Appellation:</strong> {appellations.find(a => a.id === formData.appellation_id)?.name || 'N/A'}</div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Note: Wine database fields cannot be edited. Only vintage, grape varieties, and alcohol content can be modified.
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Use the search button above to select an existing wine from the database
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <h5 className="font-medium">New Wine Information</h5>
+                <p className="text-sm text-muted-foreground">
+                  Fill in the wine details for a new wine entry
+                </p>
+                
+                <div>
+                  <Label htmlFor="name">Wine Name *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="producer">Producer *</Label>
+                  <ProducerSelect
+                    value={formData.producer}
+                    onChange={(name) => setFormData({ ...formData, producer: name })}
+                  />
+                </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -602,6 +673,50 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
             </div>
           </div>
 
+          {/* Grape Varieties */}
+          <div>
+            <Label htmlFor="grape_varieties">Grape Varieties with Percentages</Label>
+            <Select value="" onValueChange={addGrapeVariety}>
+              <SelectTrigger>
+                <SelectValue placeholder="Add grape varieties" />
+              </SelectTrigger>
+              <SelectContent>
+                {grapeVarieties.map((grape) => (
+                  <SelectItem key={grape.id} value={grape.id}>
+                    {grape.name} ({grape.type})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            {formData.grape_varieties.length > 0 && (
+              <div className="space-y-2 mt-2">
+                {formData.grape_varieties.map((grape) => (
+                  <div key={grape.id} className="flex items-center gap-2 p-2 bg-secondary rounded-md">
+                    <span className="flex-1 text-sm">{grape.name}</span>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={grape.percentage}
+                      onChange={(e) => updateGrapePercentage(grape.id, parseInt(e.target.value) || 0)}
+                      className="w-20"
+                      placeholder="%"
+                    />
+                    <span className="text-sm">%</span>
+                    <X
+                      className="h-4 w-4 cursor-pointer"
+                      onClick={() => removeGrapeVariety(grape.id)}
+                    />
+                  </div>
+                ))}
+                <div className="text-xs text-muted-foreground">
+                  Total: {formData.grape_varieties.reduce((sum, g) => sum + g.percentage, 0)}%
+                </div>
+              </div>
+            )}
+          </div>
+
           <div>
             <Label htmlFor="wine_image">Wine Image</Label>
             <div className="space-y-2">
@@ -691,6 +806,7 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
               </div>
             </>
           )}
+                </div>
 
           <DialogFooter>
             <Button type="submit" disabled={loading || !validateForm()}>
