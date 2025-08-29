@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+  import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -265,32 +265,14 @@ export default function Admin() {
           setGrapeVarieties(grapesData || []);
           break;
           
-        
-case 'producers': {
-  let query = supabase
-    .from('producers')
-    .select('id,name,country_id,countries(name)', { count: 'exact' })
-    .order(sortField, { ascending: sortDirection === 'asc' });
-
-  if (producersSearchTerm.trim()) {
-    query = query.ilike('name', `%${producersSearchTerm.trim()}%`);
-  }
-  if (countryFilter) {
-    query = query.eq('country_id', countryFilter);
-  }
-
-  const from = (currentPage - 1) * itemsPerPage;
-  const to = from + itemsPerPage - 1;
-
-  const { data, error, count } = await query.range(from, to);
-  if (error) throw error;
-
-  setWineProducers(data || []);
-  setTotalCount(count || 0);
-  setTotalPages(Math.ceil((count || 0) / itemsPerPage));
-  break;
-}
-
+        case 'producers':
+          const { data: producersData, error: producersError } = await supabase
+            .from('producers')
+            .select('*')
+            .order(sortField, { ascending: sortDirection === 'asc' });
+          if (producersError) throw producersError;
+          setWineProducers(producersData || []);
+          break;
           
         case 'wine_database':
           let query = supabase
@@ -1165,73 +1147,7 @@ case 'producers': {
                     <TableCell>{item.name}</TableCell>
                   </>
                 )}
-                
-            {activeTab === 'producers' && (
-              <div className="space-y-4 mb-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="relative">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search producers..."
-                      value={producersSearchTerm}
-                      onChange={(e) => { setProducersSearchTerm(e.target.value); setCurrentPage(1); }}
-                      className="pl-8"
-                    />
-                  </div>
-
-                  <SearchableSelect
-                    options={[{ value: '', label: 'All countries' }, ...countries.map(c => ({ value: c.id, label: c.name }))]}
-                    value={countryFilter}
-                    onValueChange={(val) => { setCountryFilter(val); setCurrentPage(1); }}
-                    placeholder="Filter by country"
-                    searchPlaceholder="Search countries..."
-                    onSearchChange={async (term) => {
-                      const like = term?.trim() ? `%${term.trim()}%` : '%';
-                      const { data } = await supabase
-                        .from('countries')
-                        .select('id,name')
-                        .ilike('name', like)
-                        .order('name')
-                        .limit(100);
-                      if (data) {
-                        setCountries(data as any);
-                      }
-                    }}
-                  />
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => { setProducersSearchTerm(''); setCountryFilter(''); setCurrentPage(1); }}
-                  >
-                    Clear Filters
-                  </Button>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>Showing page {currentPage} of {Math.max(totalPages, 1)}</div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={currentPage <= 1}
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    >
-                      Prev
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={currentPage >= totalPages}
-                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-{activeTab === 'wine_database' && (
+                {activeTab === 'wine_database' && (
                   <>
                     <TableCell>{item.name}</TableCell>
                     

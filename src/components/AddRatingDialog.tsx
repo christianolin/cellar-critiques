@@ -75,8 +75,6 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
   const [selectedWine, setSelectedWine] = useState<string>('');
   const [uploadingImage, setUploadingImage] = useState(false);
   const [mode, setMode] = useState<'new' | 'existing'>('new');
-  const [cachedProducerOptions, setCachedProducerOptions] = useState<{ value: string; label: string }[]>([]);
-
   
   const [formData, setFormData] = useState({
     rating: 85,
