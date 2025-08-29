@@ -43,6 +43,27 @@ export default function ProducerSelect({
     setOptions(opts);
   }, [value]);
 
+  // Add effect to update options when value changes (e.g., from wine search)
+  useEffect(() => {
+    if (value && !options.find(opt => opt.value === value)) {
+      // If the value is not in current options, add it to ensure it's displayed
+      setOptions(prev => {
+        if (prev.find(opt => opt.value === value)) return prev;
+        return [{ value, label: value }, ...prev];
+      });
+    }
+  }, [value, options]);
+
+  // Also ensure the current value is always in options when component mounts or value changes
+  useEffect(() => {
+    if (value && !options.find(opt => opt.value === value)) {
+      setOptions(prev => {
+        if (prev.find(opt => opt.value === value)) return prev;
+        return [{ value, label: value }, ...prev];
+      });
+    }
+  }, [value]);
+
   useEffect(() => {
     if (open) {
       // Do not prefetch the first 1000; wait for user typing

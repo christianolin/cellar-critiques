@@ -151,7 +151,7 @@ export default function WineSearchDialog({ onWineSelect, open: externalOpen, onO
       
       if (error) throw error;
       const producerOptions = (data || []).map(producer => ({
-        value: producer.id,
+        value: producer.id, // Use producer ID as value for efficient filtering
         label: producer.name
       }));
       setProducers(producerOptions);

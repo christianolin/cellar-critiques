@@ -279,10 +279,11 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
 
     setLoading(true);
     try {
-      // 1) Ensure a wine_database row exists (use selected if provided)
+      // 1) Use existing wine_database ID if provided, otherwise create new entry
       let wineDatabaseId = formData.wine_database_id;
+      
       if (!wineDatabaseId) {
-        // resolve producer_id by name (create producer if missing)
+        // Only create new wine_database entry if none was selected
         let producerId: string | undefined;
         if (formData.producer) {
           const { data: prod, error: prodErr } = await supabase.from('producers').select('id').ilike('name', formData.producer).limit(1).maybeSingle();
@@ -300,6 +301,7 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
             producerId = newProd?.id;
           }
         }
+        
         const { data: wineDb, error: wineDbErr } = await supabase
           .from('wine_database')
           .insert({
@@ -317,6 +319,17 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
           throw new Error(`Failed to create wine database entry: ${wineDbErr.message}`);
         }
         wineDatabaseId = wineDb?.id;
+      } else {
+        // Wine database ID exists, verify it's valid
+        const { data: existingWine, error: verifyError } = await supabase
+          .from('wine_database')
+          .select('id')
+          .eq('id', wineDatabaseId)
+          .single();
+        
+        if (verifyError || !existingWine) {
+          throw new Error('Selected wine database entry not found');
+        }
       }
 
       // 2) Create wine_vintage entry for vintage-specific metadata

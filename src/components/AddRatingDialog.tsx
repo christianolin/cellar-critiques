@@ -242,10 +242,11 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
 
   const createOrSelectWine = async () => {
     try {
-      // 1) Ensure wine_database exists (or use provided id)
+      // 1) Use existing wine_database ID if provided, otherwise create new entry
       let wineDatabaseId = newWineData.wine_database_id;
+      
       if (!wineDatabaseId) {
-        // resolve producer_id by name
+        // Only create new wine_database entry if none was selected
         let producerId: string | undefined;
         if (newWineData.producer) {
           const { data: prod } = await supabase.from('producers').select('id').ilike('name', newWineData.producer).limit(1).maybeSingle();
@@ -255,6 +256,7 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
             producerId = newProd?.id;
           }
         }
+        
         const { data: wineDb, error: wineDbErr } = await supabase
           .from('wine_database')
           .insert({
@@ -269,6 +271,17 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
           .single();
         if (wineDbErr) throw wineDbErr;
         wineDatabaseId = wineDb?.id;
+      } else {
+        // Wine database ID exists, verify it's valid
+        const { data: existingWine, error: verifyError } = await supabase
+          .from('wine_database')
+          .select('id')
+          .eq('id', wineDatabaseId)
+          .single();
+        
+        if (verifyError || !existingWine) {
+          throw new Error('Selected wine database entry not found');
+        }
       }
 
       return { wineDatabaseId: wineDatabaseId!, wineVintageId: null };
