@@ -122,8 +122,27 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
       setAppellations(appellationsRes.data || []);
       setGrapeVarieties(grapeVarietiesRes.data || []);
 
-      // Initialize grape varieties (if needed in the future)
-      // For now, we'll leave grape varieties empty since the data structure has changed
+      // Load existing grape varieties for this wine vintage
+      if (cellarEntry.wine_vintage_id) {
+        const { data: existingGrapes } = await supabase
+          .from('wine_vintage_grapes')
+          .select(`
+            grape_variety_id,
+            percentage,
+            grape_varieties (id, name, type)
+          `)
+          .eq('wine_vintage_id', cellarEntry.wine_vintage_id);
+
+        if (existingGrapes) {
+          const grapeVarietiesWithPercentage = existingGrapes.map(g => ({
+            id: g.grape_variety_id,
+            name: g.grape_varieties.name,
+            type: g.grape_varieties.type,
+            percentage: g.percentage || 0
+          }));
+          setFormData(prev => ({ ...prev, grape_varieties: grapeVarietiesWithPercentage }));
+        }
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -288,6 +307,68 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
 
       if (cellarError) throw cellarError;
 
+      // Update or create wine vintage and grape varieties
+      let vintageId = cellarEntry.wine_vintage_id;
+      
+      if (formData.vintage || formData.alcohol_content || formData.image_url || formData.grape_varieties.length > 0) {
+        if (vintageId) {
+          // Update existing vintage
+          const { error: vintageError } = await supabase
+            .from('wine_vintages')
+            .update({
+              vintage: formData.vintage,
+              alcohol_content: formData.alcohol_content,
+              image_url: formData.image_url,
+            })
+            .eq('id', vintageId);
+
+          if (vintageError) throw vintageError;
+        } else {
+          // Create new vintage
+          const { data: newVintage, error: vintageError } = await supabase
+            .from('wine_vintages')
+            .insert({
+              wine_database_id: cellarEntry.wine_database_id,
+              vintage: formData.vintage,
+              alcohol_content: formData.alcohol_content,
+              image_url: formData.image_url,
+            })
+            .select('id')
+            .single();
+
+          if (vintageError) throw vintageError;
+          vintageId = newVintage.id;
+
+          // Update cellar entry with new vintage ID
+          await supabase
+            .from('wine_cellar')
+            .update({ wine_vintage_id: vintageId })
+            .eq('id', cellarEntry.id);
+        }
+
+        // Update grape varieties if they exist
+        if (formData.grape_varieties.length > 0 && vintageId) {
+          // Remove existing grape varieties
+          await supabase
+            .from('wine_vintage_grapes')
+            .delete()
+            .eq('wine_vintage_id', vintageId);
+
+          // Add new grape varieties
+          const grapeData = formData.grape_varieties.map(grape => ({
+            wine_vintage_id: vintageId,
+            grape_variety_id: grape.id,
+            percentage: grape.percentage,
+          }));
+
+          const { error: grapeError } = await supabase
+            .from('wine_vintage_grapes')
+            .insert(grapeData);
+
+          if (grapeError) throw grapeError;
+        }
+      }
+
       toast({
         title: "Success",
         description: "Wine updated successfully!",
@@ -422,6 +503,56 @@ export default function EditWineDialog({ cellarEntry, onWineUpdated }: EditWineD
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 placeholder="Additional cellar notes..."
               />
+            </div>
+
+            {/* Grape Composition */}
+            <div className="mt-4">
+              <Label>Grape Composition</Label>
+              <div className="space-y-3">
+                {formData.grape_varieties.length > 0 && (
+                  <div className="space-y-2">
+                    {formData.grape_varieties.map((grape) => (
+                      <div key={grape.id} className="flex items-center gap-2 p-2 border rounded">
+                        <span className="flex-1">{grape.name}</span>
+                        <span className="text-sm text-muted-foreground capitalize">({grape.type})</span>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={grape.percentage}
+                          onChange={(e) => updateGrapePercentage(grape.id, parseInt(e.target.value) || 0)}
+                          className="w-16"
+                          placeholder="%"
+                        />
+                        <span className="text-sm">%</span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeGrapeVariety(grape.id)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <div className="text-sm text-muted-foreground">
+                      Total: {formData.grape_varieties.reduce((sum, g) => sum + g.percentage, 0)}%
+                    </div>
+                  </div>
+                )}
+                
+                <div>
+                  <SearchableSelect
+                    options={grapeVarieties
+                      .filter(g => !formData.grape_varieties.find(fg => fg.id === g.id))
+                      .map(g => ({ value: g.id, label: `${g.name} (${g.type})` }))}
+                    value=""
+                    onValueChange={addGrapeVariety}
+                    placeholder="Add grape variety"
+                    searchPlaceholder="Search grape varieties..."
+                  />
+                </div>
+              </div>
             </div>
           </div>
 

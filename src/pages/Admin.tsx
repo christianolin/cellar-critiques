@@ -130,6 +130,18 @@ export default function Admin() {
 
   useEffect(() => {
     setCurrentPage(1); // Reset to first page when tab changes
+    // Reset search terms when switching tabs
+    setSearchTerm('');
+    setCountriesSearchTerm('');
+    setRegionsSearchTerm('');
+    setAppellationsSearchTerm('');
+    setGrapesSearchTerm('');
+    setProducersSearchTerm('');
+    // Reset filters
+    setCountryFilter('');
+    setRegionFilter('');
+    setAppellationFilter('');
+    setProducerFilter('');
     loadData();
   }, [activeTab, sortField, sortDirection]);
 
@@ -722,10 +734,15 @@ export default function Admin() {
           });
         if (error) throw error;
       } else if (editingItem) {
-        // Update other entities
+        // Update other entities - clean the formData to only include valid fields
+        const cleanedData = { ...formData };
+        delete cleanedData.id;
+        delete cleanedData.created_at;
+        delete cleanedData.updated_at;
+        
         const { error } = await supabase
           .from(getTableName())
-          .update(formData)
+          .update(cleanedData)
           .eq('id', editingItem.id);
           
         if (error) throw error;
@@ -735,10 +752,15 @@ export default function Admin() {
           description: "Item updated successfully",
         });
       } else {
-        // Create
+        // Create - clean the formData to only include valid fields
+        const cleanedData = { ...formData };
+        delete cleanedData.id;
+        delete cleanedData.created_at;
+        delete cleanedData.updated_at;
+        
         const { error } = await supabase
           .from(getTableName())
-          .insert(formData);
+          .insert(cleanedData);
           
         if (error) throw error;
         
@@ -1005,21 +1027,10 @@ export default function Admin() {
               </div>
               <div>
                 <Label htmlFor="producer_id">Producer</Label>
-                <SearchableSelect
-                  options={wineProducers.map((producer) => ({ value: producer.id, label: producer.name }))}
+                <ProducerSelect
                   value={formData.producer_id || ''}
-                  onValueChange={(value) => setFormData({ ...formData, producer_id: value })}
+                  onChange={(value) => setFormData({ ...formData, producer_id: value })}
                   placeholder="Select producer"
-                  searchPlaceholder="Search producers..."
-                  onSearchChange={async (term) => {
-                    const like = term?.trim() ? `%${term.trim()}%` : "%";
-                    const { data } = await supabase
-                      .from('producers')
-                      .select('id, name')
-                      .ilike('name', like)
-                      .order('name');
-                    setWineProducers(data || []);
-                  }}
                 />
               </div>
             </div>
