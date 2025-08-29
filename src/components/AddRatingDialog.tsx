@@ -26,6 +26,8 @@ interface Wine {
   region_id?: string | null;
   appellation_id?: string | null;
   image_url?: string | null;
+  wine_database_id: string; // Add this property
+  wine_vintage_id?: string | null; // Add this property
 }
 
 interface Country {
@@ -164,7 +166,7 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
         appellation_id: selectedWineData.appellation_id || '',
         grape_varieties: [],
         image_url: selectedWineData.image_url || null,
-        wine_database_id: selectedWineData.id,
+        wine_database_id: selectedWineData.wine_database_id,
       });
     }
   }, [selectedWineData, mode]);
@@ -201,7 +203,7 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
       
       // Transform data to match Wine interface
       const wines = (data || []).map((entry: any) => ({
-        id: entry.wine_database_id,
+        id: entry.id, // Keep the original ID for the cellar entry
         name: entry.wine_database?.name || '',
         producer: entry.wine_database?.producers?.name || '',
         vintage: entry.wine_vintages?.vintage || null,
@@ -212,6 +214,8 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
         region_id: entry.wine_database?.region_id || null,
         appellation_id: entry.wine_database?.appellation_id || null,
         image_url: entry.wine_vintages?.image_url || null,
+        wine_database_id: entry.wine_database_id || '', // Ensure wine_database_id is present
+        wine_vintage_id: entry.wine_vintage_id || null, // Ensure wine_vintage_id is present
       }));
       
       // Remove duplicates based on wine_database_id
@@ -312,8 +316,23 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
         setLoading(false);
         return;
       }
-    } else if (!selectedWine) {
-      toast({ title: "Error", description: "Please select a wine", variant: "destructive" });
+    } else if (mode === 'cellar' && selectedWine) {
+      // Rating an existing wine from cellar
+      const cellarWine = cellarWines.find(w => w.id === selectedWine);
+      if (!cellarWine) {
+        toast({ title: "Error", description: "Selected wine not found", variant: "destructive" });
+        return;
+      }
+      wineDatabaseId = cellarWine.wine_database_id;
+      wineVintageId = cellarWine.wine_vintage_id;
+    } else {
+      toast({ title: "Error", description: "Please select a wine or create a new one", variant: "destructive" });
+      return;
+    }
+
+    if (!wineDatabaseId) {
+      toast({ title: "Error", description: "No valid wine database ID found", variant: "destructive" });
+      setLoading(false);
       return;
     }
 
@@ -323,7 +342,7 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
         .from('wine_ratings')
         .insert({
           user_id: user.id,
-          wine_database_id: wineDatabaseId || newWineData.wine_database_id || '',
+          wine_database_id: wineDatabaseId,
           wine_vintage_id: wineVintageId || null,
           rating: formData.rating,
           tasting_date: formData.tasting_date,
@@ -355,10 +374,25 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
 
       if (error) throw error;
 
-      // Remove consumption entry creation temporarily until types are updated
-      // This feature will be re-added once wine_consumptions table structure is confirmed
+      // Save grape varieties if we have a wine vintage and grape data
+      if (wineVintageId && newWineData.grape_varieties && newWineData.grape_varieties.length > 0) {
+        const grapeCompositionData = newWineData.grape_varieties.map(grape => ({
+          wine_vintage_id: wineVintageId,
+          grape_variety_id: grape.id,
+          percentage: grape.percentage
+        }));
 
-      toast({ title: "Success", description: "Rating added successfully and wine added to consumed archive!" });
+        const { error: grapeError } = await supabase
+          .from('wine_vintage_grapes')
+          .insert(grapeCompositionData);
+
+        if (grapeError) {
+          console.error('Error saving grape composition:', grapeError);
+          // Don't fail the entire operation if grape saving fails
+        }
+      }
+
+      toast({ title: "Success", description: "Rating added successfully!" });
       setOpen(false);
       resetForm();
       onRatingAdded?.();
@@ -609,7 +643,7 @@ export default function AddRatingDialog({ onRatingAdded, open: externalOpen, onO
                               name: wine.name,
                               producer: wine.producers?.name || '',
                               vintage: null,
-                              wine_type: wine.wine_type,
+                              wine_type: wine.wine_type as 'red' | 'white' | 'rose' | 'sparkling' | 'dessert' | 'fortified',
                               alcohol_content: wine.alcohol_content || null,
                               country_id: wine.country_id || '',
                               region_id: wine.region_id || '',
