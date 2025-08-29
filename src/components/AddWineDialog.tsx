@@ -59,7 +59,7 @@ interface GrapeWithPercentage {
 
 interface WineFormData {
   name: string;
-  producer: string;
+  producer_id: string; // selected producer id
   vintage: number | null;
   wine_type: string;
   bottle_size: string;
@@ -72,7 +72,7 @@ interface WineFormData {
   // Cellar specific fields
   quantity?: number;
   purchase_date?: string;
-  purchase_price?: number;
+  purchase_price?: number | null;
   storage_location?: string;
   notes?: string;
   wine_database_id?: string;
@@ -94,7 +94,7 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
 
   const [formData, setFormData] = useState<WineFormData>({
     name: '',
-    producer: '',
+    producer_id: '',
     vintage: null,
     wine_type: '',
     bottle_size: '750ml',
@@ -233,8 +233,13 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
     }
   };
 
-  const validateForm = () =>
-    Boolean(formData.name && formData.producer && formData.wine_type && formData.country_id);
+const validateForm = () =>
+    Boolean(
+      formData.name &&
+      (mode === 'existing' || formData.producer_id) &&
+      formData.wine_type &&
+      formData.country_id
+    );
 
   const addGrapeVariety = (grapeId: string) => {
     const grape = grapeVarieties.find((g) => g.id === grapeId);
@@ -293,38 +298,8 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
       let wineDatabaseId = formData.wine_database_id;
 
       if (!wineDatabaseId) {
-        // Only create new wine_database entry if none was selected
-        let producerId: string | undefined;
-        if (formData.producer) {
-          const {
-            data: prod,
-            error: prodErr,
-          } = await supabase
-            .from('producers')
-            .select('id')
-            .ilike('name', formData.producer)
-            .limit(1)
-            .maybeSingle();
-
-          if (prodErr) {
-            console.error('Error looking up producer:', prodErr);
-            throw new Error(`Failed to look up producer: ${prodErr.message}`);
-          }
-
-          if (prod?.id) {
-            producerId = prod.id;
-          } else {
-            const {
-              data: newProd,
-              error: newProdErr,
-            } = await supabase.from('producers').insert({ name: formData.producer }).select('id').single();
-
-            if (newProdErr) {
-              console.error('Error creating producer:', newProdErr);
-              throw new Error(`Failed to create producer: ${newProdErr.message}`);
-            }
-            producerId = newProd?.id;
-          }
+        if (!formData.producer_id) {
+          throw new Error('Please select a producer');
         }
 
         const { data: wineDb, error: wineDbErr } = await supabase
@@ -332,7 +307,7 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
           .insert({
             name: formData.name,
             wine_type: formData.wine_type,
-            producer_id: producerId!,
+            producer_id: formData.producer_id,
             country_id: formData.country_id || null,
             region_id: formData.region_id || null,
             appellation_id: formData.appellation_id || null,
@@ -412,7 +387,7 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
       // Reset form
       setFormData({
         name: '',
-        producer: '',
+        producer_id: '',
         vintage: null,
         wine_type: '',
         bottle_size: '750ml',
@@ -476,7 +451,7 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
                   setMode('new');
                   setFormData({
                     name: '',
-                    producer: '',
+                    producer_id: '',
                     vintage: null,
                     wine_type: '',
                     bottle_size: '750ml',
@@ -524,7 +499,7 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
                         ...formData,
                         wine_database_id: wine.id,
                         name: wine.name,
-                        producer: wine.producers?.name || '',
+                        producer_id: wine.producer_id,
                         wine_type: wine.wine_type,
                         country_id: wine.country_id || '',
                         region_id: wine.region_id || '',
@@ -573,6 +548,38 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
                         />
                       </div>
                     </div>
+
+                    <div className="space-y-2">
+                      <Label>Grape Composition</Label>
+                      <SearchableSelect
+                        options={grapeVarieties.map((g) => ({ value: g.id, label: g.name }))}
+                        value={''}
+                        onValueChange={(val) => {
+                          if (val) addGrapeVariety(val);
+                        }}
+                        placeholder="Add grape variety"
+                        searchPlaceholder="Search grapes..."
+                      />
+                      {formData.grape_varieties.length > 0 && (
+                        <div className="space-y-2">
+                          {formData.grape_varieties.map((g) => (
+                            <div key={g.id} className="flex items-center gap-2">
+                              <div className="flex-1">{g.name}</div>
+                              <Input
+                                type="number"
+                                min={0}
+                                max={100}
+                                value={g.percentage}
+                                onChange={(e) => updateGrapePercentage(g.id, parseInt(e.target.value || '0', 10))}
+                              />
+                              <Button type="button" variant="outline" size="icon" onClick={() => removeGrapeVariety(g.id)}>
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -593,8 +600,8 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
                 <div>
                   <Label htmlFor="producer">Producer *</Label>
                   <ProducerSelect
-                    value={formData.producer}
-                    onChange={(name) => setFormData({ ...formData, producer: name })}
+                    value={formData.producer_id}
+                    onChange={(id) => setFormData({ ...formData, producer_id: id })}
                   />
                 </div>
 
@@ -626,6 +633,30 @@ export default function AddWineDialog({ addToCellar = false, onWineAdded }: AddW
                     onValueChange={(value) => setFormData({ ...formData, country_id: value })}
                     placeholder="Select country"
                     searchPlaceholder="Search countries..."
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="region">Region</Label>
+                  <SearchableSelect
+                    options={filteredRegions.map((r) => ({ value: r.id, label: r.name }))}
+                    value={formData.region_id}
+                    onValueChange={(value) => setFormData({ ...formData, region_id: value, appellation_id: '' })}
+                    placeholder="Select region"
+                    searchPlaceholder="Search regions..."
+                    allowNone
+                    noneLabel="None"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="appellation">Appellation</Label>
+                  <SearchableSelect
+                    options={filteredAppellations.map((a) => ({ value: a.id, label: a.name }))}
+                    value={formData.appellation_id}
+                    onValueChange={(value) => setFormData({ ...formData, appellation_id: value })}
+                    placeholder="Select appellation"
+                    searchPlaceholder="Search appellations..."
+                    allowNone
+                    noneLabel="None"
                   />
                 </div>
               </div>
