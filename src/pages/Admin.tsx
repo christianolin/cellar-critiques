@@ -140,6 +140,41 @@ export default function Admin() {
   }, [searchTerm, countryFilter, regionFilter, appellationFilter, producerFilter]);
 
   useEffect(() => {
+    if (activeTab === 'countries') {
+      setCurrentPage(1); // Reset to first page when search changes
+      loadData();
+    }
+  }, [countriesSearchTerm]);
+
+  useEffect(() => {
+    if (activeTab === 'regions') {
+      setCurrentPage(1); // Reset to first page when search changes
+      loadData();
+    }
+  }, [regionsSearchTerm]);
+
+  useEffect(() => {
+    if (activeTab === 'appellations') {
+      setCurrentPage(1); // Reset to first page when search changes
+      loadData();
+    }
+  }, [appellationsSearchTerm]);
+
+  useEffect(() => {
+    if (activeTab === 'grapes') {
+      setCurrentPage(1); // Reset to first page when search changes
+      loadData();
+    }
+  }, [grapesSearchTerm]);
+
+  useEffect(() => {
+    if (activeTab === 'producers') {
+      setCurrentPage(1); // Reset to first page when search changes
+      loadData();
+    }
+  }, [producersSearchTerm]);
+
+  useEffect(() => {
     if (activeTab === 'regions') {
       setCurrentPage(1); // Reset to first page when filters change
       loadData();
@@ -192,29 +227,60 @@ export default function Admin() {
     try {
       switch (activeTab) {
         case 'countries':
-          const { data: countriesData, error: countriesError } = await supabase
+          let countriesQuery = supabase
             .from('countries')
-            .select('*')
+            .select('*', { count: 'exact' });
+
+          // Apply search filter for countries
+          if (countriesSearchTerm) {
+            countriesQuery = countriesQuery.ilike('name', `%${countriesSearchTerm}%`);
+          }
+
+          // Apply pagination
+          const countriesFrom = (currentPage - 1) * itemsPerPage;
+          const countriesTo = countriesFrom + itemsPerPage - 1;
+          
+          countriesQuery = countriesQuery
+            .range(countriesFrom, countriesTo)
             .order(sortField, { ascending: sortDirection === 'asc' });
+
+          const { data: countriesData, error: countriesError, count: countriesCount } = await countriesQuery;
           if (countriesError) throw countriesError;
+          
           setCountries(countriesData || []);
+          setTotalCount(countriesCount || 0);
+          setTotalPages(Math.ceil((countriesCount || 0) / itemsPerPage));
           break;
           
         case 'regions':
           let regionsQuery = supabase
             .from('regions')
-            .select('*, countries(name)');
+            .select('*, countries(name)', { count: 'exact' });
+          
+          // Apply search filter for regions
+          if (regionsSearchTerm) {
+            regionsQuery = regionsQuery.ilike('name', `%${regionsSearchTerm}%`);
+          }
           
           // Apply country filter for regions
           if (activeTab === 'regions' && countryFilter) {
             regionsQuery = regionsQuery.eq('country_id', countryFilter);
           }
+
+          // Apply pagination
+          const regionsFrom = (currentPage - 1) * itemsPerPage;
+          const regionsTo = regionsFrom + itemsPerPage - 1;
           
-          regionsQuery = regionsQuery.order(sortField, { ascending: sortDirection === 'asc' });
+          regionsQuery = regionsQuery
+            .range(regionsFrom, regionsTo)
+            .order(sortField, { ascending: sortDirection === 'asc' });
           
-          const { data: regionsData, error: regionsError } = await regionsQuery;
+          const { data: regionsData, error: regionsError, count: regionsCount } = await regionsQuery;
           if (regionsError) throw regionsError;
+          
           setRegions(regionsData || []);
+          setTotalCount(regionsCount || 0);
+          setTotalPages(Math.ceil((regionsCount || 0) / itemsPerPage));
           
           // Also load countries for the dropdown
           const { data: allCountries } = await supabase.from('countries').select('*').order('name');
@@ -230,7 +296,12 @@ export default function Admin() {
                 id, name, country_id,
                 countries!inner(name)
               )
-            `);
+            `, { count: 'exact' });
+
+          // Apply search filter for appellations
+          if (appellationsSearchTerm) {
+            appellationsQuery = appellationsQuery.ilike('name', `%${appellationsSearchTerm}%`);
+          }
           
           // Apply filters for appellations
           if (activeTab === 'appellations' && countryFilter) {
@@ -239,12 +310,21 @@ export default function Admin() {
           if (activeTab === 'appellations' && regionFilter) {
             appellationsQuery = appellationsQuery.eq('region_id', regionFilter);
           }
+
+          // Apply pagination
+          const appellationsFrom = (currentPage - 1) * itemsPerPage;
+          const appellationsTo = appellationsFrom + itemsPerPage - 1;
           
-          appellationsQuery = appellationsQuery.order(sortField, { ascending: sortDirection === 'asc' });
+          appellationsQuery = appellationsQuery
+            .range(appellationsFrom, appellationsTo)
+            .order(sortField, { ascending: sortDirection === 'asc' });
           
-          const { data: appellationsData, error: appellationsError } = await appellationsQuery;
+          const { data: appellationsData, error: appellationsError, count: appellationsCount } = await appellationsQuery;
           if (appellationsError) throw appellationsError;
+          
           setAppellations(appellationsData || []);
+          setTotalCount(appellationsCount || 0);
+          setTotalPages(Math.ceil((appellationsCount || 0) / itemsPerPage));
           
           // Also load regions and countries for the dropdown
           const { data: allRegions } = await supabase
@@ -257,21 +337,55 @@ export default function Admin() {
           break;
           
         case 'grapes':
-          const { data: grapesData, error: grapesError } = await supabase
+          let grapesQuery = supabase
             .from('grape_varieties')
-            .select('*')
+            .select('*', { count: 'exact' });
+
+          // Apply search filter for grapes
+          if (grapesSearchTerm) {
+            grapesQuery = grapesQuery.ilike('name', `%${grapesSearchTerm}%`);
+          }
+
+          // Apply pagination
+          const grapesFrom = (currentPage - 1) * itemsPerPage;
+          const grapesTo = grapesFrom + itemsPerPage - 1;
+          
+          grapesQuery = grapesQuery
+            .range(grapesFrom, grapesTo)
             .order(sortField, { ascending: sortDirection === 'asc' });
+
+          const { data: grapesData, error: grapesError, count: grapesCount } = await grapesQuery;
           if (grapesError) throw grapesError;
+          
           setGrapeVarieties(grapesData || []);
+          setTotalCount(grapesCount || 0);
+          setTotalPages(Math.ceil((grapesCount || 0) / itemsPerPage));
           break;
           
         case 'producers':
-          const { data: producersData, error: producersError } = await supabase
+          let producersQuery = supabase
             .from('producers')
-            .select('*')
+            .select('*', { count: 'exact' });
+
+          // Apply search filter for producers
+          if (producersSearchTerm) {
+            producersQuery = producersQuery.ilike('name', `%${producersSearchTerm}%`);
+          }
+
+          // Apply pagination
+          const producersFrom = (currentPage - 1) * itemsPerPage;
+          const producersTo = producersFrom + itemsPerPage - 1;
+          
+          producersQuery = producersQuery
+            .range(producersFrom, producersTo)
             .order(sortField, { ascending: sortDirection === 'asc' });
+
+          const { data: producersData, error: producersError, count: producersCount } = await producersQuery;
           if (producersError) throw producersError;
+          
           setWineProducers(producersData || []);
+          setTotalCount(producersCount || 0);
+          setTotalPages(Math.ceil((producersCount || 0) / itemsPerPage));
           break;
           
         case 'wine_database':
@@ -1217,8 +1331,8 @@ export default function Admin() {
           </TableBody>
         </Table>
         
-        {/* Pagination for wine_database */}
-        {activeTab === 'wine_database' && totalPages > 1 && (
+        {/* Pagination for paginated tabs */}
+        {(['wine_database', 'countries', 'regions', 'appellations', 'grapes', 'producers'].includes(activeTab) && totalPages > 1) && (
           <div className="mt-4 flex justify-between items-center">
             <div className="text-sm text-muted-foreground">
               Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalCount)} of {totalCount} entries
@@ -1335,9 +1449,40 @@ export default function Admin() {
             </div>
           </CardHeader>
           <CardContent>
-            {activeTab === 'regions' && (
+            {activeTab === 'countries' && (
               <div className="space-y-4 mb-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search countries..."
+                      value={countriesSearchTerm}
+                      onChange={(e) => setCountriesSearchTerm(e.target.value)}
+                      className="pl-8"
+                    />
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCountriesSearchTerm('')}
+                  >
+                    Clear Search
+                  </Button>
+                </div>
+              </div>
+            )}
+            {activeTab === 'regions' && (
+              <div className="space-y-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search regions..."
+                      value={regionsSearchTerm}
+                      onChange={(e) => setRegionsSearchTerm(e.target.value)}
+                      className="pl-8"
+                    />
+                  </div>
                   <SearchableSelect
                     options={[{value: '', label: 'All countries'}, ...countries.map(c => ({value: c.id, label: c.name}))]}
                     value={countryFilter}
@@ -1350,6 +1495,7 @@ export default function Admin() {
                     size="sm"
                     onClick={() => {
                       setCountryFilter('');
+                      setRegionsSearchTerm('');
                     }}
                   >
                     Clear Filters
@@ -1359,7 +1505,16 @@ export default function Admin() {
             )}
             {activeTab === 'appellations' && (
               <div className="space-y-4 mb-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search appellations..."
+                      value={appellationsSearchTerm}
+                      onChange={(e) => setAppellationsSearchTerm(e.target.value)}
+                      className="pl-8"
+                    />
+                  </div>
                   <SearchableSelect
                     options={[{value: '', label: 'All countries'}, ...countries.map(c => ({value: c.id, label: c.name}))]}
                     value={countryFilter}
@@ -1386,6 +1541,7 @@ export default function Admin() {
                     onClick={() => {
                       setCountryFilter('');
                       setRegionFilter('');
+                      setAppellationsSearchTerm('');
                     }}
                   >
                     Clear Filters
@@ -1487,6 +1643,50 @@ export default function Admin() {
                   <div className="text-sm text-muted-foreground flex items-center">
                     {totalCount} total entries
                   </div>
+                </div>
+              </div>
+            )}
+            {activeTab === 'grapes' && (
+              <div className="space-y-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search grape varieties..."
+                      value={grapesSearchTerm}
+                      onChange={(e) => setGrapesSearchTerm(e.target.value)}
+                      className="pl-8"
+                    />
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setGrapesSearchTerm('')}
+                  >
+                    Clear Search
+                  </Button>
+                </div>
+              </div>
+            )}
+            {activeTab === 'producers' && (
+              <div className="space-y-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search producers..."
+                      value={producersSearchTerm}
+                      onChange={(e) => setProducersSearchTerm(e.target.value)}
+                      className="pl-8"
+                    />
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setProducersSearchTerm('')}
+                  >
+                    Clear Search
+                  </Button>
                 </div>
               </div>
             )}

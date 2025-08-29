@@ -336,7 +336,7 @@ const validateForm = () =>
 
       // 2) Create wine_vintage entry for vintage-specific metadata
       let wineVintageId: string | undefined;
-      if (formData.vintage || formData.alcohol_content || formData.image_url) {
+      if (formData.vintage || formData.alcohol_content || formData.image_url || formData.grape_varieties.length > 0) {
         const vintageData = {
           wine_database_id: wineDatabaseId,
           vintage: formData.vintage || new Date().getFullYear(),
@@ -356,6 +356,24 @@ const validateForm = () =>
         }
 
         wineVintageId = vintage?.id;
+
+        // 3) Create wine_vintage_grapes entries for grape composition
+        if (formData.grape_varieties.length > 0 && wineVintageId) {
+          const grapeEntries = formData.grape_varieties.map(grape => ({
+            wine_vintage_id: wineVintageId,
+            grape_variety_id: grape.id,
+            percentage: grape.percentage || 0,
+          }));
+
+          const { error: grapesErr } = await supabase
+            .from('wine_vintage_grapes')
+            .insert(grapeEntries);
+
+          if (grapesErr) {
+            console.error('Error creating wine_vintage_grapes entries:', grapesErr);
+            throw new Error(`Failed to create grape composition entries: ${grapesErr.message}`);
+          }
+        }
       }
 
       // If adding to cellar, create cellar entry
