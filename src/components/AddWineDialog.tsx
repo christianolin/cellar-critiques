@@ -305,25 +305,23 @@ const producerId = formData.producer_id;
 if (!producerId) {
   throw new Error('Please select a producer.');
 }
-, error: wineDbErr } = await supabase
-          .from('wine_database')
-          .insert({
-            name: formData.name,
-            wine_type: formData.wine_type,
-            producer_id: producerId!,
-            country_id: formData.country_id || null,
-            region_id: formData.region_id || null,
-            appellation_id: formData.appellation_id || null,
-          })
-          .select('id')
-          .single();
+const { data: wineDb, error: wineDbErr } = await supabase
+  .from('wine_database')
+  .insert({
+    name: formData.name,
+    wine_type: formData.wine_type,
+    producer_id: producerId,
+    country_id: formData.country_id || null,
+    region_id: formData.region_id || null,
+    appellation_id: formData.appellation_id || null,
+  })
+  .select('id')
+  .single();
 
-        if (wineDbErr) {
-          console.error('Error creating wine_database entry:', wineDbErr);
-          throw new Error(`Failed to create wine database entry: ${wineDbErr.message}`);
-        }
-
-        wineDatabaseId = wineDb?.id;
+if (wineDbErr) {
+  throw wineDbErr;
+}
+const wineDatabaseId = wineDb.id;
       } else {
         // Wine database ID exists, verify it's valid
         const { data: existingWine, error: verifyError } = await supabase
