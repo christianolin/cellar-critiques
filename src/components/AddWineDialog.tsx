@@ -538,6 +538,76 @@ const validateForm = () =>
                   <div className="space-y-4 border-t pt-4">
                     <h5 className="font-medium">Wine Details</h5>
                     
+                    {/* Read-only base fields from selected wine */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="name_ro">Wine Name</Label>
+                        <Input id="name_ro" value={formData.name} disabled />
+                      </div>
+                      <div>
+                        <Label htmlFor="producer_ro">Producer</Label>
+                        <ProducerSelect value={formData.producer_id} onChange={() => {}} disabled placeholder="Producer" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="type_ro">Wine Type</Label>
+                        <Select value={formData.wine_type} onValueChange={() => {}}>
+                          <SelectTrigger disabled>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="red">Red</SelectItem>
+                            <SelectItem value="white">White</SelectItem>
+                            <SelectItem value="rose">Rosé</SelectItem>
+                            <SelectItem value="sparkling">Sparkling</SelectItem>
+                            <SelectItem value="dessert">Dessert</SelectItem>
+                            <SelectItem value="fortified">Fortified</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="country_ro">Country</Label>
+                        <SearchableSelect
+                          options={countries.map((c) => ({ value: c.id, label: c.name }))}
+                          value={formData.country_id}
+                          onValueChange={() => {}}
+                          placeholder="Country"
+                          searchPlaceholder="Search countries..."
+                          disabled
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="region_ro">Region</Label>
+                        <SearchableSelect
+                          options={filteredRegions.map((r) => ({ value: r.id, label: r.name }))}
+                          value={formData.region_id}
+                          onValueChange={() => {}}
+                          placeholder="Region"
+                          searchPlaceholder="Search regions..."
+                          disabled
+                          allowNone
+                          noneLabel="None"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="appellation_ro">Appellation</Label>
+                        <SearchableSelect
+                          options={filteredAppellations.map((a) => ({ value: a.id, label: a.name }))}
+                          value={formData.appellation_id}
+                          onValueChange={() => {}}
+                          placeholder="Appellation"
+                          searchPlaceholder="Search appellations..."
+                          disabled
+                          allowNone
+                          noneLabel="None"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Editable vintage fields for existing wine */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="vintage">Vintage</Label>

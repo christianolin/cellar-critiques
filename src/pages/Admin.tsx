@@ -18,6 +18,7 @@ import { Plus, Edit, Trash2, Settings, Users, ChevronUp, ChevronDown, Check, Che
 import Layout from '@/components/Layout';
 import { cn } from '@/lib/utils';
 import { SearchableSelect } from '@/components/ui/searchable-select';
+import ProducerSelect from '@/components/ProducerSelect';
 
 interface Country {
   id: string;
@@ -1613,17 +1614,12 @@ export default function Admin() {
                       setAppellations((data as any) || []);
                     }}
                   />
-                  <SearchableSelect
-                    options={[{value: '', label: 'All producers'}, ...wineProducers.map(p => ({value: p.id, label: p.name}))]}
+                  <ProducerSelect
                     value={producerFilter}
-                    onValueChange={setProducerFilter}
+                    onChange={(id) => setProducerFilter(id)}
+                    allowNone
+                    noneLabel="All producers"
                     placeholder="Filter by producer"
-                    searchPlaceholder="Search producers..."
-                    onSearchChange={async (term) => {
-                      const like = term?.trim() ? `%${term.trim()}%` : '%';
-                      const { data } = await supabase.from('producers').select('id,name').ilike('name', like).order('name');
-                      setWineProducers((data as any) || []);
-                    }}
                   />
                 </div>
                 <div className="flex gap-2">
